@@ -20,21 +20,73 @@ export default [
           enforceBuildableLibDependency: true,
           allow: ['^.*/eslint(\\.base)?\\.config\\.[cm]?[jt]s$'],
           depConstraints: [
+            // --- Scope boundaries (which domain may import which) ---
             {
               sourceTag: 'scope:shared',
               onlyDependOnLibsWithTags: ['scope:shared'],
             },
             {
-              sourceTag: 'scope:shop',
-              onlyDependOnLibsWithTags: ['scope:shop', 'scope:shared'],
+              sourceTag: 'scope:board',
+              onlyDependOnLibsWithTags: ['scope:board', 'scope:shared'],
             },
             {
-              sourceTag: 'scope:api',
-              onlyDependOnLibsWithTags: ['scope:api', 'scope:shared'],
+              sourceTag: 'scope:workflow',
+              onlyDependOnLibsWithTags: ['scope:workflow', 'scope:shared'],
             },
             {
-              sourceTag: 'type:data',
-              onlyDependOnLibsWithTags: ['type:data'],
+              sourceTag: 'scope:app',
+              onlyDependOnLibsWithTags: [
+                'scope:app',
+                'scope:board',
+                'scope:workflow',
+                'scope:shared',
+              ],
+            },
+            // --- Type boundaries (allowed layering, most to least composed) ---
+            {
+              sourceTag: 'type:app',
+              onlyDependOnLibsWithTags: [
+                'type:feature',
+                'type:ui',
+                'type:core',
+                'type:util',
+                'type:model',
+              ],
+            },
+            {
+              sourceTag: 'type:feature',
+              onlyDependOnLibsWithTags: [
+                'type:feature',
+                'type:ui',
+                'type:core',
+                'type:util',
+                'type:model',
+              ],
+            },
+            {
+              sourceTag: 'type:ui',
+              onlyDependOnLibsWithTags: [
+                'type:ui',
+                'type:core',
+                'type:util',
+                'type:model',
+              ],
+            },
+            {
+              sourceTag: 'type:core',
+              onlyDependOnLibsWithTags: [
+                'type:core',
+                'type:util',
+                'type:model',
+              ],
+            },
+            {
+              sourceTag: 'type:util',
+              onlyDependOnLibsWithTags: ['type:util'],
+            },
+            {
+              sourceTag: 'type:model',
+              onlyDependOnLibsWithTags: ['type:model'],
             },
           ],
         },
