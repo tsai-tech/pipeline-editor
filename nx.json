@@ -1,10 +1,7 @@
 {
   "$schema": "./node_modules/nx/schemas/nx-schema.json",
   "namedInputs": {
-    "default": [
-      "{projectRoot}/**/*",
-      "sharedGlobals"
-    ],
+    "default": ["{projectRoot}/**/*", "sharedGlobals"],
     "production": [
       "default",
       "!{projectRoot}/.eslintrc.json",
@@ -20,13 +17,8 @@
   "targetDefaults": {
     "@angular/build:application": {
       "cache": true,
-      "dependsOn": [
-        "^build"
-      ],
-      "inputs": [
-        "production",
-        "^production"
-      ]
+      "dependsOn": ["^build"],
+      "inputs": ["production", "^production"]
     },
     "@nx/eslint:lint": {
       "cache": true,
@@ -41,60 +33,27 @@
     },
     "@nx/esbuild:esbuild": {
       "cache": true,
-      "dependsOn": [
-        "^build"
-      ],
-      "inputs": [
-        "production",
-        "^production"
-      ]
+      "dependsOn": ["^build"],
+      "inputs": ["production", "^production"]
     },
     "@nx/js:tsc": {
       "cache": true,
-      "dependsOn": [
-        "^build"
-      ],
-      "inputs": [
-        "production",
-        "^production"
-      ]
+      "dependsOn": ["^build"],
+      "inputs": ["production", "^production"]
     },
-    "@nx/vitest:test": {
-      "cache": true,
-      "inputs": [
-        "default",
-        "^production"
-      ]
-    }
+    "@nx/vitest:test": { "cache": true, "inputs": ["default", "^production"] }
   },
   "release": {
-    "projects": [
-      "api"
-    ],
+    "projects": ["api"],
     "projectsRelationship": "independent",
-    "docker": {
-      "skipVersionActions": true
-    }
+    "docker": { "skipVersionActions": true }
   },
   "plugins": [
-    {
-      "plugin": "@nx/playwright/plugin",
-      "options": {
-        "targetName": "e2e"
-      }
-    },
-    {
-      "plugin": "@nx/eslint/plugin",
-      "options": {
-        "targetName": "lint"
-      }
-    },
+    { "plugin": "@nx/playwright/plugin", "options": { "targetName": "e2e" } },
+    { "plugin": "@nx/eslint/plugin", "options": { "targetName": "lint" } },
     {
       "plugin": "@nx/docker",
-      "options": {
-        "buildTarget": "docker:build",
-        "runTarget": "docker:run"
-      }
+      "options": { "buildTarget": "docker:build", "runTarget": "docker:run" }
     },
     {
       "plugin": "@nx/vite/plugin",
@@ -109,12 +68,7 @@
         "watchDepsTargetName": "watch-deps"
       }
     },
-    {
-      "plugin": "@nx/vitest",
-      "options": {
-        "testTargetName": "vite:test"
-      }
-    }
+    { "plugin": "@nx/vitest", "options": { "testTargetName": "vite:test" } }
   ],
   "generators": {
     "@nx/angular:application": {
@@ -127,10 +81,8 @@
       "linter": "eslint",
       "unitTestRunner": "vitest-analog"
     },
-    "@nx/angular:component": {
-      "style": "css"
-    }
+    "@nx/angular:component": { "style": "css" }
   },
-  "nxCloudId": "6a5005420e120ee17d924807",
+  "nxCloudId": "6a5005a02ed7151f36346927",
   "analytics": false
 }
