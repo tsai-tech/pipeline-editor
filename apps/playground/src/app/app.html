@@ -1,0 +1,182 @@
+<main class="min-h-screen px-6 py-10">
+  <div class="mx-auto flex max-w-5xl flex-col gap-8">
+    <header class="flex flex-wrap items-end justify-between gap-4">
+      <div class="flex flex-col gap-1.5">
+        <div class="flex items-center gap-2">
+          <h1 class="text-2xl font-semibold tracking-tight text-text">
+            {{ title }}
+          </h1>
+          <tsai-badge variant="accent">&#64;tsai-pe/ui-kit</tsai-badge>
+        </div>
+        <p class="max-w-xl text-sm text-text-2">
+          Живая витрина компонентов Pipeline Editor — dark-first премиум-тема на
+          Tailwind v4 поверх headless-примитивов Angular Aria.
+        </p>
+      </div>
+      <tsai-button variant="secondary" size="sm" (click)="toggleTheme()">
+        {{ isLight() ? '🌙 Тёмная тема' : '☀️ Светлая тема' }}
+      </tsai-button>
+    </header>
+
+    <div class="grid gap-4 md:grid-cols-2">
+      <tsai-card title="Buttons">
+        <div class="flex flex-col gap-4">
+          <div class="flex flex-wrap items-center gap-2">
+            <tsai-button variant="primary">Primary</tsai-button>
+            <tsai-button variant="secondary">Secondary</tsai-button>
+            <tsai-button variant="ghost">Ghost</tsai-button>
+            <tsai-button variant="danger">Danger</tsai-button>
+          </div>
+          <div class="flex flex-wrap items-center gap-2">
+            <tsai-button size="sm">Small</tsai-button>
+            <tsai-button size="md">Medium</tsai-button>
+            <tsai-button [disabled]="true">Disabled</tsai-button>
+          </div>
+        </div>
+      </tsai-card>
+
+      <tsai-card title="Badges">
+        <div class="flex flex-wrap items-center gap-2">
+          <tsai-badge variant="trigger">Trigger</tsai-badge>
+          <tsai-badge variant="middleware">Middleware</tsai-badge>
+          <tsai-badge variant="result">Result</tsai-badge>
+          <tsai-badge variant="accent">Accent</tsai-badge>
+          <tsai-badge variant="success">Success</tsai-badge>
+          <tsai-badge variant="warning">Warning</tsai-badge>
+          <tsai-badge variant="danger">Danger</tsai-badge>
+          <tsai-badge>Neutral</tsai-badge>
+        </div>
+      </tsai-card>
+
+      <tsai-card title="Text fields">
+        <div class="flex flex-col gap-4">
+          <tsai-field
+            label="Имя пайплайна"
+            hint="Отображается в списке пайплайнов"
+          >
+            <tsai-input
+              [value]="name()"
+              (valueChange)="name.set($event)"
+              placeholder="Например, Lead enrichment"
+            />
+          </tsai-field>
+          <tsai-field
+            label="Webhook URL"
+            [required]="true"
+            error="Обязательное поле"
+          >
+            <tsai-input [invalid]="true" placeholder="https://…" />
+          </tsai-field>
+          <tsai-field label="Описание">
+            <tsai-textarea
+              [value]="notes()"
+              (valueChange)="notes.set($event)"
+              placeholder="Что делает пайплайн…"
+              [rows]="3"
+            />
+          </tsai-field>
+        </div>
+      </tsai-card>
+
+      <tsai-card title="Toggles & choices">
+        <div class="flex flex-col gap-4">
+          <tsai-checkbox
+            [checked]="agree()"
+            (checkedChange)="agree.set($event)"
+          >
+            Включить логирование
+          </tsai-checkbox>
+          <tsai-checkbox
+            [checked]="notify()"
+            (checkedChange)="notify.set($event)"
+          >
+            Уведомлять об ошибках
+          </tsai-checkbox>
+          <div class="flex items-center gap-3">
+            <tsai-switch
+              [checked]="enabled()"
+              (checkedChange)="enabled.set($event)"
+            />
+            <span class="text-sm text-text-2">
+              Пайплайн {{ enabled() ? 'активен' : 'выключен' }}
+            </span>
+          </div>
+          <div class="flex flex-col gap-2">
+            <span class="text-sm font-medium text-text-2">Роль узла</span>
+            <tsai-radio-group
+              [options]="roleOptions"
+              [value]="role()"
+              (valueChange)="role.set($event)"
+            />
+          </div>
+        </div>
+      </tsai-card>
+
+      <div class="md:col-span-2">
+        <tsai-card title="Select · Angular Aria listbox">
+          <div class="grid gap-4 sm:grid-cols-2">
+            <div class="flex flex-col gap-2">
+              <span class="text-sm font-medium text-text-2"
+                >Триггер (single)</span
+              >
+              <tsai-select
+                [options]="triggerOptions"
+                [value]="selectValue()"
+                (valueChange)="selectValue.set($event)"
+              />
+              <span class="text-xs text-text-3">
+                Выбрано: {{ selectValue().join(', ') || '—' }}
+              </span>
+            </div>
+            <div class="flex flex-col gap-2">
+              <span class="text-sm font-medium text-text-2"
+                >Действия (multi)</span
+              >
+              <tsai-select
+                [options]="actionOptions"
+                [multi]="true"
+                [value]="multiValue()"
+                (valueChange)="multiValue.set($event)"
+              />
+              <span class="text-xs text-text-3">
+                Выбрано: {{ multiValue().join(', ') || '—' }}
+              </span>
+            </div>
+          </div>
+        </tsai-card>
+      </div>
+
+      <div class="md:col-span-2">
+        <tsai-card title="Tabs · Angular Aria">
+          <tsai-tabs>
+            <tsai-tab label="Параметры">
+              <p class="m-0">Настройки выбранного узла пайплайна.</p>
+            </tsai-tab>
+            <tsai-tab label="Входные данные">
+              <p class="m-0">Предпросмотр входных данных узла.</p>
+            </tsai-tab>
+            <tsai-tab label="Логи" [disabled]="true">
+              <p class="m-0">—</p>
+            </tsai-tab>
+          </tsai-tabs>
+        </tsai-card>
+      </div>
+
+      <div class="md:col-span-2">
+        <tsai-card title="Accordion · Angular Aria">
+          <tsai-accordion>
+            <tsai-accordion-item label="Аутентификация">
+              <p class="m-0">Настройки авторизации для HTTP-запроса.</p>
+            </tsai-accordion-item>
+            <tsai-accordion-item label="Заголовки">
+              <p class="m-0">Дополнительные HTTP-заголовки запроса.</p>
+            </tsai-accordion-item>
+            <tsai-accordion-item label="Повторы">
+              <p class="m-0">Стратегия повторов при ошибке выполнения.</p>
+            </tsai-accordion-item>
+          </tsai-accordion>
+        </tsai-card>
+      </div>
+    </div>
+  </div>
+</main>

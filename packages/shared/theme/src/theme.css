@@ -1,0 +1,132 @@
+/**
+ * Pipeline Editor — design tokens (dark-first, premium/technological).
+ *
+ * Single source of truth for the visual language. Pure CSS custom properties so
+ * the tokens are usable everywhere: Tailwind utilities (see index.css `@theme`),
+ * component styles, and inline styles inside the board renderer (edges, ports).
+ *
+ * Design language: Linear/Vercel/Geist × restrained Apple glass.
+ * Rules that shaped these values:
+ *   - ~90% neutral near-black, ~8% quiet surface tint, ~2% single accent.
+ *   - Never pure #000 / #fff. Edges are hairline borders, not shadows.
+ *   - One accent hue (electric indigo). Node roles are muted semantic tints,
+ *     applied minimally (a 2px rail + port dot + icon), never as large fills.
+ */
+
+:root {
+  /* ── Neutral ramp — the backbone ─────────────────────────────────────── */
+  --bg: #0a0a0b; /* app base — never #000 */
+  --bg-sunken: #060607; /* wells, insets, code */
+  --surface-1: #141416; /* cards, node bodies, sheets */
+  --surface-2: #1c1c20; /* raised: popovers, menus, inputs */
+  --surface-3: #26262b; /* hover on surface-2 */
+
+  /* Hairlines & separators — define edges instead of shadows */
+  --border: rgba(255, 255, 255, 0.1);
+  --border-strong: rgba(255, 255, 255, 0.16);
+  --border-subtle: rgba(255, 255, 255, 0.06);
+  --highlight-top: rgba(255, 255, 255, 0.08); /* 1px inner top "lit" edge */
+
+  /* Text — off-white, tiered by opacity (adapts to any surface) */
+  --text: rgba(255, 255, 255, 0.92);
+  --text-2: rgba(255, 255, 255, 0.6);
+  --text-3: rgba(255, 255, 255, 0.4);
+  --text-disabled: rgba(255, 255, 255, 0.26);
+
+  /* ── Single accent — electric indigo ─────────────────────────────────── */
+  --accent: #7c5cff; /* primary actions, focus, selection */
+  --accent-hover: #8e72ff;
+  --accent-press: #6a48e6;
+  --accent-fg: #ffffff;
+  --accent-quiet: rgba(124, 92, 255, 0.14); /* selected row / tinted bg */
+  --accent-glow: rgba(124, 92, 255, 0.35); /* blurred ambient glow only */
+
+  /* ── Semantic (muted, not candy) ─────────────────────────────────────── */
+  --success: #30a46c;
+  --success-quiet: rgba(48, 164, 108, 0.14);
+  --warning: #e2a336;
+  --warning-quiet: rgba(226, 163, 54, 0.14);
+  --danger: #e5484d;
+  --danger-quiet: rgba(229, 72, 77, 0.14);
+  --info: #3b82f6;
+  --info-quiet: rgba(59, 130, 246, 0.14);
+
+  /* ── Pipeline node roles — muted tints, used only for rail/port/icon ──── */
+  --role-trigger: #30a46c; /* entry point — "start / go" */
+  --role-trigger-quiet: rgba(48, 164, 108, 0.14);
+  --role-middleware: #7c5cff; /* processing — matches accent */
+  --role-middleware-quiet: rgba(124, 92, 255, 0.14);
+  --role-result: #3b82f6; /* terminal output */
+  --role-result-quiet: rgba(59, 130, 246, 0.14);
+
+  /* ── Board / canvas ──────────────────────────────────────────────────── */
+  --canvas-bg: #08080a; /* the "well" behind nodes */
+  --canvas-grid-dot: rgba(255, 255, 255, 0.06); /* 32×32 dot grid */
+  --canvas-grid-size: 32px;
+  --edge: rgba(255, 255, 255, 0.24); /* connection stroke, resting */
+  --edge-hover: rgba(255, 255, 255, 0.45);
+  --edge-selected: var(--accent);
+  --port: var(--surface-3); /* empty port fill */
+  --port-border: var(--border-strong);
+
+  /* ── Elevation (border + tint first; soft shadow last) ───────────────── */
+  --elev-1: 0 1px 2px rgba(0, 0, 0, 0.3); /* resting cards / nodes */
+  --elev-2: 0 4px 16px rgba(0, 0, 0, 0.4); /* popovers, floating toolbar */
+  --elev-3: 0 12px 40px rgba(0, 0, 0, 0.5); /* modals, sheets */
+
+  /* ── Radii ───────────────────────────────────────────────────────────── */
+  --r-xs: 6px;
+  --r-sm: 8px; /* buttons, inputs, ports */
+  --r-md: 12px; /* node cards */
+  --r-lg: 16px; /* panels, sheets */
+  --r-xl: 24px;
+  --r-full: 9999px;
+
+  /* ── Typography ──────────────────────────────────────────────────────── */
+  --font-sans: 'Geist', 'Inter', 'SF Pro Display', system-ui, sans-serif;
+  --font-mono:
+    'Geist Mono', 'JetBrains Mono', 'SF Mono', ui-monospace, monospace;
+
+  /* ── Focus ring (accessible, not a shadow blob) ──────────────────────── */
+  --ring: 0 0 0 2px var(--bg), 0 0 0 4px var(--accent);
+
+  /* ── Motion ──────────────────────────────────────────────────────────── */
+  --ease-out: cubic-bezier(0.2, 0.8, 0.2, 1);
+  --dur-fast: 140ms;
+  --dur-mid: 240ms;
+}
+
+/**
+ * Light theme (opt-in via `.light` on <html>). Angular Aria is theme-agnostic,
+ * so both themes share the same token names — only values change. Kept as a
+ * faithful mirror; dark remains the default.
+ */
+.light {
+  --bg: #ffffff;
+  --bg-sunken: #f6f6f7;
+  --surface-1: #ffffff;
+  --surface-2: #f9f9fa;
+  --surface-3: #f0f0f2;
+
+  --border: rgba(0, 0, 0, 0.08);
+  --border-strong: rgba(0, 0, 0, 0.14);
+  --border-subtle: rgba(0, 0, 0, 0.05);
+  --highlight-top: rgba(255, 255, 255, 0.6);
+
+  --text: rgba(0, 0, 0, 0.9);
+  --text-2: rgba(0, 0, 0, 0.58);
+  --text-3: rgba(0, 0, 0, 0.4);
+  --text-disabled: rgba(0, 0, 0, 0.26);
+
+  --canvas-bg: #fbfbfc;
+  --canvas-grid-dot: rgba(0, 0, 0, 0.08);
+  --edge: rgba(0, 0, 0, 0.28);
+  --edge-hover: rgba(0, 0, 0, 0.5);
+  --port: #ffffff;
+  --port-border: rgba(0, 0, 0, 0.18);
+
+  /* Light needs shadows for depth (borders are weak on white) */
+  --elev-1: 0 1px 2px rgba(0, 0, 0, 0.06), 0 1px 3px rgba(0, 0, 0, 0.1);
+  --elev-2: 0 4px 16px rgba(0, 0, 0, 0.1);
+  --elev-3: 0 12px 40px rgba(0, 0, 0, 0.16);
+}

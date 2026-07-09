@@ -1,0 +1,21 @@
+{
+  "name": "@tsai-pe/shared-theme",
+  "version": "0.0.1",
+  "private": true,
+  "type": "commonjs",
+  "main": "./src/index.js",
+  "types": "./src/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./src/index.d.ts",
+      "default": "./src/index.js",
+      "style": "./src/index.css",
+      "import": "./src/index.css"
+    },
+    "./index.css": "./src/index.css",
+    "./theme.css": "./src/theme.css"
+  },
+  "dependencies": {
+    "tslib": "^2.3.0"
+  }
+}
