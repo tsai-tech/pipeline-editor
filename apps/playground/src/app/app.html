@@ -199,6 +199,18 @@
                 </tsai-form-row>
               </div>
 
+              <div>
+                <p
+                  class="mb-2 text-xs font-medium uppercase tracking-wide text-text-3"
+                >
+                  Slider
+                </p>
+                <tsai-slider
+                  [value]="volume()"
+                  (valueChange)="volume.set($event)"
+                />
+              </div>
+
               <tsai-form-row [cols]="2">
                 <tsai-field
                   label="Invalid"
@@ -373,6 +385,10 @@
               </tsai-accordion>
             </tsai-card>
           </div>
+
+          <tsai-card title="Table">
+            <tsai-table [columns]="tableColumns" [rows]="tableRows" />
+          </tsai-card>
 
           <tsai-card title="Chat">
             <tsai-glow-surface>

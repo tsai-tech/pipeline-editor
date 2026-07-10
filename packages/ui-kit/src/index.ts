@@ -15,6 +15,7 @@ export * from './lib/radio/radio-group';
 export * from './lib/select/select';
 export * from './lib/combobox/combobox';
 export * from './lib/segmented/segmented';
+export * from './lib/slider/slider';
 
 // Form structure
 export * from './lib/form/form';
@@ -52,3 +53,4 @@ export * from './lib/badge/badge';
 export * from './lib/tag/tag';
 export * from './lib/avatar/avatar';
 export * from './lib/skeleton/skeleton';
+export * from './lib/table/table';

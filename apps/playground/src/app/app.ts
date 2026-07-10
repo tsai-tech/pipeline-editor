@@ -61,8 +61,11 @@ import {
   Sidebar,
   SidebarItem,
   Skeleton,
+  Slider,
   Spinner,
   Switch,
+  Table,
+  TableColumn,
   Tab,
   Tabs,
   Tag,
@@ -106,6 +109,8 @@ interface ChatEntry {
     Select,
     Combobox,
     Segmented,
+    Slider,
+    Table,
     Dialog,
     Drawer,
     Menu,
@@ -217,6 +222,18 @@ export class App {
   protected readonly view = signal<string | undefined>('grid');
   protected readonly country = signal('');
   protected readonly calendarDate = signal('2026-01-15');
+  protected readonly volume = signal(40);
+
+  protected readonly tableColumns: TableColumn[] = [
+    { key: 'name', label: 'Name' },
+    { key: 'role', label: 'Role' },
+    { key: 'commits', label: 'Commits', align: 'right' },
+  ];
+  protected readonly tableRows = [
+    { name: 'Ada Lovelace', role: 'Author', commits: 128 },
+    { name: 'Grace Hopper', role: 'Maintainer', commits: 96 },
+    { name: 'Alan Turing', role: 'Contributor', commits: 57 },
+  ];
 
   // --- Signal forms demo ---
   protected readonly signupModel = signal({

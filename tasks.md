@@ -55,7 +55,8 @@ Tooltip (directive), Toast + ToastService.
       full keyboard). Remaining: async options + fold onto Aria Combobox.
 - [x] `tsai-datepicker` — popover month-grid calendar (keyboard nav). Remaining:
       date range + min/max.
-- [ ] `tsai-slider`; input prefix/suffix _text_ addons; password reveal toggle.
+- [x] `tsai-slider` (range, `FormValueControl<number>`).
+- [ ] Input prefix/suffix _text_ addons; password reveal toggle.
 - [x] **Signal forms integration** (`@angular/forms/signals`): every value control
       implements `FormValueControl<T>` and checkbox/switch implement
       `FormCheckboxControl`, so they bind with the `[formField]` directive; the
@@ -66,7 +67,8 @@ Tooltip (directive), Toast + ToastService.
 
 ### Data display
 
-- [ ] `tsai-table` / list with `@angular/cdk` **virtual scroll** for long lists.
+- [x] `tsai-table` — data-driven styled table. Remaining: `@angular/cdk` **virtual
+      scroll** for very long lists.
 - [ ] Avatar group / stacked; image fallback on load error.
 
 ### Icons
