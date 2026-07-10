@@ -215,6 +215,27 @@ export class BoardStore {
     );
   }
 
+  /** Resize a node to a whole-cell footprint (clamped to a minimum). */
+  resizeNode(id: string, cols: number, rows: number): void {
+    const size = { cols: Math.max(4, cols), rows: Math.max(2, rows) };
+    this._nodes.update((nodes) =>
+      nodes.map((n) => (n.id === id ? { ...n, size } : n)),
+    );
+  }
+
+  /** Auto-size a node's width to its title (records history). */
+  autoSizeNode(id: string): void {
+    this.record();
+    this._nodes.update((nodes) =>
+      nodes.map((n) => {
+        if (n.id !== id) return n;
+        const chars = Math.max(n.title.length, (n.subtitle ?? '').length);
+        const cols = Math.min(16, Math.max(4, Math.ceil(chars * 0.32) + 3));
+        return { ...n, size: { cols, rows: 2 } };
+      }),
+    );
+  }
+
   /** Shift every selected node by a whole-cell delta (records history). */
   nudgeSelected(dCol: number, dRow: number): void {
     const sel = this._selection();

@@ -11,6 +11,7 @@ import {
 import {
   BoardStore,
   edgePath,
+  GRID_CELL,
   nodeRect,
   portAnchor,
   snapToCell,
@@ -90,7 +91,15 @@ type Drag =
       recorded: boolean;
     }
   | { mode: 'connect'; from: EdgeEnd; anchor: Point; side: PortSide }
-  | { mode: 'select'; startLocal: Point; additive: boolean };
+  | { mode: 'select'; startLocal: Point; additive: boolean }
+  | {
+      mode: 'resize';
+      nodeId: string;
+      startBoard: Point;
+      startCols: number;
+      startRows: number;
+      recorded: boolean;
+    };
 
 /** A contextual menu opened by right-click (desktop) or long-press (touch). */
 interface ContextMenu {
@@ -337,6 +346,18 @@ export class Board {
         snapToCell({ x: drag.startPx.x + dx, y: drag.startPx.y + dy }),
       );
       this.guides.set(this.computeGuides(drag.nodeId));
+    } else if (drag.mode === 'resize') {
+      const board = this.store.viewport.screenToBoard(this.local(event));
+      const cols = drag.startCols + Math.round((board.x - drag.startBoard.x) / GRID_CELL);
+      const rows = drag.startRows + Math.round((board.y - drag.startBoard.y) / GRID_CELL);
+      if (cols === drag.startCols && rows === drag.startRows && !drag.recorded) {
+        return;
+      }
+      if (!drag.recorded) {
+        this.store.record();
+        drag.recorded = true;
+      }
+      this.store.resizeNode(drag.nodeId, cols, rows);
     } else if (drag.mode === 'connect') {
       this.cancelLongPress();
       const world = this.store.viewport.screenToBoard(this.local(event));
@@ -758,6 +779,24 @@ export class Board {
       this.scheduleLongPress(this.local(event), node.id);
     }
     this.capture(event);
+  }
+
+  protected onResizeDown(node: BoardNode, event: PointerEvent): void {
+    if (this.readonly()) return;
+    this.store.select(node.id);
+    this.drag = {
+      mode: 'resize',
+      nodeId: node.id,
+      startBoard: this.store.viewport.screenToBoard(this.local(event)),
+      startCols: node.size.cols,
+      startRows: node.size.rows,
+      recorded: false,
+    };
+    this.capture(event);
+  }
+
+  protected onResizeAuto(node: BoardNode): void {
+    if (!this.readonly()) this.store.autoSizeNode(node.id);
   }
 
   protected onPortDown(node: BoardNode, pointer: PortPointer): void {

@@ -60,6 +60,8 @@ export class NodeView {
   readonly connecting = input(false);
   /** Id of the port currently being magnet-targeted, if it belongs to this node. */
   readonly targetPort = input<string | null>(null);
+  /** Whether the resize handle is shown (disabled in read-only mode). */
+  readonly resizable = input(true);
 
   /** Pointer went down on the node body (select / start move). */
   readonly bodyPointerDown = output<PointerEvent>();
@@ -69,6 +71,10 @@ export class NodeView {
   readonly portPointerUp = output<PortPointer>();
   /** Double-click — request opening the node inspector. */
   readonly openRequested = output<void>();
+  /** Pointer went down on the resize handle (start resizing). */
+  readonly resizePointerDown = output<PointerEvent>();
+  /** Double-click the resize handle — request auto-sizing. */
+  readonly resizeAuto = output<void>();
 
   protected readonly hovered = signal(false);
 
@@ -135,6 +141,17 @@ export class NodeView {
   protected onOpen(event: MouseEvent): void {
     event.preventDefault();
     this.openRequested.emit();
+  }
+
+  protected onResizeDown(event: PointerEvent): void {
+    event.stopPropagation();
+    this.resizePointerDown.emit(event);
+  }
+
+  protected onResizeAuto(event: MouseEvent): void {
+    event.preventDefault();
+    event.stopPropagation();
+    this.resizeAuto.emit();
   }
 
   /** Positioned, generous transparent hit area for a port. */

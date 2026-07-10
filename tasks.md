@@ -24,5 +24,4 @@ Actionable, not-yet-done work only. No history.
 
 ## board — UI-layer prep (next)
 
-- [ ] Node resize + auto-size to content / ports.
 - [ ] Manual reroute waypoints on edges (over the auto A* routing).

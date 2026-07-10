@@ -83,12 +83,15 @@
       [node]="node"
       [selected]="store.isSelected(node.id)"
       [connecting]="isConnecting()"
+      [resizable]="!readonly()"
       [targetPort]="
         snapTarget()?.nodeId === node.id ? snapTarget()!.portId : null
       "
       (bodyPointerDown)="onNodeDown(node, $event)"
       (portPointerDown)="onPortDown(node, $event)"
       (openRequested)="openInspector(node.id)"
+      (resizePointerDown)="onResizeDown(node, $event)"
+      (resizeAuto)="onResizeAuto(node)"
     />
   }
 </div>
