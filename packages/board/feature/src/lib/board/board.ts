@@ -113,10 +113,11 @@ interface ContextMenu {
   selector: 'pe-board',
   imports: [BoardGrid, NodeView, LucideAngularModule],
   templateUrl: './board.html',
-  styleUrl: './board.css',
   changeDetection: ChangeDetectionStrategy.OnPush,
   host: {
     tabindex: '0',
+    class:
+      'relative block w-full h-full overflow-hidden bg-[var(--canvas-bg)] touch-none select-none outline-none',
     '(pointerdown)': 'onPointerDown($event)',
     '(pointermove)': 'onPointerMove($event)',
     '(pointerup)': 'onPointerUp($event)',
@@ -134,6 +135,43 @@ export class Board {
 
   protected readonly store = new BoardStore();
   protected readonly palette = PALETTE;
+
+  /** Shared Tailwind class strings for the repeated floating-panel widgets. */
+  protected readonly cls = {
+    toolbarBtn:
+      'min-w-[30px] h-[30px] px-2 text-[0.8125rem] font-semibold text-text-2 rounded-[var(--r-sm)] cursor-pointer transition-colors duration-150 enabled:hover:text-text enabled:hover:bg-[var(--surface-3)] disabled:opacity-40 disabled:cursor-not-allowed',
+    menuItem:
+      'flex items-center px-2.5 py-[7px] text-[0.8125rem] text-text text-left rounded-[var(--r-sm)] cursor-pointer transition-colors duration-150 hover:bg-[var(--surface-3)]',
+    menuItemDanger:
+      'flex items-center px-2.5 py-[7px] text-[0.8125rem] text-left rounded-[var(--r-sm)] cursor-pointer transition-colors duration-150 text-[var(--danger)] hover:bg-[var(--danger-quiet)]',
+    menuLabel:
+      'px-2.5 pt-1.5 pb-1 text-[0.6875rem] font-semibold tracking-[0.04em] uppercase text-[var(--text-3,var(--text-2))]',
+    sep: 'h-px my-1 mx-1.5 bg-[var(--border)]',
+    field: 'flex flex-col gap-[5px]',
+    fieldLabel: 'text-xs text-text-2',
+    fieldInput:
+      'w-full px-[9px] py-[7px] text-[0.8125rem] text-text border border-[var(--border)] rounded-[var(--r-sm)] bg-[var(--surface-1)] outline-none transition-[border-color] duration-150 focus:border-[var(--accent)]',
+  };
+
+  /** Visible-edge classes: selection accent, else resting stroke + hover growth. */
+  protected edgeClasses(selected: boolean): string {
+    const base =
+      'fill-none [pointer-events:none] transition-[stroke,stroke-width] duration-150';
+    return selected
+      ? `${base} stroke-[var(--edge-selected)] [stroke-width:2.5]`
+      : `${base} stroke-[var(--edge)] [stroke-width:2] group-hover:stroke-[var(--edge-hover)] group-hover:[stroke-width:2.5]`;
+  }
+
+  /** Validation status pill color by current severity. */
+  protected statusClass(): string {
+    if (this.errorCount() > 0) {
+      return 'text-[var(--danger)] bg-[var(--danger-quiet)]';
+    }
+    if (this.warningCount() > 0) {
+      return 'text-[var(--warning)] bg-[var(--warning-quiet)]';
+    }
+    return 'text-[var(--success)] bg-[var(--success-quiet)]';
+  }
 
   private readonly hostEl = inject<ElementRef<HTMLElement>>(ElementRef);
 

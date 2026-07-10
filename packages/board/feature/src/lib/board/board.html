@@ -1,14 +1,13 @@
-<pe-board-grid
-  [pan]="store.viewport.pan()"
-  [zoom]="store.viewport.zoom()"
-/>
+<pe-board-grid [pan]="store.viewport.pan()" [zoom]="store.viewport.zoom()" />
 
-<div class="pe-board__world" [style.transform]="store.viewport.transform()">
-  <svg class="pe-board__edges">
+<div
+  class="absolute inset-0 origin-top-left will-change-transform"
+  [style.transform]="store.viewport.transform()"
+>
+  <svg class="absolute left-0 top-0 w-px h-px overflow-visible pointer-events-none">
     <defs>
       <marker
         id="pe-arrow"
-        class="pe-arrow"
         viewBox="0 0 10 10"
         refX="8"
         refY="5"
@@ -16,11 +15,10 @@
         markerHeight="7"
         orient="auto-start-reverse"
       >
-        <path d="M 0 1 L 9 5 L 0 9 z" />
+        <path class="fill-[var(--edge)]" d="M 0 1 L 9 5 L 0 9 z" />
       </marker>
       <marker
         id="pe-arrow-active"
-        class="pe-arrow pe-arrow--active"
         viewBox="0 0 10 10"
         refX="8"
         refY="5"
@@ -28,20 +26,22 @@
         markerHeight="7"
         orient="auto-start-reverse"
       >
-        <path d="M 0 1 L 9 5 L 0 9 z" />
+        <path class="fill-[var(--accent)]" d="M 0 1 L 9 5 L 0 9 z" />
       </marker>
     </defs>
 
     @for (edge of store.edgeGeometries(); track edge.id) {
       <g
-        class="pe-edge-group"
-        [class.pe-edge-group--selected]="edge.selected"
+        class="group cursor-pointer"
         (pointerdown)="onEdgeDown(edge.id, $event)"
       >
         <title>{{ edge.label }}</title>
-        <path class="pe-edge-hit" [attr.d]="edge.path"></path>
         <path
-          class="pe-edge"
+          class="fill-none stroke-[transparent] [stroke-width:16] [pointer-events:stroke]"
+          [attr.d]="edge.path"
+        ></path>
+        <path
+          [class]="edgeClasses(edge.selected)"
           [attr.d]="edge.path"
           [attr.marker-end]="
             edge.selected ? 'url(#pe-arrow-active)' : 'url(#pe-arrow)'
@@ -51,7 +51,7 @@
     }
     @if (draftPath(); as d) {
       <path
-        class="pe-edge pe-edge--draft"
+        class="fill-none stroke-[var(--accent)] [stroke-width:2] [stroke-dasharray:6_5] [pointer-events:none]"
         [attr.d]="d"
         marker-end="url(#pe-arrow-active)"
       ></path>
@@ -75,7 +75,7 @@
 
 @if (marquee(); as m) {
   <div
-    class="pe-marquee"
+    class="absolute z-[15] pointer-events-none border border-[var(--accent)] bg-[var(--accent-quiet)] rounded-[2px]"
     aria-hidden="true"
     [style.left.px]="m.x"
     [style.top.px]="m.y"
@@ -84,11 +84,14 @@
   ></div>
 }
 
-<div class="pe-actions" (pointerdown)="$event.stopPropagation()">
-  <button type="button" class="pe-toolbar__btn" (click)="exportJson()">
+<div
+  class="absolute right-3 top-3 z-[18] flex items-center gap-1 p-1 border border-[var(--border)] rounded-[var(--r-md)] bg-[var(--surface-2)] shadow-[var(--elev-1)]"
+  (pointerdown)="$event.stopPropagation()"
+>
+  <button type="button" [class]="cls.toolbarBtn" (click)="exportJson()">
     Export
   </button>
-  <button type="button" class="pe-toolbar__btn" (click)="fileInput.click()">
+  <button type="button" [class]="cls.toolbarBtn" (click)="fileInput.click()">
     Import
   </button>
   <input
@@ -100,9 +103,8 @@
   />
   <button
     type="button"
-    class="pe-status"
-    [class.pe-status--error]="errorCount() > 0"
-    [class.pe-status--warn]="errorCount() === 0 && warningCount() > 0"
+    class="h-[30px] px-2.5 text-xs font-semibold rounded-[var(--r-sm)] cursor-pointer whitespace-nowrap"
+    [class]="statusClass()"
     (click)="toggleIssues()"
   >
     @if (errorCount() > 0) {
@@ -116,12 +118,19 @@
 </div>
 
 @if (showIssues() && store.issues().length) {
-  <div class="pe-issues" (pointerdown)="$event.stopPropagation()">
+  <div
+    class="absolute right-3 top-[54px] z-[18] w-[260px] max-h-[40%] overflow-y-auto flex flex-col gap-px p-1.5 border border-[var(--border)] rounded-[var(--r-md)] bg-[var(--surface-2)] shadow-[var(--elev-2)]"
+    (pointerdown)="$event.stopPropagation()"
+  >
     @for (issue of store.issues(); track $index) {
       <button
         type="button"
-        class="pe-issues__item"
-        [class.pe-issues__item--warn]="issue.severity === 'warning'"
+        class="flex px-[9px] py-[7px] text-xs text-left rounded-[var(--r-sm)] cursor-pointer transition-colors duration-150 hover:bg-[var(--surface-3)]"
+        [class]="
+          issue.severity === 'warning'
+            ? 'text-[var(--warning)]'
+            : 'text-[var(--danger)]'
+        "
         (click)="focusIssue(issue)"
       >
         {{ issue.message }}
@@ -130,19 +139,24 @@
   </div>
 }
 
-<aside class="pe-palette" (pointerdown)="$event.stopPropagation()">
-  <span class="pe-palette__label">Nodes</span>
+<aside
+  class="absolute left-3 top-3 z-[18] flex flex-col gap-0.5 w-[152px] p-2 border border-[var(--border)] rounded-[var(--r-md)] bg-[var(--surface-2)] shadow-[var(--elev-1)]"
+  (pointerdown)="$event.stopPropagation()"
+>
+  <span [class]="cls.menuLabel">Nodes</span>
   @for (item of palette; track item.type) {
     <button
       type="button"
-      class="pe-palette__item"
+      class="flex items-center gap-[9px] px-2 py-1.5 text-[0.8125rem] text-text text-left rounded-[var(--r-sm)] cursor-grab transition-colors duration-150 hover:bg-[var(--surface-3)] active:cursor-grabbing"
       draggable="true"
       [style.--node-accent]="item.color"
       [attr.aria-label]="'Add ' + item.label + ' node'"
       (dragstart)="onPaletteDragStart(item, $event)"
       (click)="onPaletteClick(item)"
     >
-      <span class="pe-palette__icon">
+      <span
+        class="grid place-items-center w-6 h-6 shrink-0 rounded-[6px] text-[var(--node-accent)] bg-[color-mix(in_srgb,var(--node-accent)_14%,transparent)]"
+      >
         <lucide-icon [img]="item.icon" [size]="15" />
       </span>
       {{ item.label }}
@@ -150,10 +164,13 @@
   }
 </aside>
 
-<div class="pe-toolbar" (pointerdown)="$event.stopPropagation()">
+<div
+  class="absolute right-3 bottom-3 z-[18] flex gap-1 p-1 border border-[var(--border)] rounded-[var(--r-md)] bg-[var(--surface-2)] shadow-[var(--elev-1)]"
+  (pointerdown)="$event.stopPropagation()"
+>
   <button
     type="button"
-    class="pe-toolbar__btn"
+    [class]="cls.toolbarBtn"
     aria-label="Undo"
     [disabled]="!store.canUndo()"
     (click)="undo()"
@@ -162,17 +179,17 @@
   </button>
   <button
     type="button"
-    class="pe-toolbar__btn"
+    [class]="cls.toolbarBtn"
     aria-label="Redo"
     [disabled]="!store.canRedo()"
     (click)="redo()"
   >
     ↷
   </button>
-  <span class="pe-toolbar__sep"></span>
+  <span class="w-px my-[3px] mx-0.5 bg-[var(--border)]"></span>
   <button
     type="button"
-    class="pe-toolbar__btn"
+    [class]="cls.toolbarBtn"
     aria-label="Zoom out"
     (click)="zoomOut()"
   >
@@ -180,7 +197,7 @@
   </button>
   <button
     type="button"
-    class="pe-toolbar__btn"
+    [class]="cls.toolbarBtn"
     aria-label="Zoom in"
     (click)="zoomIn()"
   >
@@ -188,7 +205,7 @@
   </button>
   <button
     type="button"
-    class="pe-toolbar__btn"
+    [class]="cls.toolbarBtn"
     aria-label="Fit to content"
     (click)="fitView()"
   >
@@ -196,7 +213,7 @@
   </button>
   <button
     type="button"
-    class="pe-toolbar__btn"
+    [class]="cls.toolbarBtn"
     aria-label="Reset view"
     (click)="resetView()"
   >
@@ -206,8 +223,8 @@
 
 @if (minimap(); as mm) {
   <svg
-    class="pe-minimap"
-    [attr.viewBox]="'0 0 190 120'"
+    class="absolute left-3 bottom-3 z-[18] w-[190px] h-[120px] border border-[var(--border)] rounded-[var(--r-md)] bg-[color-mix(in_srgb,var(--canvas-bg)_82%,var(--surface-2))] shadow-[var(--elev-1)] cursor-pointer touch-none"
+    viewBox="0 0 190 120"
     aria-label="Minimap"
     (pointerdown)="onMinimapDown($event)"
     (pointermove)="onMinimapMove($event)"
@@ -226,7 +243,7 @@
       ></rect>
     }
     <rect
-      class="pe-minimap__view"
+      class="fill-[var(--accent-quiet)] stroke-[var(--accent)] [stroke-width:1]"
       [attr.x]="mm.view.x"
       [attr.y]="mm.view.y"
       [attr.width]="mm.view.w"
@@ -237,7 +254,7 @@
 
 @if (menu(); as m) {
   <div
-    class="pe-menu"
+    class="absolute z-[20] min-w-[172px] p-1.5 flex flex-col gap-px border border-[var(--border)] rounded-[var(--r-md)] bg-[var(--surface-2)] shadow-[var(--elev-2)]"
     role="menu"
     [style.left.px]="m.x"
     [style.top.px]="m.y"
@@ -247,7 +264,7 @@
       <button
         type="button"
         role="menuitem"
-        class="pe-menu__item"
+        [class]="cls.menuItem"
         (click)="editNodeFromMenu()"
       >
         Edit node…
@@ -255,26 +272,26 @@
       <button
         type="button"
         role="menuitem"
-        class="pe-menu__item pe-menu__item--danger"
+        [class]="cls.menuItemDanger"
         (click)="deleteNode()"
       >
         Delete node
       </button>
-      <div class="pe-menu__sep"></div>
+      <div [class]="cls.sep"></div>
       <button
         type="button"
         role="menuitem"
-        class="pe-menu__item"
+        [class]="cls.menuItem"
         (click)="resetView()"
       >
         Reset view
       </button>
     } @else {
-      <div class="pe-menu__label">Add node</div>
+      <div [class]="cls.menuLabel">Add node</div>
       <button
         type="button"
         role="menuitem"
-        class="pe-menu__item"
+        [class]="cls.menuItem"
         (click)="addNode('trigger')"
       >
         Trigger
@@ -282,7 +299,7 @@
       <button
         type="button"
         role="menuitem"
-        class="pe-menu__item"
+        [class]="cls.menuItem"
         (click)="addNode('action', 'integration')"
       >
         Integration
@@ -290,7 +307,7 @@
       <button
         type="button"
         role="menuitem"
-        class="pe-menu__item"
+        [class]="cls.menuItem"
         (click)="addNode('action', 'transform')"
       >
         Transform
@@ -298,7 +315,7 @@
       <button
         type="button"
         role="menuitem"
-        class="pe-menu__item"
+        [class]="cls.menuItem"
         (click)="addNode('action', 'control-flow')"
       >
         Control flow
@@ -306,7 +323,7 @@
       <button
         type="button"
         role="menuitem"
-        class="pe-menu__item"
+        [class]="cls.menuItem"
         (click)="addNode('action', 'split')"
       >
         Split
@@ -314,7 +331,7 @@
       <button
         type="button"
         role="menuitem"
-        class="pe-menu__item"
+        [class]="cls.menuItem"
         (click)="addNode('action', 'merge')"
       >
         Merge
@@ -322,16 +339,16 @@
       <button
         type="button"
         role="menuitem"
-        class="pe-menu__item"
+        [class]="cls.menuItem"
         (click)="addNode('effect')"
       >
         Effect
       </button>
-      <div class="pe-menu__sep"></div>
+      <div [class]="cls.sep"></div>
       <button
         type="button"
         role="menuitem"
-        class="pe-menu__item"
+        [class]="cls.menuItem"
         (click)="resetView()"
       >
         Reset view
@@ -341,14 +358,19 @@
 }
 
 @if (inspectNode(); as n) {
-  <aside class="pe-inspector" (pointerdown)="$event.stopPropagation()">
-    <header class="pe-inspector__head">
-      <span class="pe-inspector__kind">
+  <aside
+    class="absolute right-3 top-[54px] bottom-3 z-[19] w-[264px] flex flex-col gap-3 p-3.5 overflow-y-auto border border-[var(--border)] rounded-[var(--r-md)] bg-[var(--surface-2)] shadow-[var(--elev-2)]"
+    (pointerdown)="$event.stopPropagation()"
+  >
+    <header class="flex items-center justify-between">
+      <span
+        class="text-[0.6875rem] font-semibold tracking-[0.04em] uppercase text-[var(--accent)]"
+      >
         {{ n.category ?? n.kind }}
       </span>
       <button
         type="button"
-        class="pe-inspector__close"
+        class="grid place-items-center w-6 h-6 text-text-2 rounded-[var(--r-sm)] cursor-pointer hover:text-text hover:bg-[var(--surface-3)]"
         aria-label="Close inspector"
         (click)="closeInspector()"
       >
@@ -356,20 +378,20 @@
       </button>
     </header>
 
-    <label class="pe-field">
-      <span class="pe-field__label">Title</span>
+    <label [class]="cls.field">
+      <span [class]="cls.fieldLabel">Title</span>
       <input
-        class="pe-field__input"
+        [class]="cls.fieldInput"
         type="text"
         [value]="n.title"
         (change)="patchTitle($any($event.target).value)"
       />
     </label>
 
-    <label class="pe-field">
-      <span class="pe-field__label">Subtitle</span>
+    <label [class]="cls.field">
+      <span [class]="cls.fieldLabel">Subtitle</span>
       <input
-        class="pe-field__input"
+        [class]="cls.fieldInput"
         type="text"
         [value]="n.subtitle ?? ''"
         (change)="patchSubtitle($any($event.target).value)"
@@ -377,10 +399,10 @@
     </label>
 
     @if (n.kind === 'action' && n.category === 'merge') {
-      <label class="pe-field">
-        <span class="pe-field__label">Buffer size</span>
+      <label [class]="cls.field">
+        <span [class]="cls.fieldLabel">Buffer size</span>
         <input
-          class="pe-field__input"
+          [class]="cls.fieldInput"
           type="number"
           min="1"
           [value]="n.bufferSize ?? 1"
@@ -390,13 +412,13 @@
     }
 
     @if (n.kind === 'effect') {
-      <label class="pe-field pe-field--row">
+      <label class="flex flex-row items-center gap-2">
         <input
           type="checkbox"
           [checked]="n.required !== false"
           (change)="patchRequired($any($event.target).checked)"
         />
-        <span class="pe-field__label">Required (failure fails the run)</span>
+        <span [class]="cls.fieldLabel">Required (failure fails the run)</span>
       </label>
     }
   </aside>

@@ -17,8 +17,8 @@ import type { Point } from '@tsai-pe/shared/models';
   selector: 'pe-board-grid',
   imports: [],
   templateUrl: './board-grid.html',
-  styleUrl: './board-grid.css',
   changeDetection: ChangeDetectionStrategy.OnPush,
+  host: { class: 'block absolute inset-0 overflow-hidden' },
 })
 export class BoardGrid {
   /** Viewport pan offset in screen pixels. */

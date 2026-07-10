@@ -1,36 +1,49 @@
-<div class="pe-node__body" (pointerdown)="onBodyPointerDown($event)">
-  <span class="pe-node__rail" aria-hidden="true"></span>
+<div [class]="bodyClasses()" (pointerdown)="onBodyPointerDown($event)">
+  <span
+    class="absolute inset-y-0 left-0 w-[3px] bg-[var(--node-accent)]"
+    aria-hidden="true"
+  ></span>
 
-  <span class="pe-node__icon">
+  <span
+    class="grid place-items-center w-[30px] h-[30px] shrink-0 rounded-[var(--r-sm)] text-[var(--node-accent)] bg-[color-mix(in_srgb,var(--node-accent)_14%,transparent)]"
+  >
     <lucide-icon [img]="meta().icon" [size]="16" />
   </span>
 
-  <div class="pe-node__text">
-    <span class="pe-node__title">{{ node().title }}</span>
+  <div class="flex flex-col min-w-0 leading-tight">
+    <span
+      class="text-[0.8125rem] font-semibold text-text truncate"
+      >{{ node().title }}</span
+    >
     @if (node().subtitle) {
-      <span class="pe-node__subtitle">{{ node().subtitle }}</span>
+      <span class="text-[0.6875rem] text-text-2 truncate">{{
+        node().subtitle
+      }}</span>
     }
   </div>
 
   @if (node().kind === 'action' && node().category === 'merge') {
-    <span class="pe-node__chip">buffer ×{{ node().bufferSize ?? '?' }}</span>
+    <span
+      class="ml-auto shrink-0 px-[7px] py-0.5 text-[0.625rem] font-semibold rounded-full text-[var(--node-accent)] bg-[color-mix(in_srgb,var(--node-accent)_14%,transparent)]"
+      >buffer ×{{ node().bufferSize ?? '?' }}</span
+    >
   } @else if (node().kind === 'effect') {
     <span
-      class="pe-node__chip"
-      [class.pe-node__chip--muted]="node().required === false"
+      class="ml-auto shrink-0 px-[7px] py-0.5 text-[0.625rem] font-semibold rounded-full"
+      [class]="
+        node().required === false
+          ? 'text-text-2 bg-[var(--surface-3)]'
+          : 'text-[var(--node-accent)] bg-[color-mix(in_srgb,var(--node-accent)_14%,transparent)]'
+      "
+      >{{ node().required === false ? 'optional' : 'required' }}</span
     >
-      {{ node().required === false ? 'optional' : 'required' }}
-    </span>
   }
 </div>
 
 @for (port of node().ports; track port.id) {
   <button
     type="button"
-    class="pe-port"
-    [class.pe-port--in]="port.role === 'input'"
-    [class.pe-port--out]="port.role === 'output'"
-    [class.pe-port--target]="targetPort() === port.id"
+    [class]="portClasses(port)"
     [attr.data-side]="port.side"
     [attr.data-node]="node().id"
     [attr.data-port]="port.id"
@@ -40,6 +53,6 @@
     (pointerdown)="onPortPointerDown(port, $event)"
     (pointerup)="onPortPointerUp(port, $event)"
   >
-    <span class="pe-port__dot" aria-hidden="true"></span>
+    <span [class]="dotClasses(port)" aria-hidden="true"></span>
   </button>
 }

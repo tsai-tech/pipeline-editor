@@ -10,3 +10,4 @@
 
 /* Tailwind v4 monorepo scanning: point at the app + showcased libraries. */
 @source '../../../packages/ui-kit';
+@source '../../../packages/board';
