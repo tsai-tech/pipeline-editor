@@ -1,0 +1,11 @@
+:host {
+  display: block;
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+}
+
+.board-grid {
+  position: absolute;
+  inset: 0;
+}

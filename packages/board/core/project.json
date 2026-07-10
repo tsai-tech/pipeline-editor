@@ -1,0 +1,19 @@
+{
+  "name": "core",
+  "$schema": "../../../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "packages/board/core/src",
+  "projectType": "library",
+  "tags": ["scope:board", "type:core"],
+  "targets": {
+    "build": {
+      "executor": "@nx/js:tsc",
+      "outputs": ["{options.outputPath}"],
+      "options": {
+        "outputPath": "dist/packages/board/core",
+        "main": "packages/board/core/src/index.ts",
+        "tsConfig": "packages/board/core/tsconfig.lib.json",
+        "assets": []
+      }
+    }
+  }
+}

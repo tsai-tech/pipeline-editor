@@ -16,7 +16,11 @@
     "baseUrl": ".",
     "paths": {
       "@tsai-pe/shared/theme": ["./packages/shared/theme/src/index.ts"],
-      "@tsai-pe/ui-kit": ["./packages/ui-kit/src/index.ts"]
+      "@tsai-pe/ui-kit": ["./packages/ui-kit/src/index.ts"],
+      "@tsai-pe/shared/models": ["./packages/shared/models/src/index.ts"],
+      "@tsai-pe/board/core": ["./packages/board/core/src/index.ts"],
+      "@tsai-pe/board/ui": ["./packages/board/ui/src/index.ts"],
+      "@tsai-pe/board/feature": ["./packages/board/feature/src/index.ts"]
     }
   },
   "exclude": ["node_modules", "tmp"]

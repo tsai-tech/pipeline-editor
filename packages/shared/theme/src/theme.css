@@ -68,6 +68,16 @@
   --edge-selected: var(--accent);
   --port: var(--surface-3); /* empty port fill */
   --port-border: var(--border-strong);
+  --port-out: var(--accent); /* output port dot */
+
+  /* ── Node-type accents — rail + icon + port tint per node type ─────────── */
+  --node-trigger: #30a46c; /* emits payload */
+  --node-integration: #7c5cff; /* external call (LLM/HTTP) */
+  --node-transform: #22b8cf; /* pure computation */
+  --node-control-flow: #e2a336; /* if / switch / filter */
+  --node-split: #f97066; /* array → per-element */
+  --node-merge: #4dabf7; /* buffer N → array */
+  --node-effect: #f783ac; /* terminal side-effect */
 
   /* ── Elevation (border + tint first; soft shadow last) ───────────────── */
   --elev-1: 0 1px 2px rgba(0, 0, 0, 0.3); /* resting cards / nodes */

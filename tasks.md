@@ -94,3 +94,28 @@ Tooltip (directive), Toast + ToastService.
 - [ ] Document theming (token override), `@source` setup, and component usage in
       the lib README; add `@angular/cdk` + `@angular/aria` notes to ARCHITECTURE.
 - [ ] Consider secondary entry points if the kit keeps growing.
+
+## Board domain (canvas)
+
+- [x] Scaffold libs: `shared/models` (@nx/js), `board/core` (@nx/js),
+      `board/ui` (@nx/angular, prefix `pe`), `board/feature` (@nx/angular).
+- [x] Data model (`shared/models`): `BoardNode` (kind trigger/action/effect +
+      `ActionCategory` control-flow/transform/integration/split/merge), **1:1**
+      `Edge`, `Pipeline`, 32-grid `GridPos` / 16-subgrid `SubPos`, ports
+      (left=input, right/top/bottom=3 outputs), `defaultPorts`, `nodeType`.
+      merge/split modelled as buffer/queue *nodes*, not connection cardinality.
+- [x] `board/core`: grid consts (`GRID_CELL=32`, `GRID_SUBCELL=16`), geometry
+      (cell↔px, snap, `portAnchor`, `edgePath`), signal `Viewport`
+      (pan/zoom/zoomAround) + `BoardStore` (nodes/edges/selection, connect,
+      add/removeNode, edgeGeometries).
+- [x] `board/ui`: infinite `pe-board-grid` (CSS radial-gradient dots follow
+      pan/zoom), `pe-node` (per-type rail + Lucide icon + ports), `NODE_META`
+      registry; per-node-type theme tints (`--node-*`).
+- [x] `pe-board` editor: RMB / touch-swipe pan, wheel zoom, node drag (snap),
+      draw connections (drag output→input), select node/edge, right-click /
+      long-press context menu (add node / delete / reset). Wired into `/board`
+      with the "draw 10 cats" demo pipeline.
+- [ ] Connection routing on the 16-subgrid (waypoints) + orthogonal edges.
+- [ ] Node palette / drag-from-sidebar; multi-select rubber band; copy/paste.
+- [ ] Minimap + fit-to-content; keyboard nav & delete; undo/redo.
+- [ ] Pipeline (de)serialization + validation (DAG, port compatibility).

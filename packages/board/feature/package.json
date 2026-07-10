@@ -1,0 +1,11 @@
+{
+  "name": "@tsai-pe/board/feature",
+  "version": "0.0.1",
+  "peerDependencies": {
+    "@angular/core": "^21.2.0",
+    "@tsai-pe/board/core": "0.0.1",
+    "@tsai-pe/board/ui": "0.0.1",
+    "@tsai-pe/shared/models": "0.0.1"
+  },
+  "sideEffects": false
+}

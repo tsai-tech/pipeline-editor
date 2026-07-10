@@ -1,0 +1,15 @@
+{
+  "name": "@tsai-pe/board/core",
+  "version": "0.0.1",
+  "private": true,
+  "type": "commonjs",
+  "main": "./src/index.js",
+  "types": "./src/index.d.ts",
+  "peerDependencies": {
+    "@angular/core": "^21.2.0"
+  },
+  "dependencies": {
+    "@tsai-pe/shared/models": "0.0.1",
+    "tslib": "^2.3.0"
+  }
+}

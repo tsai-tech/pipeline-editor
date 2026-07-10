@@ -1,0 +1,40 @@
+<div class="pe-node__body" (pointerdown)="onBodyPointerDown($event)">
+  <span class="pe-node__rail" aria-hidden="true"></span>
+
+  <span class="pe-node__icon">
+    <lucide-icon [img]="meta().icon" [size]="16" />
+  </span>
+
+  <div class="pe-node__text">
+    <span class="pe-node__title">{{ node().title }}</span>
+    @if (node().subtitle) {
+      <span class="pe-node__subtitle">{{ node().subtitle }}</span>
+    }
+  </div>
+
+  @if (node().kind === 'action' && node().category === 'merge') {
+    <span class="pe-node__chip">buffer ×{{ node().bufferSize ?? '?' }}</span>
+  } @else if (node().kind === 'effect') {
+    <span
+      class="pe-node__chip"
+      [class.pe-node__chip--muted]="node().required === false"
+    >
+      {{ node().required === false ? 'optional' : 'required' }}
+    </span>
+  }
+</div>
+
+@for (port of node().ports; track port.id) {
+  <button
+    type="button"
+    class="pe-port"
+    [class.pe-port--in]="port.role === 'input'"
+    [attr.data-side]="port.side"
+    [attr.data-node]="node().id"
+    [attr.data-port]="port.id"
+    [attr.data-role]="port.role"
+    [attr.aria-label]="port.role + ' port (' + port.side + ')'"
+    (pointerdown)="onPortPointerDown(port, $event)"
+    (pointerup)="onPortPointerUp(port, $event)"
+  ></button>
+}

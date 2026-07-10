@@ -1,0 +1,126 @@
+<pe-board-grid
+  [pan]="store.viewport.pan()"
+  [zoom]="store.viewport.zoom()"
+/>
+
+<div class="pe-board__world" [style.transform]="store.viewport.transform()">
+  <svg class="pe-board__edges" aria-hidden="true">
+    @for (edge of store.edgeGeometries(); track edge.id) {
+      <path
+        class="pe-edge"
+        [class.pe-edge--selected]="edge.selected"
+        [attr.d]="edge.path"
+        (pointerdown)="onEdgeDown(edge.id, $event)"
+      ></path>
+    }
+    @if (draftPath(); as d) {
+      <path class="pe-edge pe-edge--draft" [attr.d]="d"></path>
+    }
+  </svg>
+
+  @for (node of store.nodes(); track node.id) {
+    <pe-node
+      [node]="node"
+      [selected]="store.isSelected(node.id)"
+      (bodyPointerDown)="onNodeDown(node, $event)"
+      (portPointerDown)="onPortDown(node, $event)"
+    />
+  }
+</div>
+
+@if (menu(); as m) {
+  <div
+    class="pe-menu"
+    role="menu"
+    [style.left.px]="m.x"
+    [style.top.px]="m.y"
+    (pointerdown)="$event.stopPropagation()"
+  >
+    @if (m.nodeId) {
+      <button
+        type="button"
+        role="menuitem"
+        class="pe-menu__item pe-menu__item--danger"
+        (click)="deleteNode()"
+      >
+        Delete node
+      </button>
+      <div class="pe-menu__sep"></div>
+      <button
+        type="button"
+        role="menuitem"
+        class="pe-menu__item"
+        (click)="resetView()"
+      >
+        Reset view
+      </button>
+    } @else {
+      <div class="pe-menu__label">Add node</div>
+      <button
+        type="button"
+        role="menuitem"
+        class="pe-menu__item"
+        (click)="addNode('trigger')"
+      >
+        Trigger
+      </button>
+      <button
+        type="button"
+        role="menuitem"
+        class="pe-menu__item"
+        (click)="addNode('action', 'integration')"
+      >
+        Integration
+      </button>
+      <button
+        type="button"
+        role="menuitem"
+        class="pe-menu__item"
+        (click)="addNode('action', 'transform')"
+      >
+        Transform
+      </button>
+      <button
+        type="button"
+        role="menuitem"
+        class="pe-menu__item"
+        (click)="addNode('action', 'control-flow')"
+      >
+        Control flow
+      </button>
+      <button
+        type="button"
+        role="menuitem"
+        class="pe-menu__item"
+        (click)="addNode('action', 'split')"
+      >
+        Split
+      </button>
+      <button
+        type="button"
+        role="menuitem"
+        class="pe-menu__item"
+        (click)="addNode('action', 'merge')"
+      >
+        Merge
+      </button>
+      <button
+        type="button"
+        role="menuitem"
+        class="pe-menu__item"
+        (click)="addNode('effect')"
+      >
+        Effect
+      </button>
+      <div class="pe-menu__sep"></div>
+      <button
+        type="button"
+        role="menuitem"
+        class="pe-menu__item"
+        (click)="resetView()"
+      >
+        Reset view
+      </button>
+    }
+  </div>
+}
