@@ -102,13 +102,13 @@ let comboId = 0;
       cdkConnectedOverlay
       [cdkConnectedOverlayOrigin]="origin"
       [cdkConnectedOverlayOpen]="open()"
-      [cdkConnectedOverlayWidth]="triggerWidth()"
+      [cdkConnectedOverlayMinWidth]="triggerWidth()"
       [cdkConnectedOverlayPositions]="positions"
     >
       <ul
         [id]="listId"
         role="listbox"
-        class="flex max-h-64 flex-col gap-0.5 overflow-auto rounded-md border border-border bg-surface-2 p-1 text-sm text-text shadow-elev-2"
+        class="flex max-h-64 min-w-52 flex-col gap-0.5 overflow-auto rounded-md border border-border bg-surface-2 p-1 text-sm text-text shadow-elev-2"
         (mousedown)="onOptionMousedown($event)"
       >
         @for (opt of filtered(); track opt.value; let i = $index) {

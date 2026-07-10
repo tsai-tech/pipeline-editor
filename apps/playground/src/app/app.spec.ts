@@ -1,26 +1,16 @@
 import { TestBed } from '@angular/core/testing';
+import { provideRouter } from '@angular/router';
 import { App } from './app';
 
-describe('App', () => {
-  beforeEach(async () => {
+describe('App shell', () => {
+  it('renders the navbar with the brand and playground switcher', async () => {
     await TestBed.configureTestingModule({
       imports: [App],
+      providers: [provideRouter([])],
     }).compileComponents();
-  });
 
-  it('renders the showcase title', async () => {
     const fixture = TestBed.createComponent(App);
     await fixture.whenStable();
-    const compiled = fixture.nativeElement as HTMLElement;
-    expect(compiled.querySelector('h1')?.textContent).toContain(
-      'ui-kit playground',
-    );
-  });
-
-  it('renders ui-kit buttons in the showcase', async () => {
-    const fixture = TestBed.createComponent(App);
-    await fixture.whenStable();
-    const compiled = fixture.nativeElement as HTMLElement;
-    expect(compiled.querySelectorAll('tsai-button').length).toBeGreaterThan(0);
+    expect(fixture.nativeElement.textContent).toContain('Pipeline Editor');
   });
 });

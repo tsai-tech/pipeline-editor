@@ -92,7 +92,7 @@ const PANEL_POSITIONS: ConnectedPosition[] = [
       cdkConnectedOverlay
       [cdkConnectedOverlayOrigin]="origin"
       [cdkConnectedOverlayOpen]="open()"
-      [cdkConnectedOverlayWidth]="triggerWidth()"
+      [cdkConnectedOverlayMinWidth]="triggerWidth()"
       [cdkConnectedOverlayPositions]="positions"
       [cdkConnectedOverlayHasBackdrop]="true"
       cdkConnectedOverlayBackdropClass="cdk-overlay-transparent-backdrop"
@@ -108,7 +108,7 @@ const PANEL_POSITIONS: ConnectedPosition[] = [
         (valuesChange)="onValues($event)"
         [multi]="multi()"
         [selectionMode]="multi() ? 'explicit' : 'follow'"
-        class="flex max-h-64 flex-col gap-0.5 overflow-auto rounded-md border border-border bg-surface-2 p-1 text-sm text-text shadow-elev-2 focus-visible:outline-none"
+        class="flex max-h-64 min-w-52 flex-col gap-0.5 overflow-auto rounded-md border border-border bg-surface-2 p-1 text-sm text-text shadow-elev-2 focus-visible:outline-none"
       >
         @for (opt of options(); track opt.value) {
           <li
