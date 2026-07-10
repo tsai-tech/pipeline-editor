@@ -42,6 +42,14 @@ export interface EdgeGeometry {
  * Framework-light (only `@angular/core` signals) so it can be unit-tested and
  * reused outside a component tree.
  */
+interface Snapshot {
+  nodes: readonly BoardNode[];
+  edges: readonly Edge[];
+}
+
+const HISTORY_LIMIT = 100;
+const PASTE_OFFSET: GridPos = { col: 2, row: 2 };
+
 export class BoardStore {
   readonly viewport = new Viewport();
 
@@ -50,9 +58,17 @@ export class BoardStore {
   private readonly _selection = signal<ReadonlySet<string>>(new Set());
   private seq = 0;
 
+  private undoStack: Snapshot[] = [];
+  private redoStack: Snapshot[] = [];
+  private clipboard: Snapshot | null = null;
+  private readonly _canUndo = signal(false);
+  private readonly _canRedo = signal(false);
+
   readonly nodes: Signal<readonly BoardNode[]> = this._nodes.asReadonly();
   readonly edges: Signal<readonly Edge[]> = this._edges.asReadonly();
   readonly selection: Signal<ReadonlySet<string>> = this._selection.asReadonly();
+  readonly canUndo: Signal<boolean> = this._canUndo.asReadonly();
+  readonly canRedo: Signal<boolean> = this._canRedo.asReadonly();
 
   private readonly nodeById = computed(() => {
     const map = new Map<string, BoardNode>();
@@ -104,11 +120,49 @@ export class BoardStore {
     this._nodes.set(pipeline.nodes);
     this._edges.set(pipeline.edges);
     this._selection.set(new Set());
+    this.undoStack = [];
+    this.redoStack = [];
+    this._canUndo.set(false);
+    this._canRedo.set(false);
     // Keep the id sequence ahead of any numeric-suffixed ids already present.
     for (const node of pipeline.nodes) {
       const n = Number(node.id.split('-').pop());
       if (Number.isFinite(n)) this.seq = Math.max(this.seq, n);
     }
+  }
+
+  // ── History ────────────────────────────────────────────────────────────
+  /** Capture current state onto the undo stack. Call before a discrete edit. */
+  record(): void {
+    this.undoStack.push({ nodes: this._nodes(), edges: this._edges() });
+    if (this.undoStack.length > HISTORY_LIMIT) this.undoStack.shift();
+    this.redoStack = [];
+    this._canUndo.set(true);
+    this._canRedo.set(false);
+  }
+
+  undo(): void {
+    const prev = this.undoStack.pop();
+    if (!prev) return;
+    this.redoStack.push({ nodes: this._nodes(), edges: this._edges() });
+    this.restore(prev);
+    this._canUndo.set(this.undoStack.length > 0);
+    this._canRedo.set(true);
+  }
+
+  redo(): void {
+    const next = this.redoStack.pop();
+    if (!next) return;
+    this.undoStack.push({ nodes: this._nodes(), edges: this._edges() });
+    this.restore(next);
+    this._canUndo.set(true);
+    this._canRedo.set(this.redoStack.length > 0);
+  }
+
+  private restore(snapshot: Snapshot): void {
+    this._nodes.set(snapshot.nodes);
+    this._edges.set(snapshot.edges);
+    this._selection.set(new Set());
   }
 
   /** Move a node to a new grid cell. */
@@ -120,6 +174,7 @@ export class BoardStore {
 
   /** Add a new node (ports derived from its kind) and select it. Returns its id. */
   addNode(input: NewNode): string {
+    this.record();
     const id = `node-${++this.seq}`;
     const node: BoardNode = {
       id,
@@ -138,6 +193,7 @@ export class BoardStore {
 
   /** Remove a node together with any connections touching it. */
   removeNode(id: string): void {
+    this.record();
     this._nodes.update((nodes) => nodes.filter((n) => n.id !== id));
     this._edges.update((edges) =>
       edges.filter((e) => e.source.nodeId !== id && e.target.nodeId !== id),
@@ -154,16 +210,64 @@ export class BoardStore {
   connect(source: EdgeEnd, target: EdgeEnd): void {
     if (source.nodeId === target.nodeId) return;
     const id = `edge-${source.nodeId}.${source.portId}~${target.nodeId}.${target.portId}`;
-    this._edges.update((edges) =>
-      edges.some((e) => e.id === id)
-        ? edges
-        : [...edges, { id, source, target }],
-    );
+    if (this._edges().some((e) => e.id === id)) return;
+    this.record();
+    this._edges.update((edges) => [...edges, { id, source, target }]);
     this.select(id);
   }
 
   removeEdge(id: string): void {
+    this.record();
     this._edges.update((edges) => edges.filter((e) => e.id !== id));
+  }
+
+  // ── Clipboard ──────────────────────────────────────────────────────────
+  /** Copy the selected nodes and any edges fully within the selection. */
+  copySelection(): void {
+    const sel = this._selection();
+    const nodes = this._nodes().filter((n) => sel.has(n.id));
+    if (!nodes.length) {
+      this.clipboard = null;
+      return;
+    }
+    const ids = new Set(nodes.map((n) => n.id));
+    const edges = this._edges().filter(
+      (e) => ids.has(e.source.nodeId) && ids.has(e.target.nodeId),
+    );
+    this.clipboard = { nodes, edges };
+  }
+
+  get hasClipboard(): boolean {
+    return !!this.clipboard?.nodes.length;
+  }
+
+  /** Paste the clipboard offset by a couple of cells, selecting the copies. */
+  paste(): void {
+    const clip = this.clipboard;
+    if (!clip?.nodes.length) return;
+    this.record();
+    const idMap = new Map<string, string>();
+    const nodes = clip.nodes.map((n) => {
+      const id = `node-${++this.seq}`;
+      idMap.set(n.id, id);
+      return {
+        ...n,
+        id,
+        pos: {
+          col: n.pos.col + PASTE_OFFSET.col,
+          row: n.pos.row + PASTE_OFFSET.row,
+        },
+        ports: n.ports.map((p) => ({ ...p })),
+      };
+    });
+    const edges = clip.edges.map((e) => ({
+      id: `edge-${++this.seq}`,
+      source: { nodeId: idMap.get(e.source.nodeId) as string, portId: e.source.portId },
+      target: { nodeId: idMap.get(e.target.nodeId) as string, portId: e.target.portId },
+    }));
+    this._nodes.update((ns) => [...ns, ...nodes]);
+    this._edges.update((es) => [...es, ...edges]);
+    this.selectMany(nodes.map((n) => n.id));
   }
 
   isSelected(id: string): boolean {
@@ -202,6 +306,7 @@ export class BoardStore {
   removeSelected(): void {
     const sel = this._selection();
     if (!sel.size) return;
+    this.record();
     this._nodes.update((nodes) => nodes.filter((n) => !sel.has(n.id)));
     this._edges.update((edges) =>
       edges.filter(

@@ -116,10 +116,11 @@ function edge(id: string, from: string, fromPort: string, to: string) {
   imports: [Board],
   template: `<div class="flex h-[75dvh] flex-col gap-3">
     <p class="text-sm text-text-2">
-      Drag a node to move it (snaps to the 32-grid) · drag from a right / top /
-      bottom port onto a left port to connect · hold the right mouse button (or
-      swipe on touch) to pan · scroll to zoom · right-click or long-press for the
-      context menu.
+      Drag from the palette to add nodes · drag a node to move it · drag a right /
+      top / bottom port onto a left port to connect · rubber-band to multi-select ·
+      right mouse (or touch swipe) pans, scroll zooms · minimap navigates ·
+      <kbd>⌘/Ctrl+Z</kbd> undo, <kbd>C</kbd>/<kbd>V</kbd> copy-paste,
+      <kbd>Del</kbd> delete, <kbd>F</kbd> fit.
     </p>
     <pe-board
       [pipeline]="pipeline"

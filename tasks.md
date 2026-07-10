@@ -123,5 +123,8 @@ Tooltip (directive), Toast + ToastService.
       nodes** (inflated obstacle cells) and **softly avoid each other** (occupancy
       penalty), prefer straight runs (turn penalty), rounded corners; bezier
       fallback when no route/too large. Reroutes live as nodes move.
-- [ ] Node palette / drag-from-sidebar; copy / paste; undo / redo.
-- [ ] Minimap; DAG + port-compatibility validation; pipeline (de)serialization.
+- [x] Node palette (drag-to-canvas + click-to-add at center), copy / paste
+      (⌘/Ctrl+C/V, ⌘/Ctrl+D duplicate), undo / redo (snapshot history + toolbar),
+      select-all (⌘/Ctrl+A).
+- [x] Minimap (nodes + viewport rect, click / drag to navigate).
+- [ ] DAG + port-compatibility validation; pipeline (de)serialization (save/load).

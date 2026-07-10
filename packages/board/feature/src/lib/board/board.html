@@ -39,7 +39,46 @@
   ></div>
 }
 
+<aside class="pe-palette" (pointerdown)="$event.stopPropagation()">
+  <span class="pe-palette__label">Nodes</span>
+  @for (item of palette; track item.type) {
+    <button
+      type="button"
+      class="pe-palette__item"
+      draggable="true"
+      [style.--node-accent]="item.color"
+      [attr.aria-label]="'Add ' + item.label + ' node'"
+      (dragstart)="onPaletteDragStart(item, $event)"
+      (click)="onPaletteClick(item)"
+    >
+      <span class="pe-palette__icon">
+        <lucide-icon [img]="item.icon" [size]="15" />
+      </span>
+      {{ item.label }}
+    </button>
+  }
+</aside>
+
 <div class="pe-toolbar" (pointerdown)="$event.stopPropagation()">
+  <button
+    type="button"
+    class="pe-toolbar__btn"
+    aria-label="Undo"
+    [disabled]="!store.canUndo()"
+    (click)="undo()"
+  >
+    ↶
+  </button>
+  <button
+    type="button"
+    class="pe-toolbar__btn"
+    aria-label="Redo"
+    [disabled]="!store.canRedo()"
+    (click)="redo()"
+  >
+    ↷
+  </button>
+  <span class="pe-toolbar__sep"></span>
   <button
     type="button"
     class="pe-toolbar__btn"
@@ -73,6 +112,34 @@
     1:1
   </button>
 </div>
+
+@if (minimap(); as mm) {
+  <svg
+    class="pe-minimap"
+    [attr.viewBox]="'0 0 190 120'"
+    aria-label="Minimap"
+    (pointerdown)="onMinimapDown($event)"
+  >
+    @for (n of mm.nodes; track $index) {
+      <rect
+        [attr.x]="n.x"
+        [attr.y]="n.y"
+        [attr.width]="n.w"
+        [attr.height]="n.h"
+        rx="1.5"
+        [attr.fill]="n.fill"
+        [attr.fill-opacity]="n.selected ? 1 : 0.6"
+      ></rect>
+    }
+    <rect
+      class="pe-minimap__view"
+      [attr.x]="mm.view.x"
+      [attr.y]="mm.view.y"
+      [attr.width]="mm.view.w"
+      [attr.height]="mm.view.h"
+    ></rect>
+  </svg>
+}
 
 @if (menu(); as m) {
   <div

@@ -15,23 +15,61 @@ import {
   portAnchor,
   snapToCell,
 } from '@tsai-pe/board/core';
-import { BoardGrid, NodeView, type PortPointer } from '@tsai-pe/board/ui';
+import {
+  BoardGrid,
+  NODE_META,
+  NodeView,
+  type PortPointer,
+} from '@tsai-pe/board/ui';
 import {
   type ActionCategory,
   type BoardNode,
   type EdgeEnd,
   type GridPos,
   type NodeKind,
+  nodeType,
+  type NodeType,
   type Pipeline,
   type Point,
   type PortSide,
   type Rect,
   type Size,
 } from '@tsai-pe/shared/models';
+import { LucideAngularModule } from 'lucide-angular';
 
 const LONG_PRESS_MS = 500;
 const MOVE_THRESHOLD = 4;
 const ZOOM_STEP = 1.2;
+const MINIMAP = { width: 190, height: 120, pad: 8 };
+
+/** One entry in the node palette. */
+interface PaletteItem {
+  type: NodeType;
+  kind: NodeKind;
+  category?: ActionCategory;
+  label: string;
+  icon: (typeof NODE_META)[NodeType]['icon'];
+  color: string;
+}
+
+function paletteItem(
+  type: NodeType,
+  kind: NodeKind,
+  category?: ActionCategory,
+): PaletteItem {
+  const meta = NODE_META[type];
+  return { type, kind, category, label: meta.label, icon: meta.icon, color: meta.color };
+}
+
+const PALETTE: PaletteItem[] = [
+  paletteItem('trigger', 'trigger'),
+  paletteItem('integration', 'action', 'integration'),
+  paletteItem('transform', 'action', 'transform'),
+  paletteItem('control-flow', 'action', 'control-flow'),
+  paletteItem('split', 'action', 'split'),
+  paletteItem('merge', 'action', 'merge'),
+  paletteItem('effect', 'effect'),
+];
 
 /** A resolved port drop target under the cursor. */
 interface PortHit {
@@ -42,7 +80,13 @@ interface PortHit {
 
 type Drag =
   | { mode: 'pan'; startClient: Point; startPan: Point; moved: boolean }
-  | { mode: 'move'; nodeId: string; startBoard: Point; startPx: Point }
+  | {
+      mode: 'move';
+      nodeId: string;
+      startBoard: Point;
+      startPx: Point;
+      recorded: boolean;
+    }
   | { mode: 'connect'; from: EdgeEnd; anchor: Point; side: PortSide }
   | { mode: 'select'; startLocal: Point; additive: boolean };
 
@@ -65,7 +109,7 @@ interface ContextMenu {
  */
 @Component({
   selector: 'pe-board',
-  imports: [BoardGrid, NodeView],
+  imports: [BoardGrid, NodeView, LucideAngularModule],
   templateUrl: './board.html',
   styleUrl: './board.css',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -78,6 +122,8 @@ interface ContextMenu {
     '(contextmenu)': 'onContextMenu($event)',
     '(wheel)': 'onWheel($event)',
     '(keydown)': 'onKeyDown($event)',
+    '(dragover)': 'onDragOver($event)',
+    '(drop)': 'onDrop($event)',
   },
 })
 export class Board {
@@ -85,11 +131,14 @@ export class Board {
   readonly pipeline = input<Pipeline | null>(null);
 
   protected readonly store = new BoardStore();
+  protected readonly palette = PALETTE;
 
   private readonly hostEl = inject<ElementRef<HTMLElement>>(ElementRef);
 
   private drag: Drag | null = null;
   private longPress?: ReturnType<typeof setTimeout>;
+  private paletteDrag: { kind: NodeKind; category?: ActionCategory; label: string } | null =
+    null;
 
   /** Live bezier path while drawing a connection. */
   protected readonly draftPath = signal<string | null>(null);
@@ -103,6 +152,42 @@ export class Board {
     return [...this.store.nodes()].sort(
       (a, b) => Number(sel.has(a.id)) - Number(sel.has(b.id)),
     );
+  });
+
+  /** Minimap geometry: node rects, viewport rect and the world→minimap mapping. */
+  protected readonly minimap = computed(() => {
+    const bounds = this.store.contentBounds();
+    if (bounds.width <= 0 || bounds.height <= 0) return null;
+    const { width: mw, height: mh, pad } = MINIMAP;
+    const scale = Math.min(
+      (mw - pad * 2) / bounds.width,
+      (mh - pad * 2) / bounds.height,
+    );
+    const toMini = (x: number, y: number) => ({
+      x: (x - bounds.x) * scale + pad,
+      y: (y - bounds.y) * scale + pad,
+    });
+    const nodes = this.store.nodes().map((n) => {
+      const r = nodeRect(n);
+      const p = toMini(r.x, r.y);
+      return {
+        x: p.x,
+        y: p.y,
+        w: r.width * scale,
+        h: r.height * scale,
+        fill: NODE_META[nodeType(n)].color,
+        selected: this.store.isSelected(n.id),
+      };
+    });
+    const size = this.size();
+    const vp = this.store.viewport;
+    const tl = vp.screenToBoard({ x: 0, y: 0 });
+    const view = {
+      ...toMini(tl.x, tl.y),
+      w: (size.width / vp.zoom()) * scale,
+      h: (size.height / vp.zoom()) * scale,
+    };
+    return { bounds, scale, pad, nodes, view };
   });
 
   constructor() {
@@ -161,7 +246,13 @@ export class Board {
       const board = this.store.viewport.screenToBoard(this.local(event));
       const dx = board.x - drag.startBoard.x;
       const dy = board.y - drag.startBoard.y;
-      if (Math.hypot(dx, dy) > MOVE_THRESHOLD) this.cancelLongPress();
+      if (Math.hypot(dx, dy) <= MOVE_THRESHOLD) return; // ignore jitter
+      this.cancelLongPress();
+      // Snapshot the pre-drag state once, right before the node first moves.
+      if (!drag.recorded) {
+        this.store.record();
+        drag.recorded = true;
+      }
       this.store.moveNode(
         drag.nodeId,
         snapToCell({ x: drag.startPx.x + dx, y: drag.startPx.y + dy }),
@@ -226,6 +317,41 @@ export class Board {
   }
 
   protected onKeyDown(event: KeyboardEvent): void {
+    const mod = event.ctrlKey || event.metaKey;
+    const key = event.key.toLowerCase();
+
+    if (mod) {
+      switch (key) {
+        case 'z':
+          event.preventDefault();
+          if (event.shiftKey) this.store.redo();
+          else this.store.undo();
+          return;
+        case 'y':
+          event.preventDefault();
+          this.store.redo();
+          return;
+        case 'c':
+          event.preventDefault();
+          this.store.copySelection();
+          return;
+        case 'v':
+          event.preventDefault();
+          this.store.paste();
+          return;
+        case 'd':
+          event.preventDefault();
+          this.store.copySelection();
+          this.store.paste();
+          return;
+        case 'a':
+          event.preventDefault();
+          this.store.selectMany(this.store.nodes().map((n) => n.id));
+          return;
+      }
+      return;
+    }
+
     switch (event.key) {
       case 'Delete':
       case 'Backspace':
@@ -241,6 +367,71 @@ export class Board {
         this.fitView();
         break;
     }
+  }
+
+  protected undo(): void {
+    this.store.undo();
+  }
+
+  protected redo(): void {
+    this.store.redo();
+  }
+
+  // ── Node palette (drag-and-drop create + click-to-add) ───────────────────
+  protected onPaletteDragStart(item: PaletteItem, event: DragEvent): void {
+    this.paletteDrag = { kind: item.kind, category: item.category, label: item.label };
+    event.dataTransfer?.setData('text/plain', item.type);
+    if (event.dataTransfer) event.dataTransfer.effectAllowed = 'copy';
+  }
+
+  /** Click a palette item to drop a node at the current viewport center. */
+  protected onPaletteClick(item: PaletteItem): void {
+    const cell = snapToCell(this.store.viewport.screenToBoard(this.center()));
+    this.store.addNode({
+      kind: item.kind,
+      category: item.category,
+      title: item.label,
+      pos: cell,
+    });
+  }
+
+  protected onDragOver(event: DragEvent): void {
+    if (!this.paletteDrag) return;
+    event.preventDefault();
+    if (event.dataTransfer) event.dataTransfer.dropEffect = 'copy';
+  }
+
+  protected onDrop(event: DragEvent): void {
+    const spec = this.paletteDrag;
+    this.paletteDrag = null;
+    if (!spec) return;
+    event.preventDefault();
+    const cell = snapToCell(this.store.viewport.screenToBoard(this.local(event)));
+    this.store.addNode({
+      kind: spec.kind,
+      category: spec.category,
+      title: spec.label,
+      pos: cell,
+    });
+  }
+
+  // ── Minimap ──────────────────────────────────────────────────────────────
+  protected onMinimapDown(event: PointerEvent): void {
+    event.stopPropagation();
+    const mm = this.minimap();
+    if (!mm) return;
+    const target = event.currentTarget as SVGElement;
+    const rect = target.getBoundingClientRect();
+    const world = {
+      x: mm.bounds.x + (event.clientX - rect.left - mm.pad) / mm.scale,
+      y: mm.bounds.y + (event.clientY - rect.top - mm.pad) / mm.scale,
+    };
+    const size = this.size();
+    const zoom = this.store.viewport.zoom();
+    this.store.viewport.setPan({
+      x: size.width / 2 - world.x * zoom,
+      y: size.height / 2 - world.y * zoom,
+    });
   }
 
   // ── Toolbar / view controls ──────────────────────────────────────────────
@@ -271,6 +462,7 @@ export class Board {
       nodeId: node.id,
       startBoard: this.store.viewport.screenToBoard(this.local(event)),
       startPx: { x: rect.x, y: rect.y },
+      recorded: false,
     };
     if (event.pointerType === 'touch') {
       this.scheduleLongPress(this.local(event), node.id);
@@ -341,7 +533,7 @@ export class Board {
     }
   }
 
-  private local(event: PointerEvent | WheelEvent): Point {
+  private local(event: { clientX: number; clientY: number }): Point {
     const rect = this.hostEl.nativeElement.getBoundingClientRect();
     return { x: event.clientX - rect.left, y: event.clientY - rect.top };
   }
