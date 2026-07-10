@@ -132,3 +132,9 @@ Tooltip (directive), Toast + ToastService.
       panel, and `connect()` rejects invalid/cyclic links (replaces on 1:1 input).
 - [x] Pipeline (de)serialization: Export downloads JSON, Import loads a JSON file
       (`BoardStore.toPipeline` / `load`).
+- [x] UX pass: input vs output ports distinct (square socket vs filled dot),
+      ports subtle until node hover / select / connecting; magnet-snap to nearby
+      input while dragging (+ target highlight); wider edge/port hit areas;
+      directional arrowheads; port & edge tooltips; middle-click pans; minimap
+      LMB-drag; node inspector (dbl-click / "Edit node…") for title / subtitle /
+      buffer / required.

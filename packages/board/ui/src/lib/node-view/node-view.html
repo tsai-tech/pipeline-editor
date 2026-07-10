@@ -29,12 +29,17 @@
     type="button"
     class="pe-port"
     [class.pe-port--in]="port.role === 'input'"
+    [class.pe-port--out]="port.role === 'output'"
+    [class.pe-port--target]="targetPort() === port.id"
     [attr.data-side]="port.side"
     [attr.data-node]="node().id"
     [attr.data-port]="port.id"
     [attr.data-role]="port.role"
+    [attr.title]="portTitle(port)"
     [attr.aria-label]="port.role + ' port (' + port.side + ')'"
     (pointerdown)="onPortPointerDown(port, $event)"
     (pointerup)="onPortPointerUp(port, $event)"
-  ></button>
+  >
+    <span class="pe-port__dot" aria-hidden="true"></span>
+  </button>
 }

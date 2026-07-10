@@ -41,6 +41,7 @@ import { LucideAngularModule } from 'lucide-angular';
 const LONG_PRESS_MS = 500;
 const MOVE_THRESHOLD = 4;
 const ZOOM_STEP = 1.2;
+const SNAP_PX = 28; // magnet radius (screen px) for connecting to a nearby port
 const MINIMAP = { width: 190, height: 120, pad: 8 };
 
 /** One entry in the node palette. */
@@ -148,6 +149,20 @@ export class Board {
   protected readonly marquee = signal<Rect | null>(null);
   /** Whether the validation issues panel is open. */
   protected readonly showIssues = signal(false);
+  /** True while a connection is being drawn (lights up input ports). */
+  protected readonly isConnecting = computed(() => this.draftPath() !== null);
+  /** The input port a dragged connection will magnet-snap onto. */
+  protected readonly snapTarget = signal<{ nodeId: string; portId: string } | null>(
+    null,
+  );
+  /** The node currently open in the inspector panel. */
+  protected readonly inspectId = signal<string | null>(null);
+  protected readonly inspectNode = computed(() => {
+    const id = this.inspectId();
+    return id ? (this.store.nodes().find((n) => n.id === id) ?? null) : null;
+  });
+
+  private mmDragging = false;
 
   protected readonly errorCount = computed(
     () => this.store.issues().filter((i) => i.severity === 'error').length,
@@ -213,8 +228,11 @@ export class Board {
     this.hostEl.nativeElement.focus();
     if (this.drag) return; // a node/port handler already claimed this press
 
-    const pan = event.button === 2 || event.pointerType === 'touch';
+    // Right button, middle button, or touch → pan.
+    const pan =
+      event.button === 1 || event.button === 2 || event.pointerType === 'touch';
     if (pan) {
+      if (event.button === 1) event.preventDefault(); // no middle-click autoscroll
       this.drag = {
         mode: 'pan',
         startClient: { x: event.clientX, y: event.clientY },
@@ -269,8 +287,20 @@ export class Board {
       );
     } else if (drag.mode === 'connect') {
       this.cancelLongPress();
-      const board = this.store.viewport.screenToBoard(this.local(event));
-      this.draftPath.set(edgePath(drag.anchor, board, drag.side, 'left'));
+      const world = this.store.viewport.screenToBoard(this.local(event));
+      // Magnet: snap the draft end to the nearest input port within reach.
+      const near = this.store.nearestPort(
+        world,
+        'input',
+        drag.from.nodeId,
+        SNAP_PX / this.store.viewport.zoom(),
+      );
+      const valid = near && this.store.canConnect(drag.from, near);
+      const end = valid ? near.point : world;
+      this.snapTarget.set(
+        valid ? { nodeId: near.nodeId, portId: near.portId } : null,
+      );
+      this.draftPath.set(edgePath(drag.anchor, end, drag.side, 'left'));
     } else {
       // Marquee: update the rectangle and live-select intersecting nodes.
       const now = this.local(event);
@@ -299,12 +329,19 @@ export class Board {
       this.marquee.set(null);
     } else if (drag.mode === 'connect') {
       this.draftPath.set(null);
-      const hit = this.portAt(event.clientX, event.clientY);
-      if (hit && hit.role === 'input') {
-        this.store.connect(drag.from, {
-          nodeId: hit.nodeId,
-          portId: hit.portId,
-        });
+      // Prefer the magnet target; fall back to an exact port hit under the cursor.
+      const snap = this.snapTarget();
+      this.snapTarget.set(null);
+      if (snap) {
+        this.store.connect(drag.from, snap);
+      } else {
+        const hit = this.portAt(event.clientX, event.clientY);
+        if (hit && hit.role === 'input') {
+          this.store.connect(drag.from, {
+            nodeId: hit.nodeId,
+            portId: hit.portId,
+          });
+        }
       }
     } else if (drag.mode === 'pan' && !drag.moved && event.button === 2) {
       // Right-click without a drag → context menu.
@@ -370,6 +407,8 @@ export class Board {
         break;
       case 'Escape':
         this.menu.set(null);
+        this.inspectId.set(null);
+        this.showIssues.set(false);
         this.store.clearSelection();
         break;
       case 'f':
@@ -428,10 +467,29 @@ export class Board {
   // ── Minimap ──────────────────────────────────────────────────────────────
   protected onMinimapDown(event: PointerEvent): void {
     event.stopPropagation();
+    this.mmDragging = true;
+    (event.currentTarget as SVGElement).setPointerCapture(event.pointerId);
+    this.panFromMinimap(event);
+  }
+
+  protected onMinimapMove(event: PointerEvent): void {
+    if (this.mmDragging) this.panFromMinimap(event);
+  }
+
+  protected onMinimapUp(event: PointerEvent): void {
+    this.mmDragging = false;
+    try {
+      (event.currentTarget as SVGElement).releasePointerCapture(event.pointerId);
+    } catch {
+      /* already released */
+    }
+  }
+
+  /** Recenter the viewport on the world point under a minimap pointer. */
+  private panFromMinimap(event: PointerEvent): void {
     const mm = this.minimap();
     if (!mm) return;
-    const target = event.currentTarget as SVGElement;
-    const rect = target.getBoundingClientRect();
+    const rect = (event.currentTarget as SVGElement).getBoundingClientRect();
     const world = {
       x: mm.bounds.x + (event.clientX - rect.left - mm.pad) / mm.scale,
       y: mm.bounds.y + (event.clientY - rect.top - mm.pad) / mm.scale,
@@ -442,6 +500,43 @@ export class Board {
       x: size.width / 2 - world.x * zoom,
       y: size.height / 2 - world.y * zoom,
     });
+  }
+
+  // ── Inspector (edit node) ────────────────────────────────────────────────
+  protected openInspector(nodeId: string): void {
+    this.inspectId.set(nodeId);
+    this.store.select(nodeId);
+    this.menu.set(null);
+  }
+
+  protected closeInspector(): void {
+    this.inspectId.set(null);
+  }
+
+  protected editNodeFromMenu(): void {
+    const id = this.menu()?.nodeId;
+    if (id) this.openInspector(id);
+  }
+
+  protected patchTitle(value: string): void {
+    const id = this.inspectId();
+    if (id) this.store.updateNode(id, { title: value });
+  }
+
+  protected patchSubtitle(value: string): void {
+    const id = this.inspectId();
+    if (id) this.store.updateNode(id, { subtitle: value });
+  }
+
+  protected patchBuffer(value: string): void {
+    const id = this.inspectId();
+    const n = Number(value);
+    if (id && Number.isFinite(n)) this.store.updateNode(id, { bufferSize: n });
+  }
+
+  protected patchRequired(value: boolean): void {
+    const id = this.inspectId();
+    if (id) this.store.updateNode(id, { required: value });
   }
 
   // ── Save / load / validation ─────────────────────────────────────────────

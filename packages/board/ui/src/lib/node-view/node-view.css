@@ -94,68 +94,93 @@
 }
 
 /* ── Ports ───────────────────────────────────────────────────────────────── */
+/*
+ * The <button> is a generous (22px) transparent hit area; the visible dot lives
+ * in `.pe-port__dot` and is centered on the node edge. Dots are subtle by
+ * default and only reveal on node hover / selection / while connecting.
+ */
 .pe-port {
   position: absolute;
-  width: 12px;
-  height: 12px;
+  display: grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
   padding: 0;
-  border-radius: 50%;
+  background: transparent;
+  cursor: crosshair;
+}
+
+.pe-port__dot {
+  width: 11px;
+  height: 11px;
   border: 2px solid var(--port-border);
   background: var(--surface-1);
-  cursor: crosshair;
+  opacity: 0.35;
   transition:
     transform 0.12s ease,
+    opacity 0.12s ease,
     border-color 0.12s ease,
     background 0.12s ease;
 }
 
-.pe-port:hover {
-  transform: scale(1.35);
+/* Output ports: filled accent circle (emitter). */
+.pe-port--out .pe-port__dot {
+  border-radius: 50%;
   border-color: var(--node-accent);
   background: var(--node-accent);
 }
 
-/* Input ports (left) read as receivers; output ports carry the accent. */
-.pe-port--in {
+/* Input ports: hollow rounded square (socket / receiver). */
+.pe-port--in .pe-port__dot {
+  border-radius: 3px;
   border-color: var(--port-border);
+  background: var(--surface-1);
 }
 
-.pe-port:not(.pe-port--in) {
+/* Reveal ports when the node is hovered or selected. */
+:host(:hover) .pe-port__dot,
+:host(.pe-node--selected) .pe-port__dot {
+  opacity: 1;
+}
+
+/* While a connection is being drawn, light up this node's input ports. */
+:host(.pe-node--connecting) .pe-port--in .pe-port__dot {
+  opacity: 1;
   border-color: var(--node-accent);
 }
 
+.pe-port:hover .pe-port__dot {
+  opacity: 1;
+  transform: scale(1.3);
+  border-color: var(--node-accent);
+}
+
+/* Magnet target — the input a dragged connection will snap to. */
+.pe-port--target .pe-port__dot {
+  opacity: 1;
+  transform: scale(1.5);
+  border-color: var(--node-accent);
+  background: color-mix(in srgb, var(--node-accent) 40%, transparent);
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--node-accent) 22%, transparent);
+}
+
 .pe-port[data-side='left'] {
-  left: -6px;
+  left: -11px;
   top: 50%;
   transform: translateY(-50%);
 }
-.pe-port[data-side='left']:hover {
-  transform: translateY(-50%) scale(1.35);
-}
-
 .pe-port[data-side='right'] {
-  right: -6px;
+  right: -11px;
   top: 50%;
   transform: translateY(-50%);
 }
-.pe-port[data-side='right']:hover {
-  transform: translateY(-50%) scale(1.35);
-}
-
 .pe-port[data-side='top'] {
-  top: -6px;
+  top: -11px;
   left: 50%;
   transform: translateX(-50%);
 }
-.pe-port[data-side='top']:hover {
-  transform: translateX(-50%) scale(1.35);
-}
-
 .pe-port[data-side='bottom'] {
-  bottom: -6px;
+  bottom: -11px;
   left: 50%;
   transform: translateX(-50%);
-}
-.pe-port[data-side='bottom']:hover {
-  transform: translateX(-50%) scale(1.35);
 }

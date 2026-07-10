@@ -30,22 +30,34 @@
   pointer-events: none;
 }
 
+/* Each edge is a group: a wide transparent hit path + the visible stroke. */
+.pe-edge-group {
+  cursor: pointer;
+}
+
+.pe-edge-hit {
+  fill: none;
+  stroke: transparent;
+  stroke-width: 16;
+  pointer-events: stroke;
+}
+
 .pe-edge {
   fill: none;
   stroke: var(--edge);
   stroke-width: 2;
-  pointer-events: stroke;
-  cursor: pointer;
+  pointer-events: none;
   transition:
     stroke 0.12s ease,
     stroke-width 0.12s ease;
 }
 
-.pe-edge:hover {
+.pe-edge-group:hover .pe-edge {
   stroke: var(--edge-hover);
+  stroke-width: 2.5;
 }
 
-.pe-edge--selected {
+.pe-edge-group--selected .pe-edge {
   stroke: var(--edge-selected);
   stroke-width: 2.5;
 }
@@ -55,6 +67,15 @@
   stroke-width: 2;
   stroke-dasharray: 6 5;
   pointer-events: none;
+}
+
+/* Direction arrowheads. */
+.pe-arrow path {
+  fill: var(--edge);
+}
+
+.pe-arrow--active path {
+  fill: var(--accent);
 }
 
 /* ── Rubber-band selection ─────────────────────────────────────────────────── */
@@ -185,6 +206,87 @@
 
 .pe-issues__item--warn {
   color: var(--warning);
+}
+
+/* ── Inspector (edit node) ─────────────────────────────────────────────────── */
+.pe-inspector {
+  position: absolute;
+  right: 12px;
+  top: 54px;
+  bottom: 12px;
+  z-index: 19;
+  width: 264px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 14px;
+  overflow-y: auto;
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+  background: var(--surface-2);
+  box-shadow: var(--elev-2);
+}
+
+.pe-inspector__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.pe-inspector__kind {
+  font-size: 0.6875rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--accent);
+}
+
+.pe-inspector__close {
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  color: var(--text-2);
+  border-radius: var(--r-sm);
+  cursor: pointer;
+}
+
+.pe-inspector__close:hover {
+  color: var(--text);
+  background: var(--surface-3);
+}
+
+.pe-field {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.pe-field--row {
+  flex-direction: row;
+  align-items: center;
+  gap: 8px;
+}
+
+.pe-field__label {
+  font-size: 0.75rem;
+  color: var(--text-2);
+}
+
+.pe-field__input {
+  width: 100%;
+  padding: 7px 9px;
+  font-size: 0.8125rem;
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: var(--r-sm);
+  background: var(--surface-1);
+  outline: none;
+  transition: border-color 0.12s ease;
+}
+
+.pe-field__input:focus {
+  border-color: var(--accent);
 }
 
 /* ── Node palette ──────────────────────────────────────────────────────────── */

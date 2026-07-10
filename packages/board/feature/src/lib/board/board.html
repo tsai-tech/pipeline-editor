@@ -4,17 +4,57 @@
 />
 
 <div class="pe-board__world" [style.transform]="store.viewport.transform()">
-  <svg class="pe-board__edges" aria-hidden="true">
+  <svg class="pe-board__edges">
+    <defs>
+      <marker
+        id="pe-arrow"
+        class="pe-arrow"
+        viewBox="0 0 10 10"
+        refX="8"
+        refY="5"
+        markerWidth="7"
+        markerHeight="7"
+        orient="auto-start-reverse"
+      >
+        <path d="M 0 1 L 9 5 L 0 9 z" />
+      </marker>
+      <marker
+        id="pe-arrow-active"
+        class="pe-arrow pe-arrow--active"
+        viewBox="0 0 10 10"
+        refX="8"
+        refY="5"
+        markerWidth="7"
+        markerHeight="7"
+        orient="auto-start-reverse"
+      >
+        <path d="M 0 1 L 9 5 L 0 9 z" />
+      </marker>
+    </defs>
+
     @for (edge of store.edgeGeometries(); track edge.id) {
-      <path
-        class="pe-edge"
-        [class.pe-edge--selected]="edge.selected"
-        [attr.d]="edge.path"
+      <g
+        class="pe-edge-group"
+        [class.pe-edge-group--selected]="edge.selected"
         (pointerdown)="onEdgeDown(edge.id, $event)"
-      ></path>
+      >
+        <title>{{ edge.label }}</title>
+        <path class="pe-edge-hit" [attr.d]="edge.path"></path>
+        <path
+          class="pe-edge"
+          [attr.d]="edge.path"
+          [attr.marker-end]="
+            edge.selected ? 'url(#pe-arrow-active)' : 'url(#pe-arrow)'
+          "
+        ></path>
+      </g>
     }
     @if (draftPath(); as d) {
-      <path class="pe-edge pe-edge--draft" [attr.d]="d"></path>
+      <path
+        class="pe-edge pe-edge--draft"
+        [attr.d]="d"
+        marker-end="url(#pe-arrow-active)"
+      ></path>
     }
   </svg>
 
@@ -22,8 +62,13 @@
     <pe-node
       [node]="node"
       [selected]="store.isSelected(node.id)"
+      [connecting]="isConnecting()"
+      [targetPort]="
+        snapTarget()?.nodeId === node.id ? snapTarget()!.portId : null
+      "
       (bodyPointerDown)="onNodeDown(node, $event)"
       (portPointerDown)="onPortDown(node, $event)"
+      (openRequested)="openInspector(node.id)"
     />
   }
 </div>
@@ -165,6 +210,9 @@
     [attr.viewBox]="'0 0 190 120'"
     aria-label="Minimap"
     (pointerdown)="onMinimapDown($event)"
+    (pointermove)="onMinimapMove($event)"
+    (pointerup)="onMinimapUp($event)"
+    (pointercancel)="onMinimapUp($event)"
   >
     @for (n of mm.nodes; track $index) {
       <rect
@@ -196,6 +244,14 @@
     (pointerdown)="$event.stopPropagation()"
   >
     @if (m.nodeId) {
+      <button
+        type="button"
+        role="menuitem"
+        class="pe-menu__item"
+        (click)="editNodeFromMenu()"
+      >
+        Edit node…
+      </button>
       <button
         type="button"
         role="menuitem"
@@ -282,4 +338,66 @@
       </button>
     }
   </div>
+}
+
+@if (inspectNode(); as n) {
+  <aside class="pe-inspector" (pointerdown)="$event.stopPropagation()">
+    <header class="pe-inspector__head">
+      <span class="pe-inspector__kind">
+        {{ n.category ?? n.kind }}
+      </span>
+      <button
+        type="button"
+        class="pe-inspector__close"
+        aria-label="Close inspector"
+        (click)="closeInspector()"
+      >
+        ✕
+      </button>
+    </header>
+
+    <label class="pe-field">
+      <span class="pe-field__label">Title</span>
+      <input
+        class="pe-field__input"
+        type="text"
+        [value]="n.title"
+        (change)="patchTitle($any($event.target).value)"
+      />
+    </label>
+
+    <label class="pe-field">
+      <span class="pe-field__label">Subtitle</span>
+      <input
+        class="pe-field__input"
+        type="text"
+        [value]="n.subtitle ?? ''"
+        (change)="patchSubtitle($any($event.target).value)"
+      />
+    </label>
+
+    @if (n.kind === 'action' && n.category === 'merge') {
+      <label class="pe-field">
+        <span class="pe-field__label">Buffer size</span>
+        <input
+          class="pe-field__input"
+          type="number"
+          min="1"
+          [value]="n.bufferSize ?? 1"
+          (change)="patchBuffer($any($event.target).value)"
+        />
+      </label>
+    }
+
+    @if (n.kind === 'effect') {
+      <label class="pe-field pe-field--row">
+        <input
+          type="checkbox"
+          [checked]="n.required !== false"
+          (change)="patchRequired($any($event.target).checked)"
+        />
+        <span class="pe-field__label">Required (failure fails the run)</span>
+      </label>
+    }
+  </aside>
 }

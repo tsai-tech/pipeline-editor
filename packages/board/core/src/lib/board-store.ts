@@ -39,6 +39,16 @@ export interface EdgeGeometry {
   from: Point;
   to: Point;
   selected: boolean;
+  /** "Source → Target" label for tooltips. */
+  label: string;
+}
+
+/** A port located near a world point (for magnet snapping). */
+export interface PortHit {
+  nodeId: string;
+  portId: string;
+  point: Point;
+  distance: number;
 }
 
 /**
@@ -112,6 +122,7 @@ export class BoardStore {
         from: from.point,
         to: to.point,
         selected: selected.has(edge.id),
+        label: `${byId.get(edge.source.nodeId)?.title ?? '?'} → ${byId.get(edge.target.nodeId)?.title ?? '?'}`,
       });
     }
     return result;
@@ -193,6 +204,39 @@ export class BoardStore {
     this._nodes.update((nodes) =>
       nodes.map((n) => (n.id === id ? { ...n, pos } : n)),
     );
+  }
+
+  /** Patch a node's editable fields (records history for undo). */
+  updateNode(id: string, patch: Partial<BoardNode>): void {
+    this.record();
+    this._nodes.update((nodes) =>
+      nodes.map((n) => (n.id === id ? { ...n, ...patch } : n)),
+    );
+  }
+
+  /**
+   * Nearest port of a given role to a world point, within `maxDistance` world
+   * px, optionally excluding one node. Used to magnet-snap connections.
+   */
+  nearestPort(
+    world: Point,
+    role: PortRole,
+    excludeNodeId: string | undefined,
+    maxDistance: number,
+  ): PortHit | null {
+    let best: PortHit | null = null;
+    for (const node of this._nodes()) {
+      if (node.id === excludeNodeId) continue;
+      for (const port of node.ports) {
+        if (port.role !== role) continue;
+        const point = portAnchor(node, port);
+        const distance = Math.hypot(point.x - world.x, point.y - world.y);
+        if (distance <= maxDistance && (!best || distance < best.distance)) {
+          best = { nodeId: node.id, portId: port.id, point, distance };
+        }
+      }
+    }
+    return best;
   }
 
   /** Add a new node (ports derived from its kind) and select it. Returns its id. */

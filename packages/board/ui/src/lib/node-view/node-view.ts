@@ -29,17 +29,23 @@ export interface PortPointer {
   changeDetection: ChangeDetectionStrategy.OnPush,
   host: {
     '[class.pe-node--selected]': 'selected()',
+    '[class.pe-node--connecting]': 'connecting()',
     '[attr.data-node-id]': 'node().id',
     '[style.left.px]': 'rect().x',
     '[style.top.px]': 'rect().y',
     '[style.width.px]': 'rect().width',
     '[style.height.px]': 'rect().height',
     '[style.--node-accent]': 'meta().color',
+    '(dblclick)': 'onOpen($event)',
   },
 })
 export class NodeView {
   readonly node = input.required<BoardNode>();
   readonly selected = input(false);
+  /** True while a connection is being drawn — input ports light up as targets. */
+  readonly connecting = input(false);
+  /** Id of the port currently being magnet-targeted, if it belongs to this node. */
+  readonly targetPort = input<string | null>(null);
 
   /** Pointer went down on the node body (select / start move). */
   readonly bodyPointerDown = output<PointerEvent>();
@@ -47,6 +53,10 @@ export class NodeView {
   readonly portPointerDown = output<PortPointer>();
   /** Pointer released over a port (drop a connection onto an input). */
   readonly portPointerUp = output<PortPointer>();
+  /** Double-click — request opening the node inspector. */
+  readonly openRequested = output<void>();
+
+  protected readonly typeLabel = computed(() => this.meta().label);
 
   protected readonly meta = computed(() => NODE_META[nodeType(this.node())]);
 
@@ -72,5 +82,17 @@ export class NodeView {
   protected onPortPointerUp(port: NodePort, event: PointerEvent): void {
     event.stopPropagation();
     this.portPointerUp.emit({ port, event });
+  }
+
+  protected onOpen(event: MouseEvent): void {
+    event.preventDefault();
+    this.openRequested.emit();
+  }
+
+  /** Human tooltip for a port. */
+  protected portTitle(port: NodePort): string {
+    return port.role === 'input'
+      ? 'Input — receives data'
+      : `Output (${port.side}) — drag to connect`;
   }
 }
