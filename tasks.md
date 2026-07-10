@@ -47,7 +47,7 @@ Tooltip (directive), Toast + ToastService.
       dynamic-component dialogs, on top of the declarative `tsai-dialog`.
 - [x] Menu section labels (`tsai-menu-label`). Remaining: checkbox / radio items,
       submenus.
-- [ ] Tooltip: arrow, configurable placement.
+- [x] Tooltip configurable `placement` (top/bottom/left/right). Remaining: arrow.
 
 ### Inputs — depth
 
@@ -56,7 +56,8 @@ Tooltip (directive), Toast + ToastService.
 - [x] `tsai-datepicker` — popover month-grid calendar (keyboard nav). Remaining:
       date range + min/max.
 - [x] `tsai-slider` (range, `FormValueControl<number>`).
-- [ ] Input prefix/suffix _text_ addons; password reveal toggle.
+- [x] Input password reveal toggle (`revealable`). Remaining: prefix/suffix _text_
+      addons (icon slots already exist).
 - [x] **Signal forms integration** (`@angular/forms/signals`): every value control
       implements `FormValueControl<T>` and checkbox/switch implement
       `FormCheckboxControl`, so they bind with the `[formField]` directive; the

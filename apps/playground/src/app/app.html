@@ -116,7 +116,11 @@
                   <tsai-input type="email" placeholder="name@example.com" />
                 </tsai-field>
                 <tsai-field label="Password">
-                  <tsai-input type="password" [value]="'secret123'" />
+                  <tsai-input
+                    type="password"
+                    [revealable]="true"
+                    [value]="'secret123'"
+                  />
                 </tsai-field>
                 <tsai-field label="Date">
                   <tsai-date-input
@@ -501,6 +505,7 @@
               <tsai-button
                 variant="secondary"
                 [tsaiTooltip]="'Tooltips show on hover and keyboard focus'"
+                tsaiTooltipPlacement="bottom"
               >
                 Tooltip
               </tsai-button>

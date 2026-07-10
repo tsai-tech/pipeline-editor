@@ -1,4 +1,4 @@
-import { Overlay, OverlayRef } from '@angular/cdk/overlay';
+import { ConnectedPosition, Overlay, OverlayRef } from '@angular/cdk/overlay';
 import { ComponentPortal } from '@angular/cdk/portal';
 import {
   ChangeDetectionStrategy,
@@ -29,6 +29,75 @@ export class TooltipContainer {
 
 let tooltipId = 0;
 
+export type TooltipPlacement = 'top' | 'bottom' | 'left' | 'right';
+
+const PLACEMENTS: Record<TooltipPlacement, ConnectedPosition[]> = {
+  top: [
+    {
+      originX: 'center',
+      originY: 'top',
+      overlayX: 'center',
+      overlayY: 'bottom',
+      offsetY: -6,
+    },
+    {
+      originX: 'center',
+      originY: 'bottom',
+      overlayX: 'center',
+      overlayY: 'top',
+      offsetY: 6,
+    },
+  ],
+  bottom: [
+    {
+      originX: 'center',
+      originY: 'bottom',
+      overlayX: 'center',
+      overlayY: 'top',
+      offsetY: 6,
+    },
+    {
+      originX: 'center',
+      originY: 'top',
+      overlayX: 'center',
+      overlayY: 'bottom',
+      offsetY: -6,
+    },
+  ],
+  left: [
+    {
+      originX: 'start',
+      originY: 'center',
+      overlayX: 'end',
+      overlayY: 'center',
+      offsetX: -6,
+    },
+    {
+      originX: 'end',
+      originY: 'center',
+      overlayX: 'start',
+      overlayY: 'center',
+      offsetX: 6,
+    },
+  ],
+  right: [
+    {
+      originX: 'end',
+      originY: 'center',
+      overlayX: 'start',
+      overlayY: 'center',
+      offsetX: 6,
+    },
+    {
+      originX: 'start',
+      originY: 'center',
+      overlayX: 'end',
+      overlayY: 'center',
+      offsetX: -6,
+    },
+  ],
+};
+
 /**
  * `[tsaiTooltip]` — a small label shown on hover / focus, built on CDK Overlay.
  * Accessible: the tooltip is wired to the host via `aria-describedby`, shows on
@@ -47,6 +116,9 @@ let tooltipId = 0;
 export class Tooltip implements OnDestroy {
   readonly text = input.required<string>({ alias: 'tsaiTooltip' });
   readonly delay = input(300, { alias: 'tsaiTooltipDelay' });
+  readonly placement = input<TooltipPlacement>('top', {
+    alias: 'tsaiTooltipPlacement',
+  });
 
   private readonly overlay = inject(Overlay);
   private readonly host = inject<ElementRef<HTMLElement>>(ElementRef);
@@ -64,22 +136,7 @@ export class Tooltip implements OnDestroy {
     const positionStrategy = this.overlay
       .position()
       .flexibleConnectedTo(this.host)
-      .withPositions([
-        {
-          originX: 'center',
-          originY: 'top',
-          overlayX: 'center',
-          overlayY: 'bottom',
-          offsetY: -6,
-        },
-        {
-          originX: 'center',
-          originY: 'bottom',
-          overlayX: 'center',
-          overlayY: 'top',
-          offsetY: 6,
-        },
-      ]);
+      .withPositions(PLACEMENTS[this.placement()]);
 
     this.overlayRef = this.overlay.create({
       positionStrategy,
