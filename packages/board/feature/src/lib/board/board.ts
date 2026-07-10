@@ -133,6 +133,8 @@ interface ContextMenu {
 export class Board {
   /** Pipeline document to render. Reloaded into the store whenever it changes. */
   readonly pipeline = input<Pipeline | null>(null);
+  /** View-only mode: pan/zoom/select/inspect stay, all editing is disabled. */
+  readonly readonly = input(false);
 
   protected readonly store = new BoardStore();
   protected readonly palette = PALETTE;
@@ -187,6 +189,10 @@ export class Board {
   protected readonly menu = signal<ContextMenu | null>(null);
   /** Rubber-band selection rectangle, in local (screen) pixels. */
   protected readonly marquee = signal<Rect | null>(null);
+  /** Alignment guide lines (world coords) shown while dragging a node. */
+  protected readonly guides = signal<
+    { x1: number; y1: number; x2: number; y2: number }[]
+  >([]);
   /** Whether the validation issues panel is open. */
   protected readonly showIssues = signal(false);
   /** True while a connection is being drawn (lights up input ports). */
@@ -328,6 +334,7 @@ export class Board {
         drag.nodeId,
         snapToCell({ x: drag.startPx.x + dx, y: drag.startPx.y + dy }),
       );
+      this.guides.set(this.computeGuides(drag.nodeId));
     } else if (drag.mode === 'connect') {
       this.cancelLongPress();
       const world = this.store.viewport.screenToBoard(this.local(event));
@@ -366,6 +373,7 @@ export class Board {
     const drag = this.drag;
     this.drag = null;
     this.release(event);
+    if (this.guides().length) this.guides.set([]);
     if (!drag) return;
 
     if (drag.mode === 'select') {
@@ -409,15 +417,18 @@ export class Board {
   protected onKeyDown(event: KeyboardEvent): void {
     const mod = event.ctrlKey || event.metaKey;
     const key = event.key.toLowerCase();
+    const ro = this.readonly();
 
     if (mod) {
       switch (key) {
         case 'z':
+          if (ro) return;
           event.preventDefault();
           if (event.shiftKey) this.store.redo();
           else this.store.undo();
           return;
         case 'y':
+          if (ro) return;
           event.preventDefault();
           this.store.redo();
           return;
@@ -436,10 +447,12 @@ export class Board {
           this.store.copySelection();
           return;
         case 'v':
+          if (ro) return;
           event.preventDefault();
           this.store.paste();
           return;
         case 'd':
+          if (ro) return;
           event.preventDefault();
           this.store.copySelection();
           this.store.paste();
@@ -455,6 +468,7 @@ export class Board {
     switch (event.key) {
       case 'Delete':
       case 'Backspace':
+        if (ro) break;
         event.preventDefault();
         this.store.removeSelected();
         break;
@@ -473,18 +487,22 @@ export class Board {
         event.preventDefault(); // don't scroll the page
         break;
       case 'ArrowUp':
+        if (ro) break;
         event.preventDefault();
         this.store.nudgeSelected(0, -1);
         break;
       case 'ArrowDown':
+        if (ro) break;
         event.preventDefault();
         this.store.nudgeSelected(0, 1);
         break;
       case 'ArrowLeft':
+        if (ro) break;
         event.preventDefault();
         this.store.nudgeSelected(-1, 0);
         break;
       case 'ArrowRight':
+        if (ro) break;
         event.preventDefault();
         this.store.nudgeSelected(1, 0);
         break;
@@ -512,6 +530,7 @@ export class Board {
 
   /** Click a palette item to drop a node at the current viewport center. */
   protected onPaletteClick(item: PaletteItem): void {
+    if (this.readonly()) return;
     const cell = snapToCell(this.store.viewport.screenToBoard(this.center()));
     this.store.addNode({
       kind: item.kind,
@@ -522,7 +541,7 @@ export class Board {
   }
 
   protected onDragOver(event: DragEvent): void {
-    if (!this.paletteDrag) return;
+    if (this.readonly() || !this.paletteDrag) return;
     event.preventDefault();
     if (event.dataTransfer) event.dataTransfer.dropEffect = 'copy';
   }
@@ -530,7 +549,7 @@ export class Board {
   protected onDrop(event: DragEvent): void {
     const spec = this.paletteDrag;
     this.paletteDrag = null;
-    if (!spec) return;
+    if (this.readonly() || !spec) return;
     event.preventDefault();
     const cell = snapToCell(this.store.viewport.screenToBoard(this.local(event)));
     this.store.addNode({
@@ -677,6 +696,7 @@ export class Board {
   protected onNodeDown(node: BoardNode, event: PointerEvent): void {
     if (event.button !== 0 && event.pointerType !== 'touch') return;
     this.store.select(node.id, event.shiftKey || event.metaKey);
+    if (this.readonly()) return; // view-only: select but don't move
     const rect = nodeRect(node);
     this.drag = {
       mode: 'move',
@@ -692,7 +712,7 @@ export class Board {
   }
 
   protected onPortDown(node: BoardNode, pointer: PortPointer): void {
-    if (pointer.port.role !== 'output') return;
+    if (this.readonly() || pointer.port.role !== 'output') return;
     const anchor = portAnchor(node, pointer.port);
     this.drag = {
       mode: 'connect',
@@ -712,7 +732,7 @@ export class Board {
   // ── Context-menu actions ─────────────────────────────────────────────────
   protected addNode(kind: NodeKind, category?: ActionCategory): void {
     const menu = this.menu();
-    if (!menu) return;
+    if (this.readonly() || !menu) return;
     this.store.addNode({
       kind,
       category,
@@ -724,7 +744,7 @@ export class Board {
 
   protected deleteNode(): void {
     const id = this.menu()?.nodeId;
-    if (id) this.store.removeNode(id);
+    if (id && !this.readonly()) this.store.removeNode(id);
     this.menu.set(null);
   }
 
@@ -762,6 +782,56 @@ export class Board {
   private size(): Size {
     const el = this.hostEl.nativeElement;
     return { width: el.clientWidth, height: el.clientHeight };
+  }
+
+  /**
+   * Alignment guides for the dragged node: vertical lines where its left / centre
+   * / right matches another node's, and horizontal lines for top / centre /
+   * bottom. Each line spans the two aligned nodes.
+   */
+  private computeGuides(
+    draggedId: string,
+  ): { x1: number; y1: number; x2: number; y2: number }[] {
+    const nodes = this.store.nodes();
+    const dragged = nodes.find((n) => n.id === draggedId);
+    if (!dragged) return [];
+    const d = nodeRect(dragged);
+    const dV = [d.x, d.x + d.width / 2, d.x + d.width];
+    const dH = [d.y, d.y + d.height / 2, d.y + d.height];
+    const seen = new Set<string>();
+    const guides: { x1: number; y1: number; x2: number; y2: number }[] = [];
+
+    for (const node of nodes) {
+      if (node.id === draggedId) continue;
+      const r = nodeRect(node);
+      for (const v of [r.x, r.x + r.width / 2, r.x + r.width]) {
+        if (dV.some((x) => Math.abs(x - v) < 0.5)) {
+          const key = `v${v}`;
+          if (seen.has(key)) continue;
+          seen.add(key);
+          guides.push({
+            x1: v,
+            y1: Math.min(d.y, r.y),
+            x2: v,
+            y2: Math.max(d.y + d.height, r.y + r.height),
+          });
+        }
+      }
+      for (const h of [r.y, r.y + r.height / 2, r.y + r.height]) {
+        if (dH.some((y) => Math.abs(y - h) < 0.5)) {
+          const key = `h${h}`;
+          if (seen.has(key)) continue;
+          seen.add(key);
+          guides.push({
+            x1: Math.min(d.x, r.x),
+            y1: h,
+            x2: Math.max(d.x + d.width, r.x + r.width),
+            y2: h,
+          });
+        }
+      }
+    }
+    return guides;
   }
 
   private center(): Point {

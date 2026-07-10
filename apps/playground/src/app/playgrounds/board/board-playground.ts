@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component } from '@angular/core';
+import { ChangeDetectionStrategy, Component, signal } from '@angular/core';
 import { Board } from '@tsai-pe/board/feature';
 import {
   type BoardNode,
@@ -118,19 +118,33 @@ function edge(id: string, from: string, fromPort: string, to: string) {
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [Board],
   template: `<div class="flex h-[75dvh] flex-col gap-3">
-    <p class="text-sm text-text-2">
-      Drag from the palette to add nodes · drag a node to move it · drag a right /
-      top / bottom port onto a left port to connect · rubber-band to multi-select ·
-      right mouse / middle / Space+drag pans, scroll or <kbd>⌘/Ctrl</kbd>+<kbd>±</kbd>
-      zooms · minimap navigates · arrows nudge · <kbd>⌘/Ctrl+Z</kbd> undo,
-      <kbd>C</kbd>/<kbd>V</kbd> copy-paste, <kbd>Del</kbd> delete, <kbd>F</kbd> fit.
-    </p>
+    <div class="flex items-start justify-between gap-4">
+      <p class="text-sm text-text-2">
+        Drag from the palette to add nodes · drag a node to move it · drag a right /
+        top / bottom port onto a left port to connect · rubber-band to multi-select ·
+        right mouse / middle / Space+drag pans, scroll or <kbd>⌘/Ctrl</kbd>+<kbd>±</kbd>
+        zooms · minimap navigates · arrows nudge · <kbd>⌘/Ctrl+Z</kbd> undo,
+        <kbd>C</kbd>/<kbd>V</kbd> copy-paste, <kbd>Del</kbd> delete, <kbd>F</kbd> fit.
+      </p>
+      <label
+        class="flex shrink-0 items-center gap-2 text-sm text-text-2 select-none"
+      >
+        <input
+          type="checkbox"
+          [checked]="readonly()"
+          (change)="readonly.set($any($event.target).checked)"
+        />
+        Read-only
+      </label>
+    </div>
     <pe-board
       [pipeline]="pipeline"
+      [readonly]="readonly()"
       class="min-h-0 flex-1 overflow-hidden rounded-xl border border-border"
     />
   </div>`,
 })
 export class BoardPlayground {
   protected readonly pipeline = CAT_PIPELINE;
+  protected readonly readonly = signal(false);
 }

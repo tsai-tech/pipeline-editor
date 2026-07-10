@@ -25,8 +25,6 @@ Actionable, not-yet-done work only. No history.
 ## board — UI-layer prep (next)
 
 - [ ] Edge labels (control-flow branch names, e.g. then / else).
-- [ ] Alignment guides / snap hints while dragging.
 - [ ] Node resize + auto-size to content / ports.
-- [ ] Read-only mode (`readonly` input — view without editing).
 - [ ] Keyboard node navigation + `aria` on the canvas.
 - [ ] Manual reroute waypoints on edges (over the auto A* routing).

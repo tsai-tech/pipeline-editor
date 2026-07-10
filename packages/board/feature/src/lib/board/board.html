@@ -56,6 +56,15 @@
         marker-end="url(#pe-arrow-active)"
       ></path>
     }
+    @for (g of guides(); track $index) {
+      <line
+        class="stroke-[var(--accent)] [stroke-width:1] [stroke-dasharray:4_3] opacity-70 [pointer-events:none]"
+        [attr.x1]="g.x1"
+        [attr.y1]="g.y1"
+        [attr.x2]="g.x2"
+        [attr.y2]="g.y2"
+      ></line>
+    }
   </svg>
 
   @for (node of orderedNodes(); track node.id) {
@@ -105,16 +114,18 @@
   <button type="button" [class]="cls.toolbarBtn" (click)="exportJson()">
     Export
   </button>
-  <button type="button" [class]="cls.toolbarBtn" (click)="fileInput.click()">
-    Import
-  </button>
-  <input
-    #fileInput
-    type="file"
-    accept="application/json"
-    hidden
-    (change)="onImportFile($event)"
-  />
+  @if (!readonly()) {
+    <button type="button" [class]="cls.toolbarBtn" (click)="fileInput.click()">
+      Import
+    </button>
+    <input
+      #fileInput
+      type="file"
+      accept="application/json"
+      hidden
+      (change)="onImportFile($event)"
+    />
+  }
   <button
     type="button"
     class="h-[30px] px-2.5 text-xs font-semibold rounded-[var(--r-sm)] cursor-pointer whitespace-nowrap"
@@ -155,6 +166,7 @@
 
 <aside
   class="absolute left-3 top-3 z-[18] flex flex-col gap-0.5 w-[152px] p-2 border border-[var(--border)] rounded-[var(--r-md)] bg-[var(--surface-2)] shadow-[var(--elev-1)]"
+  [hidden]="readonly()"
   (pointerdown)="$event.stopPropagation()"
 >
   <span [class]="cls.menuLabel">Nodes</span>
@@ -281,17 +293,28 @@
         [class]="cls.menuItem"
         (click)="editNodeFromMenu()"
       >
-        Edit node…
+        {{ readonly() ? 'Inspect node…' : 'Edit node…' }}
       </button>
+      @if (!readonly()) {
+        <button
+          type="button"
+          role="menuitem"
+          [class]="cls.menuItemDanger"
+          (click)="deleteNode()"
+        >
+          Delete node
+        </button>
+      }
+      <div [class]="cls.sep"></div>
       <button
         type="button"
         role="menuitem"
-        [class]="cls.menuItemDanger"
-        (click)="deleteNode()"
+        [class]="cls.menuItem"
+        (click)="resetView()"
       >
-        Delete node
+        Reset view
       </button>
-      <div [class]="cls.sep"></div>
+    } @else if (readonly()) {
       <button
         type="button"
         role="menuitem"
@@ -398,6 +421,7 @@
         [class]="cls.fieldInput"
         type="text"
         [value]="n.title"
+        [disabled]="readonly()"
         (change)="patchTitle($any($event.target).value)"
       />
     </label>
@@ -408,6 +432,7 @@
         [class]="cls.fieldInput"
         type="text"
         [value]="n.subtitle ?? ''"
+        [disabled]="readonly()"
         (change)="patchSubtitle($any($event.target).value)"
       />
     </label>
@@ -420,6 +445,7 @@
           type="number"
           min="1"
           [value]="n.bufferSize ?? 1"
+          [disabled]="readonly()"
           (change)="patchBuffer($any($event.target).value)"
         />
       </label>
@@ -430,6 +456,7 @@
         <input
           type="checkbox"
           [checked]="n.required !== false"
+          [disabled]="readonly()"
           (change)="patchRequired($any($event.target).checked)"
         />
         <span [class]="cls.fieldLabel">Required (failure fails the run)</span>
