@@ -10,11 +10,13 @@ import { LucideAngularModule } from 'lucide-angular';
 import { GRID_CELL } from '@tsai-pe/board/core';
 import {
   type BoardNode,
+  isControlFlow,
   type NodePort,
   nodeType,
+  portFraction,
   type PortSide,
 } from '@tsai-pe/shared/models';
-import { NODE_META } from './node-meta';
+import { CONTROL_FLOW_ICONS, NODE_META } from './node-meta';
 
 /** A raw pointer intent originating from a specific port. */
 export interface PortPointer {
@@ -22,11 +24,13 @@ export interface PortPointer {
   event: PointerEvent;
 }
 
+/** Perpendicular offset + centring transform per side (the along-side position
+ * is set as an inline % so ports on a shared side distribute evenly). */
 const PORT_POSITION: Record<PortSide, string> = {
-  left: 'left-[-11px] top-1/2 -translate-y-1/2',
-  right: 'right-[-11px] top-1/2 -translate-y-1/2',
-  top: 'top-[-11px] left-1/2 -translate-x-1/2',
-  bottom: 'bottom-[-11px] left-1/2 -translate-x-1/2',
+  left: 'left-[-11px] -translate-y-1/2',
+  right: 'right-[-11px] -translate-y-1/2',
+  top: 'top-[-11px] -translate-x-1/2',
+  bottom: 'bottom-[-11px] -translate-x-1/2',
 };
 
 /**
@@ -78,7 +82,24 @@ export class NodeView {
 
   protected readonly hovered = signal(false);
 
-  protected readonly meta = computed(() => NODE_META[nodeType(this.node())]);
+  protected readonly meta = computed(() => {
+    const node = this.node();
+    const base = NODE_META[nodeType(node)];
+    // Control-flow subtypes (if / switch / filter) get a distinct icon.
+    if (isControlFlow(node) && node.config) {
+      return { ...base, icon: CONTROL_FLOW_ICONS[node.config.type] };
+    }
+    return base;
+  });
+
+  /** Fractional along-side position of a port (for even distribution). */
+  protected fraction(port: NodePort): number {
+    return portFraction(this.node(), port) * 100;
+  }
+
+  protected isAlongY(side: PortSide): boolean {
+    return side === 'left' || side === 'right';
+  }
 
   protected readonly rect = computed(() => {
     const n = this.node();

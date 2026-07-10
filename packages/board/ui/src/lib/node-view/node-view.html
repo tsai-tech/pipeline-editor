@@ -65,9 +65,18 @@
 }
 
 @for (port of node().ports; track port.id) {
+  @if (port.label && port.role === 'output') {
+    <span
+      class="absolute right-2.5 -translate-y-1/2 max-w-[72%] truncate text-right text-[10px] text-text-2 pointer-events-none"
+      [style.top.%]="fraction(port)"
+      >{{ port.label }}</span
+    >
+  }
   <button
     type="button"
     [class]="portClasses(port)"
+    [style.top.%]="isAlongY(port.side) ? fraction(port) : null"
+    [style.left.%]="isAlongY(port.side) ? null : fraction(port)"
     [attr.data-side]="port.side"
     [attr.data-node]="node().id"
     [attr.data-port]="port.id"

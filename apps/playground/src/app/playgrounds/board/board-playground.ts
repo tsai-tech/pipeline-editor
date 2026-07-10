@@ -2,13 +2,13 @@ import { ChangeDetectionStrategy, Component, signal } from '@angular/core';
 import { Board } from '@tsai-pe/board/feature';
 import {
   type BoardNode,
-  defaultPorts,
+  derivePorts,
   type Pipeline,
 } from '@tsai-pe/shared/models';
 
-/** Build a node, deriving its default port layout from its kind. */
+/** Build a node, deriving its port layout from its kind/config. */
 function node(spec: Omit<BoardNode, 'ports'>): BoardNode {
-  return { ...spec, ports: defaultPorts(spec.kind) };
+  return { ...spec, ports: derivePorts({ ...spec, ports: [] }) };
 }
 
 const SIZE = { cols: 8, rows: 2 } as const;
@@ -92,6 +92,24 @@ const CAT_PIPELINE: Pipeline = {
       required: false,
       status: 'error',
     }),
+    node({
+      id: 'node-8',
+      kind: 'action',
+      category: 'control-flow',
+      title: 'Switch',
+      subtitle: 'route by source',
+      pos: { col: 12, row: 14 },
+      size: { cols: 8, rows: 4 },
+      config: {
+        type: 'switch',
+        discriminant: '{{ $node["Telegram"].source }}',
+        cases: [
+          { id: 'tg', label: 'telegram', value: 'tg' },
+          { id: 'wa', label: 'whatsapp', value: 'wa' },
+        ],
+        hasDefault: true,
+      },
+    }),
   ],
   edges: [
     edge('e1', 'node-1', 'out-right', 'node-2'),
@@ -100,6 +118,7 @@ const CAT_PIPELINE: Pipeline = {
     edge('e4', 'node-4', 'out-right', 'node-5'),
     edge('e5', 'node-5', 'out-top', 'node-6'),
     edge('e6', 'node-5', 'out-bottom', 'node-7'),
+    edge('e7', 'node-2', 'out-bottom', 'node-8'),
   ],
 };
 

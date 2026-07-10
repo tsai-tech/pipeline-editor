@@ -1,10 +1,11 @@
-import type {
-  BoardNode,
-  GridPos,
-  NodePort,
-  Point,
-  PortSide,
-  Rect,
+import {
+  type BoardNode,
+  type GridPos,
+  type NodePort,
+  type Point,
+  portFraction,
+  type PortSide,
+  type Rect,
 } from '@tsai-pe/shared/models';
 
 /** Size of one node-grid cell, in board (world) pixels. */
@@ -43,18 +44,19 @@ export function nodeRect(node: BoardNode): Rect {
   };
 }
 
-/** World-pixel position of a port anchor on a node. */
+/** World-pixel position of a port anchor on a node (distributed along its side). */
 export function portAnchor(node: BoardNode, port: NodePort): Point {
   const r = nodeRect(node);
+  const f = portFraction(node, port);
   switch (port.side) {
     case 'left':
-      return { x: r.x, y: r.y + r.height / 2 };
+      return { x: r.x, y: r.y + r.height * f };
     case 'right':
-      return { x: r.x + r.width, y: r.y + r.height / 2 };
+      return { x: r.x + r.width, y: r.y + r.height * f };
     case 'top':
-      return { x: r.x + r.width / 2, y: r.y };
+      return { x: r.x + r.width * f, y: r.y };
     case 'bottom':
-      return { x: r.x + r.width / 2, y: r.y + r.height };
+      return { x: r.x + r.width * f, y: r.y + r.height };
   }
 }
 

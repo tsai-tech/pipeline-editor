@@ -476,5 +476,127 @@
         <span [class]="cls.fieldLabel">Required (failure fails the run)</span>
       </label>
     }
+
+    @if (isCf(n)) {
+      <div class="h-px bg-[var(--border)]"></div>
+
+      <div [class]="cls.field">
+        <span [class]="cls.fieldLabel">Control flow</span>
+        <div class="flex gap-1">
+          @for (t of cfTypes; track t) {
+            <button
+              type="button"
+              [class]="cfTypeClass(t)"
+              [disabled]="readonly()"
+              (click)="setControlFlowType(t)"
+            >
+              {{ t }}
+            </button>
+          }
+        </div>
+      </div>
+
+      @if (exprCfg(); as e) {
+        <label [class]="cls.field">
+          <span [class]="cls.fieldLabel">{{
+            e.type === 'filter' ? 'Keep when' : 'Condition'
+          }}</span>
+          <input
+            [class]="cls.fieldInput"
+            type="text"
+            placeholder="payload.count > 5"
+            [value]="e.expression"
+            [disabled]="readonly()"
+            (change)="patchExpression($any($event.target).value)"
+          />
+        </label>
+      }
+
+      @if (switchCfg(); as sw) {
+        <label [class]="cls.field">
+          <span [class]="cls.fieldLabel">Discriminant</span>
+          <input
+            [class]="cls.fieldInput"
+            type="text"
+            placeholder="payload.source"
+            [value]="sw.discriminant"
+            [disabled]="readonly()"
+            (change)="patchDiscriminant($any($event.target).value)"
+          />
+        </label>
+
+        <div [class]="cls.field">
+          <span [class]="cls.fieldLabel">Cases → outputs</span>
+          @for (c of sw.cases; track c.id) {
+            <div class="flex items-center gap-1">
+              <input
+                [class]="cls.fieldInput + ' flex-1'"
+                type="text"
+                placeholder="label"
+                [value]="c.label"
+                [disabled]="readonly()"
+                (change)="patchCaseLabel(c.id, $any($event.target).value)"
+              />
+              <input
+                [class]="cls.fieldInput + ' flex-1'"
+                type="text"
+                placeholder="value"
+                [value]="c.value"
+                [disabled]="readonly()"
+                (change)="patchCaseValue(c.id, $any($event.target).value)"
+              />
+              @if (!readonly()) {
+                <button
+                  type="button"
+                  class="shrink-0 grid place-items-center w-7 h-7 text-text-2 rounded-[var(--r-sm)] hover:text-[var(--danger)] hover:bg-[var(--danger-quiet)]"
+                  aria-label="Remove case"
+                  (click)="removeCase(c.id)"
+                >
+                  ✕
+                </button>
+              }
+            </div>
+          }
+          @if (!readonly()) {
+            <button
+              type="button"
+              class="mt-1 flex items-center justify-center px-2.5 py-[7px] text-[0.8125rem] text-text-2 rounded-[var(--r-sm)] border border-dashed border-[var(--border)] cursor-pointer hover:bg-[var(--surface-3)]"
+              (click)="addCase()"
+            >
+              + Add case
+            </button>
+          }
+        </div>
+
+        <label class="flex flex-row items-center gap-2">
+          <input
+            type="checkbox"
+            [checked]="sw.hasDefault"
+            [disabled]="readonly()"
+            (change)="toggleDefault($any($event.target).checked)"
+          />
+          <span [class]="cls.fieldLabel">Default branch</span>
+        </label>
+      }
+
+      @if (context().length) {
+        <div [class]="cls.field">
+          <span [class]="cls.fieldLabel">Pipeline context</span>
+          <div class="flex flex-wrap gap-1">
+            @for (cn of context(); track cn.id) {
+              <button
+                type="button"
+                class="px-2 py-1 text-[11px] rounded-full border border-[var(--border)] text-text-2 cursor-pointer hover:bg-[var(--surface-3)] disabled:opacity-50"
+                [title]="'Insert a reference to ' + cn.title"
+                [disabled]="readonly()"
+                (click)="insertContext(cn)"
+              >
+                {{ cn.title }}
+              </button>
+            }
+          </div>
+        </div>
+      }
+    }
   </aside>
 }

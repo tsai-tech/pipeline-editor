@@ -25,8 +25,12 @@ import {
 import {
   type ActionCategory,
   type BoardNode,
+  type ControlFlowConfig,
+  type ControlFlowKind,
+  defaultControlFlowConfig,
   type EdgeEnd,
   type GridPos,
+  isControlFlow,
   type NodeKind,
   nodeType,
   type NodeType,
@@ -703,6 +707,115 @@ export class Board {
   protected patchRequired(value: boolean): void {
     const id = this.inspectId();
     if (id) this.store.updateNode(id, { required: value });
+  }
+
+  // ── Control-flow configuration ───────────────────────────────────────────
+  /** Upstream nodes (pipeline context) whose variables an expression may use. */
+  protected readonly context = computed<BoardNode[]>(() => {
+    const id = this.inspectId();
+    return id ? this.store.ancestorsOf(id) : [];
+  });
+
+  protected isCf(node: BoardNode): boolean {
+    return isControlFlow(node);
+  }
+
+  protected readonly cfTypes: ControlFlowKind[] = ['if', 'switch', 'filter'];
+  private readonly cfg = computed(() => this.inspectNode()?.config ?? null);
+  /** Narrowed to the if/filter variants (both hold a single `expression`). */
+  protected readonly exprCfg = computed(() => {
+    const c = this.cfg();
+    return c && (c.type === 'if' || c.type === 'filter') ? c : null;
+  });
+  protected readonly switchCfg = computed(() => {
+    const c = this.cfg();
+    return c && c.type === 'switch' ? c : null;
+  });
+  protected cfType(): ControlFlowKind | undefined {
+    return this.cfg()?.type;
+  }
+
+  protected cfTypeClass(type: ControlFlowKind): string {
+    const base =
+      'flex-1 h-8 text-xs font-medium rounded-[var(--r-sm)] border transition-colors capitalize disabled:opacity-50';
+    return this.cfType() === type
+      ? `${base} border-[var(--accent)] text-[var(--accent)] bg-[var(--accent-quiet)]`
+      : `${base} border-[var(--border)] text-text-2 enabled:hover:bg-[var(--surface-3)]`;
+  }
+
+  private setConfig(config: ControlFlowConfig): void {
+    const id = this.inspectId();
+    if (id && !this.readonly()) this.store.applyConfig(id, config);
+  }
+
+  protected setControlFlowType(type: ControlFlowKind): void {
+    this.setConfig(defaultControlFlowConfig(type));
+  }
+
+  protected patchExpression(value: string): void {
+    const c = this.inspectNode()?.config;
+    if (c?.type === 'if' || c?.type === 'filter') {
+      this.setConfig({ ...c, expression: value });
+    }
+  }
+
+  protected patchDiscriminant(value: string): void {
+    const c = this.inspectNode()?.config;
+    if (c?.type === 'switch') this.setConfig({ ...c, discriminant: value });
+  }
+
+  protected addCase(): void {
+    const c = this.inspectNode()?.config;
+    if (c?.type !== 'switch') return;
+    const id = `${Date.now().toString(36)}`;
+    this.setConfig({
+      ...c,
+      cases: [...c.cases, { id, label: `Case ${c.cases.length + 1}`, value: '' }],
+    });
+  }
+
+  protected removeCase(caseId: string): void {
+    const c = this.inspectNode()?.config;
+    if (c?.type === 'switch') {
+      this.setConfig({ ...c, cases: c.cases.filter((x) => x.id !== caseId) });
+    }
+  }
+
+  protected patchCaseLabel(caseId: string, value: string): void {
+    const c = this.inspectNode()?.config;
+    if (c?.type === 'switch') {
+      this.setConfig({
+        ...c,
+        cases: c.cases.map((x) => (x.id === caseId ? { ...x, label: value } : x)),
+      });
+    }
+  }
+
+  protected patchCaseValue(caseId: string, value: string): void {
+    const c = this.inspectNode()?.config;
+    if (c?.type === 'switch') {
+      this.setConfig({
+        ...c,
+        cases: c.cases.map((x) => (x.id === caseId ? { ...x, value } : x)),
+      });
+    }
+  }
+
+  protected toggleDefault(hasDefault: boolean): void {
+    const c = this.inspectNode()?.config;
+    if (c?.type === 'switch') this.setConfig({ ...c, hasDefault });
+  }
+
+  /** Append a `{{ $node["Title"] }}` reference to the config's main expression. */
+  protected insertContext(node: BoardNode): void {
+    const c = this.inspectNode()?.config;
+    if (!c) return;
+    const ref = `{{ $node["${node.title}"] }}`;
+    if (c.type === 'switch') {
+      this.setConfig({ ...c, discriminant: `${c.discriminant} ${ref}`.trim() });
+    } else {
+      this.setConfig({ ...c, expression: `${c.expression} ${ref}`.trim() });
+    }
   }
 
   // ── Save / load / validation ─────────────────────────────────────────────

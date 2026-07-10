@@ -89,9 +89,38 @@ export interface NodePort {
   id: string;
   role: PortRole;
   side: PortSide;
-  /** Optional label, e.g. a control-flow branch name ("then" / "else"). */
+  /** Optional label, e.g. a control-flow branch name ("true" / "false"). */
   label?: string;
 }
+
+/** Control-flow subtype — each has a distinct configuration form. */
+export type ControlFlowKind = 'if' | 'switch' | 'filter';
+
+/** One branch of a `switch` node. */
+export interface SwitchCase {
+  id: string;
+  label: string;
+  /** Value the discriminant is compared against (a free-text expression). */
+  value: string;
+}
+
+/**
+ * Configuration for a control-flow node. Its shape decides the node's named
+ * output ports (see `derivePorts`). Expressions are free text and may reference
+ * upstream node context (n8n-style), resolved by the runtime later.
+ */
+export type ControlFlowConfig =
+  | { type: 'if'; expression: string }
+  | {
+      type: 'switch';
+      discriminant: string;
+      cases: SwitchCase[];
+      hasDefault: boolean;
+    }
+  | { type: 'filter'; expression: string };
+
+/** Per-node configuration (currently only control-flow; extensible later). */
+export type NodeConfig = ControlFlowConfig;
 
 /** A node placed on the board. */
 export interface BoardNode {
@@ -113,6 +142,8 @@ export interface BoardNode {
   required?: boolean;
   /** merge only — how many events to buffer before emitting (may be dynamic at runtime). */
   bufferSize?: number;
+  /** control-flow only — drives the node's named output ports. */
+  config?: NodeConfig;
   /** Current execution state (undefined ⇒ idle). Set by the runtime overlay. */
   status?: NodeStatus;
   /** Arbitrary per-node config / runtime hints. */
@@ -173,4 +204,16 @@ export function defaultPorts(kind: NodeKind): NodePort[] {
     default:
       return [input, ...outputs];
   }
+}
+
+/**
+ * Fractional position (0..1) of a port along its side, distributing ports that
+ * share a side evenly. A lone port sits at the centre (0.5); N ports on the same
+ * side are spaced at 1/(N+1), 2/(N+1), … — used for both the DOM handle and the
+ * world-space anchor so they always agree.
+ */
+export function portFraction(node: BoardNode, port: NodePort): number {
+  const mates = node.ports.filter((p) => p.side === port.side);
+  const index = mates.indexOf(port);
+  return (index + 1) / (mates.length + 1);
 }

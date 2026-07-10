@@ -1,6 +1,7 @@
 import {
   Bot,
   Combine,
+  Filter,
   GitBranch,
   type LucideIconData,
   Send,
@@ -8,7 +9,7 @@ import {
   Split,
   Zap,
 } from 'lucide-angular';
-import type { NodeType } from '@tsai-pe/shared/models';
+import type { ControlFlowKind, NodeType } from '@tsai-pe/shared/models';
 
 /** Visual descriptor for a node type: icon, human label, and accent color. */
 export interface NodeMeta {
@@ -39,4 +40,11 @@ export const NODE_META: Record<NodeType, NodeMeta> = {
   split: { icon: Split, label: 'Split', color: 'var(--node-split)' },
   merge: { icon: Combine, label: 'Merge', color: 'var(--node-merge)' },
   effect: { icon: Send, label: 'Effect', color: 'var(--node-effect)' },
+};
+
+/** Icon per control-flow subtype (overrides the generic control-flow icon). */
+export const CONTROL_FLOW_ICONS: Record<ControlFlowKind, LucideIconData> = {
+  if: GitBranch,
+  switch: Split,
+  filter: Filter,
 };

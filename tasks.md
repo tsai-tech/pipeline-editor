@@ -22,6 +22,12 @@ Actionable, not-yet-done work only. No history.
 - [ ] Self-host Geist / Inter.
 - [ ] Lib README (theming / `@source` / usage); CDK + Aria notes in ARCHITECTURE.
 
-## board — UI-layer prep (next)
+## workflow — execution domain (next)
 
-- [ ] Manual reroute waypoints on edges (over the auto A* routing).
+- [ ] Extract the node-type registry into its own `shared/nodes` lib once it
+      grows (config schemas + `derivePorts`; today it lives in `shared/models`).
+- [ ] `workflow/engine`: run a pipeline — trigger → actions/effects, split/merge
+      buffer semantics, per-run node status, whole-pipeline context resolution
+      (the `{{ $node["…"] }}` references the control-flow config already uses).
+- [ ] Expression evaluation + a real context/variable model (node output shapes).
+- [ ] `/workflow` playground: drive a run and reflect node status on the board.

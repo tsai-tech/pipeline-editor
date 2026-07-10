@@ -3,10 +3,12 @@ import {
   type ActionCategory,
   type BoardNode,
   type CellSize,
-  defaultPorts,
+  defaultControlFlowConfig,
+  derivePorts,
   type Edge,
   type EdgeEnd,
   type GridPos,
+  type NodeConfig,
   type NodeKind,
   type NodePort,
   type Pipeline,
@@ -259,6 +261,65 @@ export class BoardStore {
   }
 
   /**
+   * Set a control-flow node's config, re-derive its output ports, grow it to fit
+   * the branches, and drop any connections whose ports no longer exist.
+   */
+  applyConfig(id: string, config: NodeConfig): void {
+    this.record();
+    this._nodes.update((nodes) =>
+      nodes.map((n) => {
+        if (n.id !== id) return n;
+        const next: BoardNode = { ...n, config };
+        const ports = derivePorts(next);
+        const outputs = ports.filter((p) => p.role === 'output').length;
+        const rows = Math.min(12, Math.max(n.size.rows, outputs + 1));
+        return { ...next, ports, size: { ...n.size, rows } };
+      }),
+    );
+    this.pruneOrphanEdges();
+  }
+
+  /** Remove connections that reference a port no longer present on its node. */
+  private pruneOrphanEdges(): void {
+    const ports = new Map<string, Set<string>>();
+    for (const n of this._nodes()) {
+      ports.set(n.id, new Set(n.ports.map((p) => p.id)));
+    }
+    this._edges.update((edges) =>
+      edges.filter(
+        (e) =>
+          ports.get(e.source.nodeId)?.has(e.source.portId) &&
+          ports.get(e.target.nodeId)?.has(e.target.portId),
+      ),
+    );
+  }
+
+  /**
+   * All nodes upstream of `id` (its ancestors in the DAG) — the pipeline context
+   * whose variables an expression on this node may reference (n8n-style).
+   */
+  ancestorsOf(id: string): BoardNode[] {
+    const incoming = new Map<string, string[]>();
+    for (const e of this._edges()) {
+      const list = incoming.get(e.target.nodeId) ?? [];
+      list.push(e.source.nodeId);
+      incoming.set(e.target.nodeId, list);
+    }
+    const seen = new Set<string>();
+    const stack = [id];
+    while (stack.length) {
+      const u = stack.pop() as string;
+      for (const p of incoming.get(u) ?? []) {
+        if (!seen.has(p)) {
+          seen.add(p);
+          stack.push(p);
+        }
+      }
+    }
+    return this._nodes().filter((n) => seen.has(n.id));
+  }
+
+  /**
    * Nearest port of a given role to a world point, within `maxDistance` world
    * px, optionally excluding one node. Used to magnet-snap connections.
    */
@@ -283,11 +344,15 @@ export class BoardStore {
     return best;
   }
 
-  /** Add a new node (ports derived from its kind) and select it. Returns its id. */
+  /** Add a new node (ports derived from its kind/config) and select it. */
   addNode(input: NewNode): string {
     this.record();
     const id = `node-${++this.seq}`;
-    const node: BoardNode = {
+    const config: NodeConfig | undefined =
+      input.category === 'control-flow'
+        ? defaultControlFlowConfig('if')
+        : undefined;
+    const base: BoardNode = {
       id,
       kind: input.kind,
       category: input.category,
@@ -295,9 +360,10 @@ export class BoardStore {
       subtitle: input.subtitle,
       pos: input.pos,
       size: input.size ?? { cols: 6, rows: 2 },
-      ports: defaultPorts(input.kind),
+      config,
+      ports: [],
     };
-    this._nodes.update((nodes) => [...nodes, node]);
+    this._nodes.update((nodes) => [...nodes, { ...base, ports: derivePorts(base) }]);
     this.select(id);
     return id;
   }
