@@ -119,6 +119,9 @@ Tooltip (directive), Toast + ToastService.
       side-aware edge curves (tangents leave along each port's normal).
 - [x] Keyboard: Delete / Backspace removes selection, Escape clears / closes
       menu, F fits; floating zoom / fit / reset toolbar.
-- [ ] Connection routing on the 16-subgrid (waypoints) + orthogonal edges.
+- [x] Orthogonal edge routing on the 16-subgrid via A*: connections **avoid
+      nodes** (inflated obstacle cells) and **softly avoid each other** (occupancy
+      penalty), prefer straight runs (turn penalty), rounded corners; bezier
+      fallback when no route/too large. Reroutes live as nodes move.
 - [ ] Node palette / drag-from-sidebar; copy / paste; undo / redo.
 - [ ] Minimap; DAG + port-compatibility validation; pipeline (de)serialization.

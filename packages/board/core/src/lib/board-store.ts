@@ -15,6 +15,7 @@ import {
   type Rect,
 } from '@tsai-pe/shared/models';
 import { boundsOf, edgePath, nodeRect, portAnchor, rectsIntersect } from './geometry';
+import { routeEdge } from './routing';
 import { Viewport } from './viewport';
 
 /** Fields needed to add a fresh node; `ports` default from its kind. */
@@ -59,18 +60,33 @@ export class BoardStore {
     return map;
   });
 
-  /** Edges resolved to renderable geometry (bezier path + endpoints). */
+  /**
+   * Edges resolved to renderable geometry. Each edge is routed orthogonally
+   * around nodes on the 16-subgrid; already-routed edges are fed back as
+   * occupancy so connections avoid overlapping. Falls back to a bezier when a
+   * route can't be found.
+   */
   readonly edgeGeometries: Signal<EdgeGeometry[]> = computed(() => {
     const byId = this.nodeById();
+    const nodes = this._nodes();
     const selected = this._selection();
+    const occupied = new Set<string>();
     const result: EdgeGeometry[] = [];
     for (const edge of this._edges()) {
       const from = this.anchorOf(byId, edge.source.nodeId, edge.source.portId);
       const to = this.anchorOf(byId, edge.target.nodeId, edge.target.portId);
       if (!from || !to) continue;
+      const route = routeEdge(from.point, to.point, from.side, to.side, nodes, occupied);
+      let path: string;
+      if (route) {
+        path = route.path;
+        for (const cell of route.cells) occupied.add(cell);
+      } else {
+        path = edgePath(from.point, to.point, from.side, to.side);
+      }
       result.push({
         id: edge.id,
-        path: edgePath(from.point, to.point, from.side, to.side),
+        path,
         from: from.point,
         to: to.point,
         selected: selected.has(edge.id),

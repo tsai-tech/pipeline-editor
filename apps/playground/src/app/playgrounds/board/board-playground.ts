@@ -12,13 +12,15 @@ function node(spec: Omit<BoardNode, 'ports'>): BoardNode {
 }
 
 const SIZE = { cols: 8, rows: 2 } as const;
-const ROW = 8;
 
 /**
  * The "draw 10 cats" demo pipeline — the canonical example of the split/merge
- * buffer semantics, all wired with strict 1:1 connections:
+ * buffer semantics, all wired with strict 1:1 connections. Nodes are laid out in
+ * two dimensions so the orthogonal router visibly bends edges around nodes, and
+ * merge fans out to a required `send` effect and an optional `logger`:
  *
- *   Telegram trigger → LLM agent → split → Image generator → merge(10) → Telegram send
+ *   Telegram → LLM agent → split → Image generator → merge(10) ┬→ Telegram send
+ *                                                              └→ Logger (optional)
  */
 const CAT_PIPELINE: Pipeline = {
   id: 'demo-cats',
@@ -29,7 +31,7 @@ const CAT_PIPELINE: Pipeline = {
       kind: 'trigger',
       title: 'Telegram',
       subtitle: '"draw 10 cats"',
-      pos: { col: 2, row: ROW },
+      pos: { col: 2, row: 8 },
       size: SIZE,
     }),
     node({
@@ -38,7 +40,7 @@ const CAT_PIPELINE: Pipeline = {
       category: 'integration',
       title: 'LLM Agent',
       subtitle: '→ { count: 10, commands }',
-      pos: { col: 12, row: ROW },
+      pos: { col: 12, row: 8 },
       size: SIZE,
     }),
     node({
@@ -47,7 +49,7 @@ const CAT_PIPELINE: Pipeline = {
       category: 'split',
       title: 'Split',
       subtitle: 'array → per element',
-      pos: { col: 22, row: ROW },
+      pos: { col: 22, row: 8 },
       size: SIZE,
     }),
     node({
@@ -56,7 +58,7 @@ const CAT_PIPELINE: Pipeline = {
       category: 'integration',
       title: 'Image Generator',
       subtitle: 'one cat per command',
-      pos: { col: 32, row: ROW },
+      pos: { col: 32, row: 3 },
       size: SIZE,
     }),
     node({
@@ -65,7 +67,7 @@ const CAT_PIPELINE: Pipeline = {
       category: 'merge',
       title: 'Merge',
       subtitle: 'buffer until complete',
-      pos: { col: 42, row: ROW },
+      pos: { col: 42, row: 8 },
       size: SIZE,
       bufferSize: 10,
     }),
@@ -74,25 +76,35 @@ const CAT_PIPELINE: Pipeline = {
       kind: 'effect',
       title: 'Telegram',
       subtitle: 'send 10 cats',
-      pos: { col: 52, row: ROW },
+      pos: { col: 54, row: 3 },
       size: SIZE,
       required: true,
     }),
+    node({
+      id: 'node-7',
+      kind: 'effect',
+      title: 'Logger',
+      subtitle: 'best-effort',
+      pos: { col: 54, row: 13 },
+      size: SIZE,
+      required: false,
+    }),
   ],
   edges: [
-    edge('node-1', 'node-2'),
-    edge('node-2', 'node-3'),
-    edge('node-3', 'node-4'),
-    edge('node-4', 'node-5'),
-    edge('node-5', 'node-6'),
+    edge('e1', 'node-1', 'out-right', 'node-2'),
+    edge('e2', 'node-2', 'out-right', 'node-3'),
+    edge('e3', 'node-3', 'out-right', 'node-4'),
+    edge('e4', 'node-4', 'out-right', 'node-5'),
+    edge('e5', 'node-5', 'out-top', 'node-6'),
+    edge('e6', 'node-5', 'out-bottom', 'node-7'),
   ],
 };
 
-/** A 1:1 connection from a node's right output onto the next node's input. */
-function edge(from: string, to: string) {
+/** A 1:1 connection from a node's output port onto the next node's input. */
+function edge(id: string, from: string, fromPort: string, to: string) {
   return {
-    id: `edge-${from}-${to}`,
-    source: { nodeId: from, portId: 'out-right' },
+    id,
+    source: { nodeId: from, portId: fromPort },
     target: { nodeId: to, portId: 'in' },
   };
 }
