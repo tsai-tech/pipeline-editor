@@ -206,6 +206,20 @@ export class BoardStore {
     );
   }
 
+  /** Shift every selected node by a whole-cell delta (records history). */
+  nudgeSelected(dCol: number, dRow: number): void {
+    const sel = this._selection();
+    if (!sel.size) return;
+    this.record();
+    this._nodes.update((nodes) =>
+      nodes.map((n) =>
+        sel.has(n.id)
+          ? { ...n, pos: { col: n.pos.col + dCol, row: n.pos.row + dRow } }
+          : n,
+      ),
+    );
+  }
+
   /** Patch a node's editable fields (records history for undo). */
   updateNode(id: string, patch: Partial<BoardNode>): void {
     this.record();

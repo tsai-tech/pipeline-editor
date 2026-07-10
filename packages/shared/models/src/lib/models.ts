@@ -75,6 +75,9 @@ export type NodeType =
   | 'split'
   | 'merge';
 
+/** Runtime execution state of a node (drives the status overlay). */
+export type NodeStatus = 'idle' | 'running' | 'success' | 'error';
+
 /** Which edge of a node a port sits on. Left = input; right/top/bottom = output. */
 export type PortSide = 'left' | 'right' | 'top' | 'bottom';
 
@@ -110,6 +113,8 @@ export interface BoardNode {
   required?: boolean;
   /** merge only — how many events to buffer before emitting (may be dynamic at runtime). */
   bufferSize?: number;
+  /** Current execution state (undefined ⇒ idle). Set by the runtime overlay. */
+  status?: NodeStatus;
   /** Arbitrary per-node config / runtime hints. */
   data?: Record<string, unknown>;
 }

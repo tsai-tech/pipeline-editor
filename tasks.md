@@ -24,11 +24,7 @@ Actionable, not-yet-done work only. No history.
 
 ## board — UI-layer prep (next)
 
-- [ ] Node runtime status (idle / running / success / error) — border + badge +
-      pulse; groundwork for the workflow execution overlay.
 - [ ] Edge labels (control-flow branch names, e.g. then / else).
-- [ ] Empty-state hint on an empty canvas ("drag a node from the palette").
-- [ ] Arrow-key nudge of selected nodes; Ctrl+= / Ctrl+- zoom; Space+drag pan.
 - [ ] Alignment guides / snap hints while dragging.
 - [ ] Node resize + auto-size to content / ports.
 - [ ] Read-only mode (`readonly` input — view without editing).

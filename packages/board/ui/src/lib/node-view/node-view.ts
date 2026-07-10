@@ -84,6 +84,29 @@ export class NodeView {
     };
   });
 
+  /** Execution-status overlay classes (border ring + corner badge), or null. */
+  protected readonly statusOverlay = computed(() => {
+    switch (this.node().status) {
+      case 'running':
+        return {
+          ring: 'border-2 border-[var(--info)] animate-pulse',
+          dot: 'bg-[var(--info)] animate-pulse',
+        };
+      case 'success':
+        return {
+          ring: 'border-2 border-[var(--success)]',
+          dot: 'bg-[var(--success)]',
+        };
+      case 'error':
+        return {
+          ring: 'border-2 border-[var(--danger)]',
+          dot: 'bg-[var(--danger)]',
+        };
+      default:
+        return null;
+    }
+  });
+
   /** Body classes, with selection accent overriding the resting border/shadow. */
   protected readonly bodyClasses = computed(() => {
     const base =

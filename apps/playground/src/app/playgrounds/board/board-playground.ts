@@ -33,6 +33,7 @@ const CAT_PIPELINE: Pipeline = {
       subtitle: '"draw 10 cats"',
       pos: { col: 2, row: 8 },
       size: SIZE,
+      status: 'success',
     }),
     node({
       id: 'node-2',
@@ -60,6 +61,7 @@ const CAT_PIPELINE: Pipeline = {
       subtitle: 'one cat per command',
       pos: { col: 32, row: 3 },
       size: SIZE,
+      status: 'running',
     }),
     node({
       id: 'node-5',
@@ -88,6 +90,7 @@ const CAT_PIPELINE: Pipeline = {
       pos: { col: 54, row: 13 },
       size: SIZE,
       required: false,
+      status: 'error',
     }),
   ],
   edges: [
@@ -118,9 +121,9 @@ function edge(id: string, from: string, fromPort: string, to: string) {
     <p class="text-sm text-text-2">
       Drag from the palette to add nodes · drag a node to move it · drag a right /
       top / bottom port onto a left port to connect · rubber-band to multi-select ·
-      right mouse (or touch swipe) pans, scroll zooms · minimap navigates ·
-      <kbd>⌘/Ctrl+Z</kbd> undo, <kbd>C</kbd>/<kbd>V</kbd> copy-paste,
-      <kbd>Del</kbd> delete, <kbd>F</kbd> fit.
+      right mouse / middle / Space+drag pans, scroll or <kbd>⌘/Ctrl</kbd>+<kbd>±</kbd>
+      zooms · minimap navigates · arrows nudge · <kbd>⌘/Ctrl+Z</kbd> undo,
+      <kbd>C</kbd>/<kbd>V</kbd> copy-paste, <kbd>Del</kbd> delete, <kbd>F</kbd> fit.
     </p>
     <pe-board
       [pipeline]="pipeline"

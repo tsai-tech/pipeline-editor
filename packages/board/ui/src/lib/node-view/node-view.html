@@ -40,6 +40,19 @@
   }
 </div>
 
+@if (statusOverlay(); as st) {
+  <span
+    class="absolute inset-0 rounded-[var(--r-md)] pointer-events-none"
+    [class]="st.ring"
+    aria-hidden="true"
+  ></span>
+  <span
+    class="absolute -top-1 -right-1 w-2.5 h-2.5 rounded-full border-2 border-[var(--surface-2)]"
+    [class]="st.dot"
+    [attr.title]="node().status"
+  ></span>
+}
+
 @for (port of node().ports; track port.id) {
   <button
     type="button"

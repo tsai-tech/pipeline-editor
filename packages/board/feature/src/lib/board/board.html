@@ -73,6 +73,20 @@
   }
 </div>
 
+@if (!store.nodes().length) {
+  <div
+    class="absolute inset-0 grid place-items-center pointer-events-none"
+    aria-hidden="true"
+  >
+    <div class="flex flex-col items-center gap-1 text-center">
+      <span class="text-sm font-medium text-text-2">Empty canvas</span>
+      <span class="text-xs text-text-3"
+        >Drag a node from the palette, or right-click to add one</span
+      >
+    </div>
+  </div>
+}
+
 @if (marquee(); as m) {
   <div
     class="absolute z-[15] pointer-events-none border border-[var(--accent)] bg-[var(--accent-quiet)] rounded-[2px]"

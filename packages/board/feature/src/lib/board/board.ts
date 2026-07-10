@@ -125,6 +125,7 @@ interface ContextMenu {
     '(contextmenu)': 'onContextMenu($event)',
     '(wheel)': 'onWheel($event)',
     '(keydown)': 'onKeyDown($event)',
+    '(keyup)': 'onKeyUp($event)',
     '(dragover)': 'onDragOver($event)',
     '(drop)': 'onDrop($event)',
   },
@@ -177,6 +178,7 @@ export class Board {
 
   private drag: Drag | null = null;
   private longPress?: ReturnType<typeof setTimeout>;
+  private spaceHeld = false;
   private paletteDrag: { kind: NodeKind; category?: ActionCategory; label: string } | null =
     null;
 
@@ -266,9 +268,12 @@ export class Board {
     this.hostEl.nativeElement.focus();
     if (this.drag) return; // a node/port handler already claimed this press
 
-    // Right button, middle button, or touch → pan.
+    // Right button, middle button, touch, or Space+left → pan.
     const pan =
-      event.button === 1 || event.button === 2 || event.pointerType === 'touch';
+      event.button === 1 ||
+      event.button === 2 ||
+      event.pointerType === 'touch' ||
+      (event.button === 0 && this.spaceHeld);
     if (pan) {
       if (event.button === 1) event.preventDefault(); // no middle-click autoscroll
       this.drag = {
@@ -416,6 +421,16 @@ export class Board {
           event.preventDefault();
           this.store.redo();
           return;
+        case '=':
+        case '+':
+          event.preventDefault();
+          this.zoomIn();
+          return;
+        case '-':
+        case '_':
+          event.preventDefault();
+          this.zoomOut();
+          return;
         case 'c':
           event.preventDefault();
           this.store.copySelection();
@@ -453,7 +468,31 @@ export class Board {
       case 'F':
         this.fitView();
         break;
+      case ' ':
+        this.spaceHeld = true;
+        event.preventDefault(); // don't scroll the page
+        break;
+      case 'ArrowUp':
+        event.preventDefault();
+        this.store.nudgeSelected(0, -1);
+        break;
+      case 'ArrowDown':
+        event.preventDefault();
+        this.store.nudgeSelected(0, 1);
+        break;
+      case 'ArrowLeft':
+        event.preventDefault();
+        this.store.nudgeSelected(-1, 0);
+        break;
+      case 'ArrowRight':
+        event.preventDefault();
+        this.store.nudgeSelected(1, 0);
+        break;
     }
+  }
+
+  protected onKeyUp(event: KeyboardEvent): void {
+    if (event.key === ' ') this.spaceHeld = false;
   }
 
   protected undo(): void {
