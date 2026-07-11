@@ -65,7 +65,8 @@ packages/
     feature/                @tsai-pe/board/feature   scope:board  type:feature ← <pe-board> — публичный редактор
 
   workflow/
-    mock/                   @tsai-pe/workflow/mock   scope:workflow type:core ← TestBackendSystem (мок-адаптер бэкенда)
+    mock/                   @tsai-pe/workflow/mock   scope:workflow type:core ← TestBackendSystem (in-browser мок-адаптер)
+    http/                   @tsai-pe/workflow/http   scope:workflow type:core ← RestWsBackend (REST + WS/SSE адаптер, скелет)
 ```
 
 Публичный npm-scope — **`@tsai-pe`**. Реестр типов узлов вынесен в отдельную либу
@@ -232,6 +233,20 @@ In-browser мок «системы», реализующий `PipelineBackend`. 
 
 Реальный REST/WS-адаптер — просто другая реализация того же порта; редактор его не
 отличает. Инжектится в `<pe-board>` через `PIPELINE_BACKEND`.
+
+### `workflow/http` — `RestWsBackend` (type:core)
+
+Скелет реальной реализации порта: команды по **REST** (`POST /runs`,
+`POST /runs/{id}/stop`), снапшоты прогона — потоком (**WebSocket**/SSE). Проверяет
+контракт об реальный транспорт. Транспорт (`fetch` + фабрика сокета) инъектируется —
+либа остаётся headless и юнит-тестируемой без сети.
+
+**Найденная развилка (sync/async).** Порт `startRun` возвращает id **синхронно**, а
+REST назначает id **асинхронно**. Решение: адаптер сразу отдаёт **локальный** id,
+шлёт POST в фоне и, получив серверный id, открывает стрим и **ремапит** серверные
+снапшоты на локальный id. Вызывающий работает только с локальным id и реконсиляции
+не видит. Это сигнал для будущей «зрелости контракта»: возможно, `startRun` стоит
+сделать асинхронным.
 
 ---
 

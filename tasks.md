@@ -6,9 +6,9 @@ Actionable, not-yet-done work only. No history.
 
 - [ ] Backend contract maturity (beyond run lifecycle): persistence (save / load /
       list pipelines, run history), node catalog supplied by the backend,
-      credentials/secrets model, validation from the backend.
-- [ ] A real `PipelineBackend` adapter skeleton (REST/WS) to prove the contract
-      against reality (only `TestBackendSystem` exists today).
+      credentials/secrets model, validation from the backend. Also reconsider the
+      sync `startRun(): string` — the REST adapter has to mint a local id and
+      reconcile the server id async; an async `startRun` would drop that seam.
 
 ## ui-kit
 

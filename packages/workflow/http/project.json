@@ -1,0 +1,19 @@
+{
+  "name": "http",
+  "$schema": "../../../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "packages/workflow/http/src",
+  "projectType": "library",
+  "tags": ["scope:workflow", "type:core"],
+  "targets": {
+    "build": {
+      "executor": "@nx/js:tsc",
+      "outputs": ["{options.outputPath}"],
+      "options": {
+        "outputPath": "dist/packages/workflow/http",
+        "main": "packages/workflow/http/src/index.ts",
+        "tsConfig": "packages/workflow/http/tsconfig.lib.json",
+        "assets": []
+      }
+    }
+  }
+}
