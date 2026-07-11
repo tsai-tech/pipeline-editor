@@ -147,7 +147,8 @@ function edge(id: string, from: string, fromPort: string, to: string) {
   providers: [
     {
       provide: PIPELINE_BACKEND,
-      useFactory: () => new TestBackendSystem({ stepDelayMs: 550 }),
+      useFactory: () =>
+        new TestBackendSystem({ stepDelayMs: 550, tickProgressMs: 120 }),
     },
   ],
   template: `<div class="flex h-[75dvh] flex-col gap-3">

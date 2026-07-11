@@ -48,6 +48,11 @@ export interface TestBackendOptions {
   ) => string | undefined | false;
   /** Clock injection (defaults to `Date.now`), handy for deterministic tests. */
   now?: () => number;
+  /**
+   * If set (> 0), fan-out progress ticks 1 → N spaced by this many ms instead of
+   * jumping straight to n/n. Off by default (instant).
+   */
+  tickProgressMs?: number;
 }
 
 /**
@@ -70,11 +75,13 @@ export class TestBackendSystem implements PipelineBackend {
     pipeline: Pipeline,
   ) => string | undefined | false;
   private readonly now: () => number;
+  private readonly tickProgressMs: number;
 
   constructor(options: TestBackendOptions = {}) {
     this.stepDelayMs = options.stepDelayMs ?? 400;
     this.failNode = options.failNode ?? (() => undefined);
     this.now = options.now ?? (() => Date.now());
+    this.tickProgressMs = options.tickProgressMs ?? 0;
   }
 
   startRun(pipeline: Pipeline): string {
@@ -199,19 +206,51 @@ export class TestBackendSystem implements PipelineBackend {
           this.finish(run, 'error');
           return;
         }
+        // An optional effect failing does not fail the run — keep going.
         this.log(run, `(optional — run continues)`, node.id);
-      } else {
-        nodeRun.status = 'success';
-        if (isControlFlow(node)) this.resolveBranch(run, node);
-        const output = this.produceOutput(run, pipeline, node, nodeRun);
-        run.outputs[node.id] = output;
-        // Expose the produced output on the snapshot so the editor can show it
-        // (Run data) and derive downstream expression variable paths from it.
-        nodeRun.output = output;
+        this.emit(run);
+        this.runNextNode(run, pipeline, order, index + 1);
+        return;
       }
+
+      nodeRun.status = 'success';
+      if (isControlFlow(node)) this.resolveBranch(run, node);
+      const output = this.produceOutput(run, pipeline, node, nodeRun);
+      run.outputs[node.id] = output;
+      // Expose the produced output on the snapshot so the editor can show it
+      // (Run data) and derive downstream expression variable paths from it.
+      nodeRun.output = output;
+
+      // Optionally animate fan-out progress 1 → N before advancing.
+      const pg = nodeRun.progress;
+      if (this.tickProgressMs > 0 && pg && pg.total > 1) pg.done = 1;
       this.emit(run);
-      this.runNextNode(run, pipeline, order, index + 1);
+      this.advance(run, pipeline, order, index, nodeRun);
     });
+  }
+
+  /**
+   * Advance to the next node, first ticking this node's fan-out progress up to
+   * its total (when `tickProgressMs` is set); otherwise moves on immediately.
+   */
+  private advance(
+    run: RunState,
+    pipeline: Pipeline,
+    order: BoardNode[],
+    index: number,
+    nodeRun: NodeRun,
+  ): void {
+    if (run.canceled) return;
+    const pg = nodeRun.progress;
+    if (this.tickProgressMs > 0 && pg && pg.done < pg.total) {
+      this.schedule(run, this.tickProgressMs, () => {
+        pg.done = Math.min(pg.total, pg.done + 1);
+        this.emit(run);
+        this.advance(run, pipeline, order, index, nodeRun);
+      });
+      return;
+    }
+    this.runNextNode(run, pipeline, order, index + 1);
   }
 
   /** Whether a node should run given upstream success and taken branches. */

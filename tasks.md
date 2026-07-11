@@ -9,9 +9,6 @@ Actionable, not-yet-done work only. No history.
       credentials/secrets model, validation from the backend.
 - [ ] A real `PipelineBackend` adapter skeleton (REST/WS) to prove the contract
       against reality (only `TestBackendSystem` exists today).
-- [ ] Run UX polish: distinct `skipped` node state (not `idle`); show a node's
-      error on the node / inspector; log timestamps + per-node filter + autoscroll;
-      optional ticking progress (1→N) instead of instant n/n.
 
 ## ui-kit
 

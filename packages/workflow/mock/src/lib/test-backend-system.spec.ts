@@ -229,6 +229,38 @@ describe('TestBackendSystem — split/merge fan-out', () => {
   });
 });
 
+describe('TestBackendSystem — ticking progress', () => {
+  it('ticks fan-out progress 1 → N when tickProgressMs is set', async () => {
+    const sys = new TestBackendSystem({ stepDelayMs: 0, tickProgressMs: 1 });
+    const p = pipeline(
+      [
+        trigger('t'),
+        action('split', 'split'),
+        action('work'),
+        action('merge', 'merge'),
+      ],
+      [edge('t', 'split'), edge('split', 'work'), edge('work', 'merge')],
+    );
+    // Capture the "work" node's done value at each emit (progress is mutated in
+    // place, so read the primitive synchronously rather than the object later).
+    const doneSeq: number[] = [];
+    await new Promise<void>((resolve) => {
+      let unsub: () => void = () => undefined;
+      const runId = sys.startRun(p);
+      unsub = sys.observe(runId, (snap) => {
+        const pg = snap.nodes['work']?.progress;
+        if (pg) doneSeq.push(pg.done);
+        if (snap.status === 'success' || snap.status === 'error') {
+          unsub();
+          resolve();
+        }
+      });
+    });
+    expect(Math.max(...doneSeq)).toBe(10);
+    expect(doneSeq.some((d) => d < 10)).toBe(true); // saw intermediate ticks
+  });
+});
+
 describe('TestBackendSystem — lifecycle', () => {
   it('stop() cancels a pending run', () => {
     const sys = new TestBackendSystem({ stepDelayMs: 1000 });
