@@ -120,6 +120,14 @@ describe('TestBackendSystem — happy path', () => {
     ]);
   });
 
+  it('exposes each succeeded node output on the snapshot', async () => {
+    const p = pipeline([trigger('t'), action('a')], [edge('t', 'a')]);
+    const snap = await runToEnd(fast(), p);
+    // trigger emits an illustrative { count, source } object
+    expect(snap.nodes['t'].output).toMatchObject({ count: 10 });
+    expect(snap.nodes['a'].output).toBeDefined();
+  });
+
   it('fires the observer immediately with current state', () => {
     const sys = fast();
     const runId = sys.startRun(pipeline([trigger('t')], []));

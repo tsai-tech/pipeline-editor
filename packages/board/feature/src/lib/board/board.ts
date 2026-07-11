@@ -50,6 +50,7 @@ import {
   NODE_CATALOG,
   type ParamField,
   paramSchema,
+  variablePaths,
 } from '@tsai-pe/shared/nodes';
 import { Button, Dialog } from '@tsai-pe/ui-kit';
 import { LucideAngularModule } from 'lucide-angular';
@@ -903,11 +904,27 @@ export class Board {
     if (c?.type === 'switch') this.setConfig({ ...c, hasDefault });
   }
 
-  /** Append a `{{ $node["Title"] }}` reference to the config's main expression. */
-  protected insertContext(node: BoardNode): void {
+  /**
+   * Variable paths an expression may pull from an upstream node — derived from
+   * the shape of what that node produced in the current run. Empty until a run
+   * has output for it (then the editor only offers the bare node reference).
+   */
+  protected varPaths(node: BoardNode): string[] {
+    const output = this.run()?.nodes[node.id]?.output;
+    return output === undefined ? [] : variablePaths(output);
+  }
+
+  /** An n8n-style reference to an upstream node, optionally to a variable path. */
+  private contextRef(title: string, path?: string): string {
+    const accessor = !path ? '' : path.startsWith('[') ? path : `.${path}`;
+    return `{{ $node["${title}"]${accessor} }}`;
+  }
+
+  /** Append an upstream reference (node, or a variable path) to the config. */
+  protected insertContext(node: BoardNode, path?: string): void {
     const c = this.inspectNode()?.config;
     if (!c) return;
-    const ref = `{{ $node["${node.title}"] }}`;
+    const ref = this.contextRef(node.title, path);
     if (c.type === 'switch') {
       this.setConfig({ ...c, discriminant: `${c.discriminant} ${ref}`.trim() });
     } else {
@@ -941,9 +958,10 @@ export class Board {
     }
   }
 
-  protected insertParamContext(key: string, node: BoardNode): void {
+  protected insertParamContext(key: string, node: BoardNode, path?: string): void {
     const current = String(this.inspectNode()?.data?.[key] ?? '');
-    this.patchParam(key, `${current} {{ $node["${node.title}"] }}`.trim());
+    const ref = this.contextRef(node.title, path);
+    this.patchParam(key, `${current} ${ref}`.trim());
   }
 
   /** The inspected node's state in the current run (for the Data section). */

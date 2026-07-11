@@ -201,7 +201,11 @@ export class TestBackendSystem implements PipelineBackend {
       } else {
         nodeRun.status = 'success';
         if (isControlFlow(node)) this.resolveBranch(run, node);
-        run.outputs[node.id] = this.produceOutput(run, pipeline, node, nodeRun);
+        const output = this.produceOutput(run, pipeline, node, nodeRun);
+        run.outputs[node.id] = output;
+        // Expose the produced output on the snapshot so the editor can show it
+        // (Run data) and derive downstream expression variable paths from it.
+        nodeRun.output = output;
       }
       this.emit(run);
       this.runNextNode(run, pipeline, order, index + 1);
