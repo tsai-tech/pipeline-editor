@@ -1,0 +1,66 @@
+name: Deploy Playground to Pages
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+# Allow the workflow to publish to GitHub Pages.
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# One live deploy at a time; let a newer push supersede an in-flight run.
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+env:
+  # Project Pages live under /<repo>/ — must match `<base href>` for routing/assets.
+  # When docs land, keep the playground here and add them under /docs.
+  BASE_HREF: /pipeline-editor/
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24
+          cache: 'npm'
+
+      - run: npm ci
+
+      - name: Build playground
+        run: npx nx build playground --base-href="$BASE_HREF"
+
+      - name: SPA fallback + disable Jekyll
+        # GitHub Pages serves 404.html for unknown paths; the SPA boots and the
+        # Angular router takes over — so deep links like /board work.
+        run: |
+          cd dist/apps/playground/browser
+          cp index.html 404.html
+          touch .nojekyll
+
+      # `enablement: true` turns Pages on via the API (if the repo allows it), so
+      # no manual "Settings → Pages" step is needed on first run.
+      - uses: actions/configure-pages@v5
+        with:
+          enablement: true
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: dist/apps/playground/browser
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4
