@@ -2,6 +2,30 @@
 
 Actionable, not-yet-done work only. No history.
 
+## board / workflow — next
+
+- [ ] Extract the node-type registry (control-flow + catalog + param schemas +
+      `derivePorts`) out of `shared/models` into its own `shared/nodes` lib — it
+      has outgrown models.
+- [ ] Backend contract maturity (beyond run lifecycle): persistence (save / load /
+      list pipelines, run history), node catalog supplied by the backend,
+      credentials/secrets model, validation from the backend.
+- [ ] A real `PipelineBackend` adapter skeleton (REST/WS) to prove the contract
+      against reality (only `TestBackendSystem` exists today).
+- [ ] Expression help: derive available variable paths from upstream node output
+      shapes (today the inspector only offers ancestor-node chips).
+- [ ] Run UX polish: distinct `skipped` node state (not `idle`); show a node's
+      error on the node / inspector; log timestamps + per-node filter + autoscroll;
+      optional ticking progress (1→N) instead of instant n/n.
+
+## quality / docs
+
+- [ ] Unit tests: BoardStore, geometry, routing, registry (`derivePorts` /
+      `controlFlowOutputs` / `paramSchema`), validation, `TestBackendSystem`.
+- [ ] Refresh ARCHITECTURE.md — registry, node catalog, backend contract,
+      `workflow/mock`, control-flow, the styling decision (Tailwind everywhere,
+      component CSS only for host/SVG state).
+
 ## ui-kit
 
 - [ ] Extract a shared **anchored-overlay** helper (`tsai-popover`) once Select /
@@ -21,13 +45,3 @@ Actionable, not-yet-done work only. No history.
 - [ ] Storybook (or docs route) with per-component variant matrices.
 - [ ] Self-host Geist / Inter.
 - [ ] Lib README (theming / `@source` / usage); CDK + Aria notes in ARCHITECTURE.
-
-## workflow — execution domain (next)
-
-- [ ] Extract the node-type registry into its own `shared/nodes` lib once it
-      grows (config schemas + `derivePorts`; today it lives in `shared/models`).
-- [ ] `workflow/engine`: run a pipeline — trigger → actions/effects, split/merge
-      buffer semantics, per-run node status, whole-pipeline context resolution
-      (the `{{ $node["…"] }}` references the control-flow config already uses).
-- [ ] Expression evaluation + a real context/variable model (node output shapes).
-- [ ] `/workflow` playground: drive a run and reflect node status on the board.
