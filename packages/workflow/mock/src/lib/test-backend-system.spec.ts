@@ -285,6 +285,31 @@ describe('TestBackendSystem — smart evaluation', () => {
     });
   });
 
+  it('routes two triggers wired straight into a switch by $json.source', async () => {
+    // telegram + whatsapp → switch(discriminant $json.source) → per-channel effect
+    const tg: BoardNode = { ...trigger('telegram'), type: 'telegram-trigger' };
+    const wa: BoardNode = { ...trigger('whatsapp'), type: 'whatsapp-trigger' };
+    const sw = switchOnSource('sw', [
+      { id: 'tg', value: 'telegram' },
+      { id: 'wa', value: 'whatsapp' },
+    ]);
+    const p = pipeline(
+      [tg, wa, sw, effect('replyTg'), effect('replyWa')],
+      [
+        edge('telegram', 'sw'),
+        edge('whatsapp', 'sw'),
+        edge('sw', 'replyTg', 'case-tg'),
+        edge('sw', 'replyWa', 'case-wa'),
+      ],
+    );
+    // Fresh instance → round-robin fires the first trigger (telegram).
+    const snap = await runToEnd(fast(), p);
+    expect(snap.status).toBe('success');
+    expect(snap.nodes['whatsapp'].status).toBe('skipped'); // didn't fire this run
+    expect(snap.nodes['replyTg'].status).toBe('success');
+    expect(snap.nodes['replyWa'].status).toBe('skipped');
+  });
+
   it('fails a node when an expression reads into a missing path (shape changed)', async () => {
     const wa: BoardNode = { ...trigger('wa'), type: 'whatsapp-trigger' };
     const bad: BoardNode = {
@@ -340,6 +365,44 @@ describe('TestBackendSystem — split/merge fan-out', () => {
     expect(snap.log.some((l) => /Merge buffered 10\/10/i.test(l.message))).toBe(
       true,
     );
+  });
+});
+
+describe('TestBackendSystem — fan-out waves', () => {
+  it('processes a fan-out node as running waves, succeeding only at N/N', async () => {
+    const sys = new TestBackendSystem({ stepDelayMs: 0, tickProgressMs: 1 });
+    const p = pipeline(
+      [
+        trigger('t'),
+        action('split', 'split'),
+        action('img'),
+        action('merge', 'merge'),
+      ],
+      [edge('t', 'split'), edge('split', 'img'), edge('img', 'merge')],
+    );
+    const states: { status: string; done?: number }[] = [];
+    await new Promise<void>((resolve) => {
+      let unsub: () => void = () => undefined;
+      const id = sys.startRun(p);
+      unsub = sys.observe(id, (s) => {
+        const nr = s.nodes['img'];
+        if (nr) states.push({ status: nr.status, done: nr.progress?.done });
+        if (s.status === 'success' || s.status === 'error') {
+          unsub();
+          resolve();
+        }
+      });
+    });
+    // still "running" while the wave counter climbs through the middle
+    expect(
+      states.some(
+        (s) => s.status === 'running' && (s.done ?? 0) >= 1 && (s.done ?? 0) < 10,
+      ),
+    ).toBe(true);
+    // reaches success only at the final count
+    const done = states.filter((s) => s.status === 'success');
+    expect(done.length).toBeGreaterThan(0);
+    expect(done.every((s) => s.done === 10)).toBe(true);
   });
 });
 

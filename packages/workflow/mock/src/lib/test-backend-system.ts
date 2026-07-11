@@ -269,11 +269,25 @@ export class TestBackendSystem implements PipelineBackend {
         const ctx = this.evalContext(run, pipeline, node);
         if (isControlFlow(node)) this.resolveBranch(run, node, ctx);
         const output = this.produceOutput(run, pipeline, node, nodeRun, ctx);
-        nodeRun.status = 'success';
-        run.outputs[node.id] = output;
-        // Expose the produced output on the snapshot so the editor can show it
-        // (Run data) and derive downstream expression variable paths from it.
-        nodeRun.output = output;
+
+        // Fan-in nodes actually process their items as waves: stay `running`
+        // while the counter climbs 1 → N (each wave = one item through the
+        // segment), reaching `success` only when all N are in. `split` is the
+        // fan *source* — it emits ×N in a single pass, so it doesn't iterate.
+        const pg = nodeRun.progress;
+        if (
+          this.tickProgressMs > 0 &&
+          node.category !== 'split' &&
+          pg &&
+          pg.total > 1
+        ) {
+          pg.done = 1;
+          this.emit(run); // running, 1/N
+          this.runWaves(run, pipeline, order, index, nodeRun, output);
+          return;
+        }
+
+        this.succeed(run, pipeline, order, index, nodeRun, output);
       } catch (err) {
         nodeRun.status = 'error';
         nodeRun.error = `Expression error: ${errorMessage(err)}`;
@@ -289,36 +303,46 @@ export class TestBackendSystem implements PipelineBackend {
         this.runNextNode(run, pipeline, order, index + 1);
         return;
       }
-
-      // Optionally animate fan-out progress 1 → N before advancing.
-      const pg = nodeRun.progress;
-      if (this.tickProgressMs > 0 && pg && pg.total > 1) pg.done = 1;
-      this.emit(run);
-      this.advance(run, pipeline, order, index, nodeRun);
     });
   }
 
-  /**
-   * Advance to the next node, first ticking this node's fan-out progress up to
-   * its total (when `tickProgressMs` is set); otherwise moves on immediately.
-   */
-  private advance(
+  /** Advance one wave at a time (still `running`), then succeed at N/N. */
+  private runWaves(
     run: RunState,
     pipeline: Pipeline,
     order: BoardNode[],
     index: number,
     nodeRun: NodeRun,
+    output: unknown,
   ): void {
     if (run.canceled) return;
     const pg = nodeRun.progress;
-    if (this.tickProgressMs > 0 && pg && pg.done < pg.total) {
+    if (pg && pg.done < pg.total) {
       this.schedule(run, this.tickProgressMs, () => {
         pg.done = Math.min(pg.total, pg.done + 1);
-        this.emit(run);
-        this.advance(run, pipeline, order, index, nodeRun);
+        this.emit(run); // still running, done/total
+        this.runWaves(run, pipeline, order, index, nodeRun, output);
       });
       return;
     }
+    this.succeed(run, pipeline, order, index, nodeRun, output);
+  }
+
+  /** Commit a node's success + output, then run the next node. */
+  private succeed(
+    run: RunState,
+    pipeline: Pipeline,
+    order: BoardNode[],
+    index: number,
+    nodeRun: NodeRun,
+    output: unknown,
+  ): void {
+    nodeRun.status = 'success';
+    run.outputs[nodeRun.nodeId] = output;
+    // Expose the produced output on the snapshot so the editor can show it (Run
+    // data) and derive downstream expression variable paths from it.
+    nodeRun.output = output;
+    this.emit(run);
     this.runNextNode(run, pipeline, order, index + 1);
   }
 
