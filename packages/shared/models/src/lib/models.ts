@@ -128,6 +128,12 @@ export interface BoardNode {
   kind: NodeKind;
   /** Present (and required) when `kind === 'action'`. */
   category?: ActionCategory;
+  /**
+   * Concrete catalog type id (e.g. `telegram-trigger`, `llm-agent`). Triggers /
+   * integrations / effects are open-ended and each has its own parameter schema
+   * (see the node catalog); control-flow is fixed and needs no type.
+   */
+  type?: string;
   title: string;
   subtitle?: string;
   /** Top-left cell on the 32-unit grid. */

@@ -29,6 +29,7 @@ const CAT_PIPELINE: Pipeline = {
   nodes: [
     node({
       id: 'node-1',
+      type: 'telegram-trigger',
       kind: 'trigger',
       title: 'Telegram',
       subtitle: '"draw 10 cats"',
@@ -37,6 +38,7 @@ const CAT_PIPELINE: Pipeline = {
     }),
     node({
       id: 'node-2',
+      type: 'llm-agent',
       kind: 'action',
       category: 'integration',
       title: 'LLM Agent',
@@ -46,6 +48,7 @@ const CAT_PIPELINE: Pipeline = {
     }),
     node({
       id: 'node-3',
+      type: 'split',
       kind: 'action',
       category: 'split',
       title: 'Split',
@@ -55,6 +58,7 @@ const CAT_PIPELINE: Pipeline = {
     }),
     node({
       id: 'node-4',
+      type: 'image-gen',
       kind: 'action',
       category: 'integration',
       title: 'Image Generator',
@@ -64,6 +68,7 @@ const CAT_PIPELINE: Pipeline = {
     }),
     node({
       id: 'node-5',
+      type: 'merge',
       kind: 'action',
       category: 'merge',
       title: 'Merge',
@@ -74,6 +79,7 @@ const CAT_PIPELINE: Pipeline = {
     }),
     node({
       id: 'node-6',
+      type: 'telegram-send',
       kind: 'effect',
       title: 'Telegram',
       subtitle: 'send 10 cats',
@@ -83,6 +89,7 @@ const CAT_PIPELINE: Pipeline = {
     }),
     node({
       id: 'node-7',
+      type: 'logger',
       kind: 'effect',
       title: 'Logger',
       subtitle: 'best-effort',

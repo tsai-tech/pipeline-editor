@@ -24,10 +24,12 @@ import { boundsOf, edgePath, nodeRect, portAnchor, rectsIntersect } from './geom
 import { routeEdge } from './routing';
 import { Viewport } from './viewport';
 
-/** Fields needed to add a fresh node; `ports` default from its kind. */
+/** Fields needed to add a fresh node; `ports` default from its kind/config. */
 export interface NewNode {
   kind: NodeKind;
   category?: ActionCategory;
+  /** Concrete catalog type id (open-ended trigger/integration/effect). */
+  type?: string;
   title: string;
   subtitle?: string;
   pos: GridPos;
@@ -356,6 +358,7 @@ export class BoardStore {
       id,
       kind: input.kind,
       category: input.category,
+      type: input.type,
       title: input.title,
       subtitle: input.subtitle,
       pos: input.pos,

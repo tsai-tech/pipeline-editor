@@ -26,16 +26,20 @@ import {
 import {
   type ActionCategory,
   type BoardNode,
+  catalogEntry,
   type ControlFlowConfig,
   type ControlFlowKind,
   defaultControlFlowConfig,
   type EdgeEnd,
   type GridPos,
   isControlFlow,
+  NODE_CATALOG,
   type NodeKind,
   type NodeStatus,
   nodeType,
   type NodeType,
+  type ParamField,
+  paramSchema,
   type Pipeline,
   type Point,
   type PortSide,
@@ -54,33 +58,57 @@ const ZOOM_STEP = 1.2;
 const SNAP_PX = 28; // magnet radius (screen px) for connecting to a nearby port
 const MINIMAP = { width: 190, height: 120, pad: 8 };
 
-/** One entry in the node palette. */
+/** One entry in the node palette — a concrete catalog type (or control-flow). */
 interface PaletteItem {
-  type: NodeType;
+  label: string;
   kind: NodeKind;
   category?: ActionCategory;
-  label: string;
+  /** Concrete catalog type id, when adding a typed node. */
+  type?: string;
   icon: (typeof NODE_META)[NodeType]['icon'];
   color: string;
 }
 
-function paletteItem(
-  type: NodeType,
-  kind: NodeKind,
-  category?: ActionCategory,
-): PaletteItem {
-  const meta = NODE_META[type];
-  return { type, kind, category, label: meta.label, icon: meta.icon, color: meta.color };
+interface PaletteGroup {
+  label: string;
+  items: PaletteItem[];
 }
 
-const PALETTE: PaletteItem[] = [
-  paletteItem('trigger', 'trigger'),
-  paletteItem('integration', 'action', 'integration'),
-  paletteItem('transform', 'action', 'transform'),
-  paletteItem('control-flow', 'action', 'control-flow'),
-  paletteItem('split', 'action', 'split'),
-  paletteItem('merge', 'action', 'merge'),
-  paletteItem('effect', 'effect'),
+function fromCatalog(spec: (typeof NODE_CATALOG)[number]): PaletteItem {
+  const meta = NODE_META[nodeType(spec)];
+  return {
+    label: spec.label,
+    kind: spec.kind,
+    category: spec.category,
+    type: spec.id,
+    icon: meta.icon,
+    color: meta.color,
+  };
+}
+
+const byType = (t: NodeType) =>
+  NODE_CATALOG.filter((s) => nodeType(s) === t).map(fromCatalog);
+
+/** Palette grouped by category; concrete types come from the node catalog. */
+const PALETTE_GROUPS: PaletteGroup[] = [
+  { label: 'Triggers', items: byType('trigger') },
+  { label: 'Integrations', items: byType('integration') },
+  { label: 'Transforms', items: byType('transform') },
+  {
+    label: 'Flow',
+    items: [
+      ...byType('split'),
+      ...byType('merge'),
+      {
+        label: 'Control flow',
+        kind: 'action',
+        category: 'control-flow',
+        icon: NODE_META['control-flow'].icon,
+        color: NODE_META['control-flow'].color,
+      },
+    ],
+  },
+  { label: 'Effects', items: byType('effect') },
 ];
 
 /** A resolved port drop target under the cursor. */
@@ -157,7 +185,7 @@ export class Board {
   readonly readonly = input(false);
 
   protected readonly store = new BoardStore();
-  protected readonly palette = PALETTE;
+  protected readonly paletteGroups = PALETTE_GROUPS;
 
   /** Shared Tailwind class strings for the repeated floating-panel widgets. */
   protected readonly cls = {
@@ -232,8 +260,12 @@ export class Board {
     }
     return ids;
   });
-  private paletteDrag: { kind: NodeKind; category?: ActionCategory; label: string } | null =
-    null;
+  private paletteDrag: {
+    kind: NodeKind;
+    category?: ActionCategory;
+    type?: string;
+    label: string;
+  } | null = null;
 
   /** Live bezier path while drawing a connection. */
   protected readonly draftPath = signal<string | null>(null);
@@ -634,8 +666,13 @@ export class Board {
 
   // ── Node palette (drag-and-drop create + click-to-add) ───────────────────
   protected onPaletteDragStart(item: PaletteItem, event: DragEvent): void {
-    this.paletteDrag = { kind: item.kind, category: item.category, label: item.label };
-    event.dataTransfer?.setData('text/plain', item.type);
+    this.paletteDrag = {
+      kind: item.kind,
+      category: item.category,
+      type: item.type,
+      label: item.label,
+    };
+    event.dataTransfer?.setData('text/plain', item.type ?? item.label);
     if (event.dataTransfer) event.dataTransfer.effectAllowed = 'copy';
   }
 
@@ -646,6 +683,7 @@ export class Board {
     this.store.addNode({
       kind: item.kind,
       category: item.category,
+      type: item.type,
       title: item.label,
       pos: cell,
     });
@@ -666,6 +704,7 @@ export class Board {
     this.store.addNode({
       kind: spec.kind,
       category: spec.category,
+      type: spec.type,
       title: spec.label,
       pos: cell,
     });
@@ -853,6 +892,48 @@ export class Board {
     } else {
       this.setConfig({ ...c, expression: `${c.expression} ${ref}`.trim() });
     }
+  }
+
+  // ── Generic node parameters (from the catalog) + run data ────────────────
+  protected params(node: BoardNode): ParamField[] {
+    return paramSchema(node);
+  }
+
+  protected catalogLabel(node: BoardNode): string {
+    return catalogEntry(node.type)?.label ?? node.category ?? node.kind;
+  }
+
+  protected paramValue(node: BoardNode, key: string): string {
+    const v = node.data?.[key];
+    return v == null ? '' : String(v);
+  }
+
+  protected paramChecked(node: BoardNode, key: string): boolean {
+    return node.data?.[key] === true;
+  }
+
+  protected patchParam(key: string, value: unknown): void {
+    const id = this.inspectId();
+    const n = this.inspectNode();
+    if (id && !this.readonly()) {
+      this.store.updateNode(id, { data: { ...(n?.data ?? {}), [key]: value } });
+    }
+  }
+
+  protected insertParamContext(key: string, node: BoardNode): void {
+    const current = String(this.inspectNode()?.data?.[key] ?? '');
+    this.patchParam(key, `${current} {{ $node["${node.title}"] }}`.trim());
+  }
+
+  /** The inspected node's state in the current run (for the Data section). */
+  protected readonly inspectedRun = computed(() => {
+    const id = this.inspectId();
+    const r = this.run();
+    return id && r ? (r.nodes[id] ?? null) : null;
+  });
+
+  protected json(value: unknown): string {
+    return JSON.stringify(value, null, 2);
   }
 
   // ── Run (via the injected backend) ───────────────────────────────────────

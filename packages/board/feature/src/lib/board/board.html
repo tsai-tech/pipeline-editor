@@ -214,28 +214,30 @@
 }
 
 <aside
-  class="absolute left-3 top-3 z-[18] flex flex-col gap-0.5 w-[152px] p-2 border border-[var(--border)] rounded-[var(--r-md)] bg-[var(--surface-2)] shadow-[var(--elev-1)]"
+  class="absolute left-3 top-3 z-[18] flex flex-col gap-0.5 w-[168px] max-h-[calc(100%-24px)] overflow-y-auto p-2 border border-[var(--border)] rounded-[var(--r-md)] bg-[var(--surface-2)] shadow-[var(--elev-1)]"
   [hidden]="readonly()"
   (pointerdown)="$event.stopPropagation()"
 >
-  <span [class]="cls.menuLabel">Nodes</span>
-  @for (item of palette; track item.type) {
-    <button
-      type="button"
-      class="flex items-center gap-[9px] px-2 py-1.5 text-[0.8125rem] text-text text-left rounded-[var(--r-sm)] cursor-grab transition-colors duration-150 hover:bg-[var(--surface-3)] active:cursor-grabbing"
-      draggable="true"
-      [style.--node-accent]="item.color"
-      [attr.aria-label]="'Add ' + item.label + ' node'"
-      (dragstart)="onPaletteDragStart(item, $event)"
-      (click)="onPaletteClick(item)"
-    >
-      <span
-        class="grid place-items-center w-6 h-6 shrink-0 rounded-[6px] text-[var(--node-accent)] bg-[color-mix(in_srgb,var(--node-accent)_14%,transparent)]"
+  @for (group of paletteGroups; track group.label) {
+    <span [class]="cls.menuLabel">{{ group.label }}</span>
+    @for (item of group.items; track item.label) {
+      <button
+        type="button"
+        class="flex items-center gap-[9px] px-2 py-1.5 text-[0.8125rem] text-text text-left rounded-[var(--r-sm)] cursor-grab transition-colors duration-150 hover:bg-[var(--surface-3)] active:cursor-grabbing"
+        draggable="true"
+        [style.--node-accent]="item.color"
+        [attr.aria-label]="'Add ' + item.label + ' node'"
+        (dragstart)="onPaletteDragStart(item, $event)"
+        (click)="onPaletteClick(item)"
       >
-        <lucide-icon [img]="item.icon" [size]="15" />
-      </span>
-      {{ item.label }}
-    </button>
+        <span
+          class="grid place-items-center w-6 h-6 shrink-0 rounded-[6px] text-[var(--node-accent)] bg-[color-mix(in_srgb,var(--node-accent)_14%,transparent)]"
+        >
+          <lucide-icon [img]="item.icon" [size]="15" />
+        </span>
+        {{ item.label }}
+      </button>
+    }
   }
 </aside>
 
@@ -491,7 +493,7 @@
       <span
         class="text-[0.6875rem] font-semibold tracking-[0.04em] uppercase text-[var(--accent)]"
       >
-        {{ n.category ?? n.kind }}
+        {{ catalogLabel(n) }}
       </span>
       <button
         type="button"
@@ -524,6 +526,86 @@
         (change)="patchSubtitle($any($event.target).value)"
       />
     </label>
+
+    @if (!isCf(n) && params(n).length) {
+      <div class="h-px bg-[var(--border)]"></div>
+      <span class="text-xs font-semibold text-text-2">Parameters</span>
+      @for (f of params(n); track f.key) {
+        @switch (f.type) {
+          @case ('boolean') {
+            <label class="flex flex-row items-center gap-2">
+              <input
+                type="checkbox"
+                [checked]="paramChecked(n, f.key)"
+                [disabled]="readonly()"
+                (change)="patchParam(f.key, $any($event.target).checked)"
+              />
+              <span [class]="cls.fieldLabel">{{ f.label }}</span>
+            </label>
+          }
+          @case ('select') {
+            <label [class]="cls.field">
+              <span [class]="cls.fieldLabel">{{ f.label }}</span>
+              <select
+                [class]="cls.fieldInput"
+                [disabled]="readonly()"
+                (change)="patchParam(f.key, $any($event.target).value)"
+              >
+                <option value="" [selected]="!paramValue(n, f.key)">—</option>
+                @for (o of f.options; track o.value) {
+                  <option
+                    [value]="o.value"
+                    [selected]="o.value === paramValue(n, f.key)"
+                  >
+                    {{ o.label }}
+                  </option>
+                }
+              </select>
+            </label>
+          }
+          @case ('textarea') {
+            <label [class]="cls.field">
+              <span [class]="cls.fieldLabel">{{ f.label }}</span>
+              <textarea
+                [class]="cls.fieldInput + ' font-mono min-h-[64px]'"
+                [placeholder]="f.placeholder ?? ''"
+                [value]="paramValue(n, f.key)"
+                [disabled]="readonly()"
+                (change)="patchParam(f.key, $any($event.target).value)"
+              ></textarea>
+            </label>
+          }
+          @default {
+            <label [class]="cls.field">
+              <span [class]="cls.fieldLabel">{{ f.label }}</span>
+              <input
+                [class]="
+                  cls.fieldInput + (f.type === 'expression' ? ' font-mono' : '')
+                "
+                [type]="f.type === 'number' ? 'number' : 'text'"
+                [placeholder]="f.placeholder ?? ''"
+                [value]="paramValue(n, f.key)"
+                [disabled]="readonly()"
+                (change)="patchParam(f.key, $any($event.target).value)"
+              />
+              @if (f.type === 'expression' && context().length && !readonly()) {
+                <div class="flex flex-wrap gap-1">
+                  @for (cn of context(); track cn.id) {
+                    <button
+                      type="button"
+                      class="px-2 py-0.5 text-[11px] rounded-full border border-[var(--border)] text-text-2 cursor-pointer hover:bg-[var(--surface-3)]"
+                      (click)="insertParamContext(f.key, cn)"
+                    >
+                      {{ cn.title }}
+                    </button>
+                  }
+                </div>
+              }
+            </label>
+          }
+        }
+      }
+    }
 
     @if (n.kind === 'action' && n.category === 'merge') {
       <label [class]="cls.field">
@@ -670,6 +752,22 @@
             }
           </div>
         </div>
+      }
+    }
+
+    @if (inspectedRun(); as ir) {
+      <div class="h-px bg-[var(--border)]"></div>
+      <span class="text-xs font-semibold text-text-2">
+        Run data · <span class="capitalize">{{ ir.status }}</span>
+      </span>
+      @if (ir.error) {
+        <div class="text-[11px] text-[var(--danger)]">{{ ir.error }}</div>
+      }
+      @if (ir.output !== undefined) {
+        <pre
+          class="max-h-40 overflow-auto p-2 rounded-[var(--r-sm)] bg-[var(--surface-1)] border border-[var(--border)] font-mono text-[11px] text-text-2 whitespace-pre-wrap"
+          >{{ json(ir.output) }}</pre
+        >
       }
     }
   </aside>
