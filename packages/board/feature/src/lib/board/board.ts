@@ -610,7 +610,29 @@ export class Board {
     this.store.viewport.zoomAround(this.local(event), factor);
   }
 
+  /** Whether a key event targets a form control — leave those to the field. */
+  private isEditableTarget(event: Event): boolean {
+    const el = event.target as HTMLElement | null;
+    if (!el) return false;
+    const tag = el.tagName;
+    return (
+      tag === 'INPUT' ||
+      tag === 'TEXTAREA' ||
+      tag === 'SELECT' ||
+      el.isContentEditable
+    );
+  }
+
+  /** Whether there is a live, non-empty text selection (e.g. in the run log). */
+  private hasTextSelection(): boolean {
+    const sel = typeof window !== 'undefined' ? window.getSelection() : null;
+    return !!sel && !sel.isCollapsed && sel.toString().trim().length > 0;
+  }
+
   protected onKeyDown(event: KeyboardEvent): void {
+    // Typing in an input / textarea / select must never trigger board shortcuts.
+    if (this.isEditableTarget(event)) return;
+
     const mod = event.ctrlKey || event.metaKey;
     const key = event.key.toLowerCase();
     const ro = this.readonly();
@@ -639,6 +661,8 @@ export class Board {
           this.zoomOut();
           return;
         case 'c':
+          // Let the browser copy selected text (e.g. from the run log) instead.
+          if (this.hasTextSelection()) return;
           event.preventDefault();
           this.store.copySelection();
           return;
@@ -717,6 +741,7 @@ export class Board {
   }
 
   protected onKeyUp(event: KeyboardEvent): void {
+    if (this.isEditableTarget(event)) return;
     if (event.key === ' ') this.spaceHeld = false;
   }
 
