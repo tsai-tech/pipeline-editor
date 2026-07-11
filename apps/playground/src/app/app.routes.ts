@@ -1,7 +1,7 @@
 import { Route } from '@angular/router';
 
 export const appRoutes: Route[] = [
-  { path: '', pathMatch: 'full', redirectTo: 'ui-kit' },
+  { path: '', pathMatch: 'full', redirectTo: 'board' },
   {
     path: 'ui-kit',
     title: 'UI Kit · Playground',
@@ -18,5 +18,5 @@ export const appRoutes: Route[] = [
         (m) => m.BoardPlayground,
       ),
   },
-  { path: '**', redirectTo: 'ui-kit' },
+  { path: '**', redirectTo: 'board' },
 ];

@@ -62,7 +62,7 @@ export class App {
   protected readonly currentLabel = computed(
     () =>
       this.playgrounds.find((p) => this.url().startsWith(p.path))?.label ??
-      'UI Kit',
+      'Board',
   );
 
   /** The board fills the viewport; other routes use the centered page layout. */
