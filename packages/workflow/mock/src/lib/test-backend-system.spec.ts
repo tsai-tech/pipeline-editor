@@ -79,10 +79,7 @@ function pipeline(nodes: BoardNode[], edges: Edge[]): Pipeline {
 }
 
 /** Run a pipeline to completion, resolving the terminal snapshot. */
-function runToEnd(
-  sys: TestBackendSystem,
-  p: Pipeline,
-): Promise<RunSnapshot> {
+function runToEnd(sys: TestBackendSystem, p: Pipeline): Promise<RunSnapshot> {
   return new Promise((resolve) => {
     // observe() fires synchronously on subscribe; a run may already be terminal
     // (e.g. a cycle rejected in startRun), so unsub must be callable by then.
@@ -130,8 +127,17 @@ describe('TestBackendSystem — happy path', () => {
 
   it('fans in multiple triggers — one fires, converging node still runs', async () => {
     const p = pipeline(
-      [trigger('telegram'), trigger('slack'), action('handle'), effect('reply')],
-      [edge('telegram', 'handle'), edge('slack', 'handle'), edge('handle', 'reply')],
+      [
+        trigger('telegram'),
+        trigger('slack'),
+        action('handle'),
+        effect('reply'),
+      ],
+      [
+        edge('telegram', 'handle'),
+        edge('slack', 'handle'),
+        edge('handle', 'reply'),
+      ],
     );
     // Round-robin firing picks the first trigger on a fresh instance.
     const snap = await runToEnd(fast(), p);
@@ -168,7 +174,9 @@ describe('TestBackendSystem — cycles', () => {
     );
     const snap = await runToEnd(fast(), p);
     expect(snap.status).toBe('error');
-    expect(Object.values(snap.nodes).every((n) => n.status === 'error')).toBe(true);
+    expect(Object.values(snap.nodes).every((n) => n.status === 'error')).toBe(
+      true,
+    );
     expect(snap.log.some((l) => /cycle/i.test(l.message))).toBe(true);
   });
 });
@@ -196,7 +204,10 @@ describe('TestBackendSystem — failures', () => {
       stepDelayMs: 0,
       failNode: (n) => (n.kind === 'effect' ? 'log unavailable' : undefined),
     });
-    const p = pipeline([trigger('t'), effect('log', false)], [edge('t', 'log')]);
+    const p = pipeline(
+      [trigger('t'), effect('log', false)],
+      [edge('t', 'log')],
+    );
     const snap = await runToEnd(sys, p);
     expect(snap.status).toBe('success');
     expect(snap.nodes['log'].status).toBe('error');
@@ -207,11 +218,7 @@ describe('TestBackendSystem — control-flow branching', () => {
   it('runs only the taken branch and skips the other', async () => {
     const p = pipeline(
       [trigger('t'), ifNode('if'), action('yes'), action('no')],
-      [
-        edge('t', 'if'),
-        edge('if', 'yes', 'true'),
-        edge('if', 'no', 'false'),
-      ],
+      [edge('t', 'if'), edge('if', 'yes', 'true'), edge('if', 'no', 'false')],
     );
     const snap = await runToEnd(fast(), p);
     expect(snap.status).toBe('success');
@@ -310,6 +317,50 @@ describe('TestBackendSystem — smart evaluation', () => {
     expect(snap.nodes['replyWa'].status).toBe('skipped');
   });
 
+  it('routes the WhatsApp trigger to its case (not default) when it fires', async () => {
+    const tg: BoardNode = { ...trigger('telegram'), type: 'telegram-trigger' };
+    const wa: BoardNode = { ...trigger('whatsapp'), type: 'whatsapp-trigger' };
+    const sw: BoardNode = {
+      ...switchOnSource('sw', [
+        { id: 'tg', value: 'telegram' },
+        { id: 'wa', value: 'whatsapp' },
+      ]),
+      ports: [
+        { id: 'in', role: 'input', side: 'left' },
+        { id: 'case-tg', role: 'output', side: 'right' },
+        { id: 'case-wa', role: 'output', side: 'right' },
+        { id: 'default', role: 'output', side: 'right' },
+      ],
+      config: {
+        type: 'switch',
+        discriminant: '$json.source',
+        cases: [
+          { id: 'tg', label: 'telegram', value: 'telegram' },
+          { id: 'wa', label: 'whatsapp', value: 'whatsapp' },
+        ],
+        hasDefault: true,
+      },
+    };
+    const p = pipeline(
+      [tg, wa, sw, effect('replyWa'), effect('fallback')],
+      [
+        edge('telegram', 'sw'),
+        edge('whatsapp', 'sw'),
+        edge('sw', 'replyWa', 'case-wa'),
+        edge('sw', 'fallback', 'default'),
+      ],
+    );
+    // Force the WhatsApp trigger to fire this run.
+    const sys = new TestBackendSystem({
+      stepDelayMs: 0,
+      firingTrigger: 'whatsapp',
+    });
+    const snap = await runToEnd(sys, p);
+    expect(snap.status).toBe('success');
+    expect(snap.nodes['replyWa'].status).toBe('success'); // matched whatsapp case
+    expect(snap.nodes['fallback'].status).toBe('skipped'); // default not taken
+  });
+
   it('fails a node when an expression reads into a missing path (shape changed)', async () => {
     const wa: BoardNode = { ...trigger('wa'), type: 'whatsapp-trigger' };
     const bad: BoardNode = {
@@ -318,7 +369,10 @@ describe('TestBackendSystem — smart evaluation', () => {
       // whatsapp emits { source, chat: { text } } — there is no `.message`
       data: { field: 'x', value: '{{ $json.message.deep }}' },
     };
-    const snap = await runToEnd(fast(), pipeline([wa, bad], [edge('wa', 'bad')]));
+    const snap = await runToEnd(
+      fast(),
+      pipeline([wa, bad], [edge('wa', 'bad')]),
+    );
     expect(snap.status).toBe('error');
     expect(snap.nodes['bad'].status).toBe('error');
     expect(snap.nodes['bad'].error).toMatch(/Expression error/);
@@ -331,7 +385,10 @@ describe('TestBackendSystem — smart evaluation', () => {
       type: 'telegram-send',
       data: { text: 'Echo: {{ $json.message }}' },
     };
-    const snap = await runToEnd(fast(), pipeline([tg, send], [edge('tg', 'send')]));
+    const snap = await runToEnd(
+      fast(),
+      pipeline([tg, send], [edge('tg', 'send')]),
+    );
     expect(snap.status).toBe('success');
     expect(snap.nodes['send'].output).toMatchObject({
       text: 'Echo: Hello from Telegram',
@@ -396,7 +453,8 @@ describe('TestBackendSystem — fan-out waves', () => {
     // still "running" while the wave counter climbs through the middle
     expect(
       states.some(
-        (s) => s.status === 'running' && (s.done ?? 0) >= 1 && (s.done ?? 0) < 10,
+        (s) =>
+          s.status === 'running' && (s.done ?? 0) >= 1 && (s.done ?? 0) < 10,
       ),
     ).toBe(true);
     // reaches success only at the final count
@@ -441,7 +499,9 @@ describe('TestBackendSystem — ticking progress', () => {
 describe('TestBackendSystem — lifecycle', () => {
   it('stop() cancels a pending run', () => {
     const sys = new TestBackendSystem({ stepDelayMs: 1000 });
-    const runId = sys.startRun(pipeline([trigger('t'), action('a')], [edge('t', 'a')]));
+    const runId = sys.startRun(
+      pipeline([trigger('t'), action('a')], [edge('t', 'a')]),
+    );
     sys.stop(runId);
     let status = '';
     sys.observe(runId, (snap) => (status = snap.status));

@@ -1,12 +1,11 @@
 import { ChangeDetectionStrategy, Component, signal } from '@angular/core';
-import {
-  Board,
-  PIPELINE_BACKEND,
-  PIPELINE_STORE,
-} from '@tsai-pe/board';
+import { Board, PIPELINE_BACKEND, PIPELINE_STORE } from '@tsai-pe/board';
 import { type BoardNode, type Pipeline } from '@tsai-pe/models';
 import { derivePorts } from '@tsai-pe/nodes';
-import { InMemoryPipelineStore, TestBackendSystem } from '@tsai-pe/workflow-mock';
+import {
+  InMemoryPipelineStore,
+  TestBackendSystem,
+} from '@tsai-pe/workflow-mock';
 
 /** Build a node, deriving its port layout from its kind/config. */
 function node(spec: Omit<BoardNode, 'ports'>): BoardNode {
@@ -108,10 +107,10 @@ const CAT_PIPELINE: Pipeline = {
       size: { cols: 8, rows: 4 },
       config: {
         type: 'switch',
-        discriminant: '{{ $node["Telegram"].source }}',
+        discriminant: '$node["Telegram"].source',
         cases: [
-          { id: 'tg', label: 'telegram', value: 'tg' },
-          { id: 'wa', label: 'whatsapp', value: 'wa' },
+          { id: 'tg', label: 'telegram', value: 'telegram' },
+          { id: 'wa', label: 'whatsapp', value: 'whatsapp' },
         ],
         hasDefault: true,
       },
@@ -129,7 +128,8 @@ const CAT_PIPELINE: Pipeline = {
 };
 
 // Label the merge node's fan-out ports so their connections show branch names.
-for (const p of CAT_PIPELINE.nodes.find((n) => n.id === 'node-5')?.ports ?? []) {
+for (const p of CAT_PIPELINE.nodes.find((n) => n.id === 'node-5')?.ports ??
+  []) {
   if (p.id === 'out-top') p.label = 'primary';
   if (p.id === 'out-bottom') p.label = 'fallback';
 }
@@ -167,11 +167,12 @@ function edge(id: string, from: string, fromPort: string, to: string) {
   template: `<div class="flex h-full flex-col gap-3">
     <div class="flex items-start justify-between gap-4">
       <p class="text-sm text-text-2">
-        Drag from the palette to add nodes · drag a node to move it · drag a right /
-        top / bottom port onto a left port to connect · rubber-band to multi-select ·
-        right mouse / middle / Space+drag pans, scroll or <kbd>⌘/Ctrl</kbd>+<kbd>±</kbd>
-        zooms · minimap navigates · arrows nudge · <kbd>⌘/Ctrl+Z</kbd> undo,
-        <kbd>C</kbd>/<kbd>V</kbd> copy-paste, <kbd>Del</kbd> delete, <kbd>F</kbd> fit.
+        Drag from the palette to add nodes · drag a node to move it · drag a
+        right / top / bottom port onto a left port to connect · rubber-band to
+        multi-select · right mouse / middle / Space+drag pans, scroll or
+        <kbd>⌘/Ctrl</kbd>+<kbd>±</kbd> zooms · minimap navigates · arrows nudge
+        · <kbd>⌘/Ctrl+Z</kbd> undo, <kbd>C</kbd>/<kbd>V</kbd> copy-paste,
+        <kbd>Del</kbd> delete, <kbd>F</kbd> fit.
       </p>
       <label
         class="flex shrink-0 items-center gap-2 text-sm text-text-2 select-none"
