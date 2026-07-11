@@ -18,13 +18,5 @@ export const appRoutes: Route[] = [
         (m) => m.BoardPlayground,
       ),
   },
-  {
-    path: 'workflow',
-    title: 'Workflow · Playground',
-    loadComponent: () =>
-      import('./playgrounds/workflow/workflow-playground').then(
-        (m) => m.WorkflowPlayground,
-      ),
-  },
   { path: '**', redirectTo: 'ui-kit' },
 ];

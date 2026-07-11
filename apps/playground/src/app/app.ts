@@ -12,6 +12,7 @@ import {
   RouterLink,
   RouterOutlet,
 } from '@angular/router';
+import { NgTemplateOutlet } from '@angular/common';
 import { filter, map } from 'rxjs';
 import { Button, Menu, MenuItem, MenuTrigger, Navbar } from '@tsai-pe/ui-kit';
 
@@ -22,8 +23,9 @@ interface PlaygroundLink {
 
 /**
  * Shell for the playground app: a shared navbar with a dropdown to switch
- * between per-domain playgrounds (`/ui-kit`, `/board`, `/workflow`) and a theme
- * toggle, plus the routed outlet.
+ * between per-domain playgrounds (`/ui-kit`, `/board`) and a theme toggle, plus
+ * the routed outlet. The board renders full-bleed (fills the viewport); other
+ * routes use the centered, padded page layout.
  */
 @Component({
   selector: 'app-root',
@@ -31,6 +33,7 @@ interface PlaygroundLink {
   imports: [
     RouterOutlet,
     RouterLink,
+    NgTemplateOutlet,
     Navbar,
     Button,
     Menu,
@@ -45,7 +48,6 @@ export class App {
   protected readonly playgrounds: PlaygroundLink[] = [
     { path: '/ui-kit', label: 'UI Kit' },
     { path: '/board', label: 'Board' },
-    { path: '/workflow', label: 'Workflow' },
   ];
 
   private readonly router = inject(Router);
@@ -62,6 +64,9 @@ export class App {
       this.playgrounds.find((p) => this.url().startsWith(p.path))?.label ??
       'UI Kit',
   );
+
+  /** The board fills the viewport; other routes use the centered page layout. */
+  protected readonly fullBleed = computed(() => this.url().startsWith('/board'));
 
   protected toggleTheme(): void {
     const light = !this.isLight();

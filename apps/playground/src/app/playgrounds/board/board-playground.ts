@@ -1,8 +1,12 @@
 import { ChangeDetectionStrategy, Component, signal } from '@angular/core';
-import { Board, PIPELINE_BACKEND } from '@tsai-pe/board/feature';
+import {
+  Board,
+  PIPELINE_BACKEND,
+  PIPELINE_STORE,
+} from '@tsai-pe/board/feature';
 import { type BoardNode, type Pipeline } from '@tsai-pe/shared/models';
 import { derivePorts } from '@tsai-pe/shared/nodes';
-import { TestBackendSystem } from '@tsai-pe/workflow/mock';
+import { InMemoryPipelineStore, TestBackendSystem } from '@tsai-pe/workflow/mock';
 
 /** Build a node, deriving its port layout from its kind/config. */
 function node(spec: Omit<BoardNode, 'ports'>): BoardNode {
@@ -144,14 +148,23 @@ function edge(id: string, from: string, fromPort: string, to: string) {
   selector: 'app-board',
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [Board],
+  host: { class: 'block h-full min-h-0' },
   providers: [
     {
       provide: PIPELINE_BACKEND,
       useFactory: () =>
         new TestBackendSystem({ stepDelayMs: 550, tickProgressMs: 120 }),
     },
+    {
+      provide: PIPELINE_STORE,
+      useFactory: () => {
+        const store = new InMemoryPipelineStore();
+        void store.save(CAT_PIPELINE); // seed so Open has an entry
+        return store;
+      },
+    },
   ],
-  template: `<div class="flex h-[75dvh] flex-col gap-3">
+  template: `<div class="flex h-full flex-col gap-3">
     <div class="flex items-start justify-between gap-4">
       <p class="text-sm text-text-2">
         Drag from the palette to add nodes · drag a node to move it · drag a right /
