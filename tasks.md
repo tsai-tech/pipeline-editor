@@ -4,9 +4,10 @@ Actionable, not-yet-done work only. No history.
 
 ## board / workflow — next
 
-- [ ] Wire persistence into the editor: `PipelineStore` + `InMemoryPipelineStore`
-      exist (save / load / list / remove / runHistory) — now add the editor UI
-      (open / save / list, run-history view) and a real REST store.
+- [ ] Persistence, remaining: Save / Open / list UI is wired (`PIPELINE_STORE`);
+      still todo — a run-history view (surface `runHistory`), naming / "Save as"
+      (today Save overwrites the current id), a confirm before Open replaces
+      unsaved work, and a real REST `PipelineStore`.
 - [ ] Backend contract maturity (rest of it): node catalog supplied by the backend
       (replaces the seed `NODE_CATALOG`), credentials/secrets model, validation
       from the backend. Also reconsider the sync `startRun(): string` — the REST
