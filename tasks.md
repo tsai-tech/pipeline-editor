@@ -19,8 +19,6 @@ Actionable, not-yet-done work only. No history.
 
 ## quality / docs
 
-- [ ] Unit tests: BoardStore, geometry, routing, registry (`derivePorts` /
-      `controlFlowOutputs` / `paramSchema`), validation, `TestBackendSystem`.
 - [ ] Refresh ARCHITECTURE.md — registry, node catalog, backend contract,
       `workflow/mock`, control-flow, the styling decision (Tailwind everywhere,
       component CSS only for host/SVG state).
