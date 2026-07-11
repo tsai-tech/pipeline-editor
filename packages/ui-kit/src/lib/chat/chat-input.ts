@@ -37,7 +37,7 @@ import {
   </div>`,
 })
 export class ChatInput {
-  readonly placeholder = input('Спросите AI-помощника…');
+  readonly placeholder = input('Ask the AI assistant…');
   readonly value = model('');
   readonly sent = output<string>();
 

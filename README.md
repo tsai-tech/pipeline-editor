@@ -1,60 +1,62 @@
 # Pipeline Editor
 
-> Встраиваемый Angular-редактор визуальных пайплайнов AI-агентов.
+> An embeddable Angular editor for visual AI-agent pipelines.
 
-Холст, на котором пайплайн собирается из узлов (**trigger → action → effect**,
-плюс control-flow if/switch/filter и буферы split/merge): узлы соединяются рёбрами,
-перетаскиваются, холст панорамируется и масштабируется. Есть инспектор параметров,
-валидация графа, экспорт/импорт, персистентность и прогон через подключаемый бэкенд.
-Вдохновлён [n8n](https://n8n.io).
+A canvas where a pipeline is assembled from nodes (**trigger → action → effect**,
+plus if/switch/filter control-flow and split/merge buffers): nodes connect with
+edges, drag around, and the canvas pans and zooms. It has a parameter inspector,
+graph validation, export/import, persistence, and a run driven by a pluggable
+backend. Inspired by [n8n](https://n8n.io).
 
-Проект — Nx-монорепозиторий; основной артефакт — набор публикуемых Angular-библиотек
-(Angular 21, signals, standalone, OnPush, Tailwind v4). Приложение `playground` —
-только площадка для локальной разработки, не публикуется.
+The project is an Nx monorepo; the deliverable is a set of publishable Angular
+libraries (Angular 21, signals, standalone, OnPush, Tailwind v4). The `playground`
+app is a local-development harness only and is not published.
 
-> **Фронт не исполняет пайплайн** — семантикой владеет бэкенд. Редактор общается с ним
-> через вендор-нейтральный порт `PipelineBackend` (`startRun` / `observe` / `stop`).
-> Для разработки поставляется in-browser мок с настоящим вычислителем выражений.
+> **The frontend does not execute pipelines** — the backend owns semantics. The
+> editor talks to it through the vendor-neutral `PipelineBackend` port (`startRun`
+> / `observe` / `stop`). An in-browser mock with a real expression evaluator ships
+> for development.
 
-Подробнее о доменах, слоях и границах — в [ARCHITECTURE.md](./ARCHITECTURE.md).
+See [ARCHITECTURE.md](./ARCHITECTURE.md) for the domains, layers, and module
+boundaries.
 
-## Пакеты
+## Packages
 
-| Пакет | Назначение |
-| ----- | ---------- |
-| `@tsai-pe/board` | Редактор `<pe-board>` — главный пакет |
-| `@tsai-pe/board-core` | Стор борды, геометрия, A\*-роутинг связей |
-| `@tsai-pe/board-ui` | Presentational-компоненты холста (узлы, сетка) |
-| `@tsai-pe/ui-kit` | Headless (Angular Aria) + Tailwind компоненты |
-| `@tsai-pe/models` | Модель данных, валидация, контракт бэкенда |
-| `@tsai-pe/nodes` | Реестр типов узлов (порты, каталог, схемы параметров) |
-| `@tsai-pe/theme` | Tailwind-токены и глобальный CSS |
+| Package               | Purpose                                            |
+| --------------------- | -------------------------------------------------- |
+| `@tsai-pe/board`      | The `<pe-board>` editor — the main package         |
+| `@tsai-pe/board-core` | Board store, geometry, A\* edge routing            |
+| `@tsai-pe/board-ui`   | Presentational canvas components (nodes, grid)     |
+| `@tsai-pe/ui-kit`     | Headless (Angular Aria) + Tailwind components      |
+| `@tsai-pe/models`     | Data model, validation, backend contract           |
+| `@tsai-pe/nodes`      | Node-type registry (ports, catalog, param schemas) |
+| `@tsai-pe/theme`      | Tailwind tokens and global CSS                     |
 
-`@tsai-pe/workflow-mock` (мок-бэкенд) и `@tsai-pe/workflow-http` (скелет REST/WS-адаптера)
-— dev/reference-пакеты, в npm не публикуются.
+`@tsai-pe/workflow-mock` (mock backend) and `@tsai-pe/workflow-http` (REST/WS
+adapter skeleton) are dev/reference packages and are not published to npm.
 
-## Быстрый старт
+## Quick start
 
 ```bash
 npm install
 npx nx serve playground        # → http://localhost:4200/board
 ```
 
-## Задачи
+## Tasks
 
 ```bash
-npx nx run-many -t vite:test         # unit-тесты
-npx nx affected -t lint test build   # только затронутое (CI)
-npx nx run-many -t build             # собрать все библиотеки
-npx nx release                       # версии + публикация (independent, conv. commits)
-npx nx graph                         # граф зависимостей
+npx nx run-many -t vite:test         # unit tests
+npx nx affected -t lint test build   # only what changed (CI)
+npx nx run-many -t build             # build all libraries
+npx nx release                       # version + publish (independent, conv. commits)
+npx nx graph                         # dependency graph
 ```
 
-## Стек
+## Stack
 
-Angular 21 · Angular Aria + CDK · Tailwind CSS v4 (своя dark-first тема) · Nx 23 ·
-Vite + Vitest · Playwright (e2e playground).
+Angular 21 · Angular Aria + CDK · Tailwind CSS v4 (custom dark-first theme) · Nx 23 ·
+Vite + Vitest · Playwright (playground e2e).
 
-## Лицензия
+## License
 
 [MIT](./LICENSE) © Mikhail Tsai
