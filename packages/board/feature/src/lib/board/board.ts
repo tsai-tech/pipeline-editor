@@ -249,6 +249,18 @@ export class Board {
     for (const [id, nr] of Object.entries(r.nodes)) map[id] = nr.status;
     return map;
   });
+  /** Per-node fan-out progress (e.g. 7/10) during a run. */
+  protected readonly runProgress = computed<
+    Record<string, { done: number; total: number }>
+  >(() => {
+    const r = this.run();
+    if (!r) return {};
+    const map: Record<string, { done: number; total: number }> = {};
+    for (const [id, nr] of Object.entries(r.nodes)) {
+      if (nr.progress) map[id] = nr.progress;
+    }
+    return map;
+  });
   /** Edges whose data is currently in transit (source done → target running). */
   protected readonly activeEdgeIds = computed<ReadonlySet<string>>(() => {
     const rs = this.runStatuses();

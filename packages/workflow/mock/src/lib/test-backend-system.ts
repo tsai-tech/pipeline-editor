@@ -27,6 +27,12 @@ interface RunState {
   outputs: Record<string, unknown>;
   /** For control-flow nodes: the output port id the branch resolved to. */
   selected: Record<string, string>;
+  /**
+   * Fan-out factor a node *emits* downstream: split multiplies it by the item
+   * count, merge collapses it back to 1, everything else passes it through. A
+   * node executes `inFan` times (its upstream's emitted fan).
+   */
+  outFan: Record<string, number>;
 }
 
 /** Tuning knobs for the simulation, so tests/demos can run fast or slow. */
@@ -89,6 +95,7 @@ export class TestBackendSystem implements PipelineBackend {
       canceled: false,
       outputs: {},
       selected: {},
+      outFan: {},
     };
     this.runs.set(runId, run);
 
@@ -232,7 +239,14 @@ export class TestBackendSystem implements PipelineBackend {
     this.log(run, `"${node.title}" → ${label}`, node.id);
   }
 
-  /** Illustrative output for a node, threading counts through split/merge. */
+  /**
+   * Illustrative output for a node, threading item counts and the fan-out factor
+   * through split → merge:
+   * - split emits fan ×count (each item flows on separately);
+   * - nodes between split and merge run `fan` times (progress n/n, "×N" in log);
+   * - merge buffers the fan back into one batch (fan → 1), so everything
+   *   downstream runs once.
+   */
   private produceOutput(
     run: RunState,
     pipeline: Pipeline,
@@ -243,25 +257,50 @@ export class TestBackendSystem implements PipelineBackend {
       .filter((e) => e.target.nodeId === node.id)
       .map((e) => run.outputs[e.source.nodeId]);
     const count = this.countFrom(upstream, node);
+    const inFan = this.inFanOf(run, pipeline, node);
 
-    if (node.kind === 'trigger') return { count: 10, source: 'telegram' };
-    if (node.kind === 'effect') return { acknowledged: true };
+    if (node.kind === 'trigger') {
+      run.outFan[node.id] = 1;
+      return { count: 10, source: 'telegram' };
+    }
 
     if (node.category === 'split') {
+      run.outFan[node.id] = inFan * count;
       nodeRun.progress = { done: count, total: count };
-      this.log(run, `Split → ${count} items`, node.id);
+      this.log(run, `Split → fan-out ×${count}`, node.id);
       return { items: Array.from({ length: count }, (_, i) => i) };
     }
     if (node.category === 'merge') {
-      const total = node.bufferSize ?? count;
+      const total = inFan > 1 ? inFan : (node.bufferSize ?? count);
+      run.outFan[node.id] = 1;
       nodeRun.progress = { done: total, total };
-      this.log(run, `Merge buffered ${total}/${total} → emit batch`, node.id);
+      this.log(run, `Merge buffered ${total}/${total} → 1 batch`, node.id);
       return { batch: Array.from({ length: total }, (_, i) => i) };
     }
+
+    // Normal node: it runs once per upstream item.
+    run.outFan[node.id] = inFan;
+    if (inFan > 1) {
+      nodeRun.progress = { done: inFan, total: inFan };
+      this.log(run, `"${node.title}" ×${inFan}`, node.id);
+    }
+    if (node.kind === 'effect') return { acknowledged: true };
     if (node.category === 'control-flow') {
       return { branch: run.selected[node.id] };
     }
     return { ok: true, count };
+  }
+
+  /** How many times a node runs: the fan its active upstream emits (≥ 1). */
+  private inFanOf(run: RunState, pipeline: Pipeline, node: BoardNode): number {
+    const active = pipeline.edges.filter((e) => {
+      if (e.target.nodeId !== node.id) return false;
+      if (run.nodes[e.source.nodeId]?.status !== 'success') return false;
+      const selected = run.selected[e.source.nodeId];
+      return selected === undefined || e.source.portId === selected;
+    });
+    if (!active.length) return 1;
+    return Math.max(...active.map((e) => run.outFan[e.source.nodeId] ?? 1));
   }
 
   /** Best-effort item count from upstream outputs (for split/merge). */

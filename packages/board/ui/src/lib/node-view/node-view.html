@@ -64,6 +64,17 @@
   ></span>
 }
 
+@if (progress(); as pg) {
+  @if (pg.total > 1) {
+    <span
+      class="absolute -top-2 left-2 grid place-items-center px-1.5 h-4 rounded-full text-[10px] font-semibold text-white bg-[var(--info)] border border-[var(--surface-2)]"
+      title="items processed"
+    >
+      {{ pg.done }}/{{ pg.total }}
+    </span>
+  }
+}
+
 @for (port of node().ports; track port.id) {
   @if (port.label && port.role === 'output') {
     <span

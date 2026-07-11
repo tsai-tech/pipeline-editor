@@ -69,6 +69,10 @@ export class NodeView {
   readonly resizable = input(true);
   /** Live run status; overrides the node's own status while a run is active. */
   readonly runStatus = input<NodeStatus | undefined>(undefined);
+  /** Live per-item progress (e.g. 7/10) while a run fans this node out. */
+  readonly progress = input<{ done: number; total: number } | undefined>(
+    undefined,
+  );
 
   /** Pointer went down on the node body (select / start move). */
   readonly bodyPointerDown = output<PointerEvent>();
