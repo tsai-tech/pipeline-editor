@@ -23,6 +23,12 @@
     },
     "lint": {
       "executor": "@nx/eslint:lint"
+    },
+    "test": {
+      "executor": "@nx/angular:unit-test",
+      "options": {
+        "watch": false
+      }
     }
   }
 }
