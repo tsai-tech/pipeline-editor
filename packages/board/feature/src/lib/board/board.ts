@@ -209,6 +209,19 @@ export class Board {
     fieldLabel: 'text-xs text-text-2',
     fieldInput:
       'w-full px-[9px] py-[7px] text-[0.8125rem] text-text border border-[var(--border)] rounded-[var(--r-sm)] bg-[var(--surface-1)] outline-none transition-[border-color] duration-150 focus:border-[var(--accent)]',
+    hint: 'text-[10.5px] leading-snug text-text-3',
+  };
+
+  /**
+   * Expression-syntax cheatsheets shown under expression fields. Params are
+   * templates (`{{ … }}` islands in free text); control-flow conditions are
+   * whole-field expressions.
+   */
+  protected readonly exprSyntax = {
+    template:
+      'Data: {{ $json.field }} or {{ $node["Node name"].path }} in text. Ops: + - * / > < == != && || !',
+    condition:
+      'Expression: $json.field · $node["Node name"].path · "text" · numbers. Ops: > < >= <= == != && || ! ( )',
   };
 
   /** Visible-edge classes: active flow, else selection accent, else resting. */

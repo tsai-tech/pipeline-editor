@@ -625,6 +625,9 @@
                 [disabled]="readonly()"
                 (change)="patchParam(f.key, $any($event.target).value)"
               />
+              @if (f.type === 'expression') {
+                <span [class]="cls.hint">{{ exprSyntax.template }}</span>
+              }
               @if (f.type === 'expression' && context().length && !readonly()) {
                 <div class="flex flex-wrap gap-1">
                   @for (cn of context(); track cn.id) {
@@ -707,11 +710,12 @@
           <input
             [class]="cls.fieldInput"
             type="text"
-            placeholder="payload.count > 5"
+            placeholder="$json.count > 5"
             [value]="e.expression"
             [disabled]="readonly()"
             (change)="patchExpression($any($event.target).value)"
           />
+          <span [class]="cls.hint">{{ exprSyntax.condition }}</span>
         </label>
       }
 
@@ -721,11 +725,12 @@
           <input
             [class]="cls.fieldInput"
             type="text"
-            placeholder="payload.source"
+            placeholder="$json.source"
             [value]="sw.discriminant"
             [disabled]="readonly()"
             (change)="patchDiscriminant($any($event.target).value)"
           />
+          <span [class]="cls.hint">{{ exprSyntax.condition }}</span>
         </label>
 
         <div [class]="cls.field">
