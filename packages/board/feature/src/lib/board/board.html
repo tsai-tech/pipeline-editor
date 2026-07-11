@@ -773,3 +773,17 @@
     }
   </aside>
 }
+
+<!-- Delete confirmation -->
+<tsai-dialog
+  [(open)]="confirmOpen"
+  size="sm"
+  title="Delete?"
+  (closed)="cancelDelete()"
+>
+  {{ confirmMessage() }}
+  <ng-container dialog-footer>
+    <tsai-button variant="ghost" (click)="cancelDelete()">Cancel</tsai-button>
+    <tsai-button variant="danger" (click)="confirmDelete()">Delete</tsai-button>
+  </ng-container>
+</tsai-dialog>

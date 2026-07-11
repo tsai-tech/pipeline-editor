@@ -51,6 +51,7 @@ import {
   type ParamField,
   paramSchema,
 } from '@tsai-pe/shared/nodes';
+import { Button, Dialog } from '@tsai-pe/ui-kit';
 import { LucideAngularModule } from 'lucide-angular';
 import { PIPELINE_BACKEND } from '../pipeline-backend.token';
 
@@ -159,7 +160,7 @@ interface ContextMenu {
  */
 @Component({
   selector: 'pe-board',
-  imports: [BoardGrid, NodeView, LucideAngularModule],
+  imports: [BoardGrid, NodeView, LucideAngularModule, Dialog, Button],
   templateUrl: './board.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
   host: {
@@ -284,6 +285,12 @@ export class Board {
   /** Live bezier path while drawing a connection. */
   protected readonly draftPath = signal<string | null>(null);
   protected readonly menu = signal<ContextMenu | null>(null);
+  /** Whether the delete-confirmation dialog is open. */
+  protected readonly confirmOpen = signal(false);
+  /** Message shown in the delete-confirmation dialog. */
+  protected readonly confirmMessage = signal('');
+  /** The deletion to perform if the confirmation is accepted. */
+  private pendingDelete: (() => void) | null = null;
   /** Rubber-band selection rectangle, in local (screen) pixels. */
   protected readonly marquee = signal<Rect | null>(null);
   /** Alignment guide lines (world coords) shown while dragging a node. */
@@ -577,10 +584,10 @@ export class Board {
 
     switch (event.key) {
       case 'Delete':
-      case 'Backspace':
+        // Backspace deliberately does NOT delete — only the Delete key does.
         if (ro) break;
         event.preventDefault();
-        this.store.removeSelected();
+        this.requestDeleteSelected();
         break;
       case 'Escape':
         this.menu.set(null);
@@ -1109,8 +1116,56 @@ export class Board {
 
   protected deleteNode(): void {
     const id = this.menu()?.nodeId;
-    if (id && !this.readonly()) this.store.removeNode(id);
     this.menu.set(null);
+    if (!id || this.readonly()) return;
+    const node = this.store.nodes().find((n) => n.id === id);
+    this.askDelete(this.nodeLabel(node), () => this.store.removeNode(id));
+  }
+
+  // ── Delete safety ────────────────────────────────────────────────────────
+  /**
+   * Delete the current selection. Removing a node is destructive, so it must be
+   * confirmed first; a selection of only connections is removed straight away.
+   */
+  protected requestDeleteSelected(): void {
+    if (this.readonly()) return;
+    const sel = this.store.selection();
+    if (!sel.size) return;
+    const nodes = this.store.nodes().filter((n) => sel.has(n.id));
+    if (!nodes.length) {
+      this.store.removeSelected(); // edges only — no confirmation needed
+      return;
+    }
+    const label =
+      nodes.length === 1 ? this.nodeLabel(nodes[0]) : `${nodes.length} nodes`;
+    this.askDelete(label, () => this.store.removeSelected());
+  }
+
+  /** Open the confirmation dialog for a pending deletion. */
+  private askDelete(label: string, action: () => void): void {
+    this.pendingDelete = action;
+    this.confirmMessage.set(
+      `Delete ${label}? This also removes its connections. You can undo this.`,
+    );
+    this.confirmOpen.set(true);
+  }
+
+  /** Confirm and perform the pending deletion. */
+  protected confirmDelete(): void {
+    this.pendingDelete?.();
+    this.pendingDelete = null;
+    this.confirmOpen.set(false);
+  }
+
+  /** Discard a pending deletion (dialog dismissed / cancelled). */
+  protected cancelDelete(): void {
+    this.pendingDelete = null;
+    this.confirmOpen.set(false);
+  }
+
+  private nodeLabel(node: BoardNode | undefined): string {
+    const title = node?.title?.trim();
+    return title ? `"${title}"` : 'this node';
   }
 
   // ── Helpers ──────────────────────────────────────────────────────────────
