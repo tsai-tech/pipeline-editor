@@ -342,7 +342,20 @@
       <span class="text-xs font-semibold text-text-2">
         Run log · <span class="capitalize">{{ r.status }}</span>
       </span>
-      <div class="flex gap-1">
+      <div class="flex items-center gap-1">
+        @if (logNodes().length) {
+          <select
+            class="h-6 max-w-[130px] px-1.5 text-[11px] rounded-[var(--r-sm)] border border-[var(--border)] bg-[var(--surface-1)] text-text-2"
+            aria-label="Filter log by node"
+            [value]="logFilter() ?? ''"
+            (change)="logFilter.set($any($event.target).value || null)"
+          >
+            <option value="">All nodes</option>
+            @for (n of logNodes(); track n.id) {
+              <option [value]="n.id">{{ n.title }}</option>
+            }
+          </select>
+        }
         <button
           type="button"
           class="px-2 h-6 text-[11px] rounded-[var(--r-sm)] text-text-2 hover:bg-[var(--surface-3)]"
@@ -361,10 +374,21 @@
       </div>
     </header>
     <div
+      #logScroll
       class="flex-1 overflow-y-auto px-3 py-2 flex flex-col gap-0.5 font-mono text-[11px] text-text-2"
     >
-      @for (e of r.log; track $index) {
-        <div>{{ e.message }}</div>
+      @for (e of logEntries(); track $index) {
+        <div class="flex gap-2">
+          <span class="shrink-0 text-text-3 tabular-nums">{{
+            formatLogTime(e.at)
+          }}</span>
+          @if (e.node) {
+            <span class="shrink-0 text-[var(--accent)]">{{ e.node }}</span>
+          }
+          <span class="min-w-0">{{ e.message }}</span>
+        </div>
+      } @empty {
+        <div class="text-text-3">No log entries for this filter.</div>
       }
     </div>
   </div>

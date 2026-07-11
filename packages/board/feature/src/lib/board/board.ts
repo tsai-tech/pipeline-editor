@@ -8,6 +8,7 @@ import {
   inject,
   input,
   signal,
+  viewChild,
 } from '@angular/core';
 import {
   BoardStore,
@@ -245,6 +246,47 @@ export class Board {
   protected readonly run = signal<RunSnapshot | null>(null);
   protected readonly running = computed(() => this.run()?.status === 'running');
   protected readonly showLog = signal(false);
+  /** Log filter: only entries for this node id, or all when null. */
+  protected readonly logFilter = signal<string | null>(null);
+  private readonly logScroll =
+    viewChild<ElementRef<HTMLElement>>('logScroll');
+  /** Node id → title, for resolving log entry / filter labels. */
+  private readonly nodeTitles = computed(() => {
+    const m = new Map<string, string>();
+    for (const n of this.store.nodes()) m.set(n.id, n.title);
+    return m;
+  });
+  /** Distinct nodes that appear in the current run log (for the filter). */
+  protected readonly logNodes = computed(() => {
+    const r = this.run();
+    if (!r) return [];
+    const titles = this.nodeTitles();
+    const ids = new Set<string>();
+    for (const e of r.log) if (e.nodeId) ids.add(e.nodeId);
+    return [...ids].map((id) => ({ id, title: titles.get(id) ?? id }));
+  });
+  /** Log entries after applying the node filter, with resolved titles. */
+  protected readonly logEntries = computed(() => {
+    const r = this.run();
+    if (!r) return [];
+    const filter = this.logFilter();
+    const titles = this.nodeTitles();
+    return r.log
+      .filter((e) => !filter || e.nodeId === filter)
+      .map((e) => ({
+        at: e.at,
+        message: e.message,
+        node: e.nodeId ? (titles.get(e.nodeId) ?? e.nodeId) : undefined,
+      }));
+  });
+  /** Auto-scroll the log to the newest entry as it grows. */
+  private readonly _logAutoscroll = effect(() => {
+    const count = this.logEntries().length;
+    const el = this.logScroll()?.nativeElement;
+    if (el && count) {
+      requestAnimationFrame(() => (el.scrollTop = el.scrollHeight));
+    }
+  });
   /** Per-node run status, applied over each node as an overlay. */
   protected readonly runStatuses = computed<Record<string, NodeStatus>>(() => {
     const r = this.run();
@@ -985,6 +1027,16 @@ export class Board {
     return JSON.stringify(value, null, 2);
   }
 
+  /** `HH:MM:SS.mmm` timestamp for a log entry. */
+  protected formatLogTime(at: number): string {
+    const d = new Date(at);
+    const p = (n: number, len = 2) => String(n).padStart(len, '0');
+    return `${p(d.getHours())}:${p(d.getMinutes())}:${p(d.getSeconds())}.${p(
+      d.getMilliseconds(),
+      3,
+    )}`;
+  }
+
   // ── Run (via the injected backend) ───────────────────────────────────────
   protected toggleRun(): void {
     if (this.running()) this.stopRun();
@@ -1010,6 +1062,7 @@ export class Board {
     this.disposeRun();
     this.run.set(null);
     this.showLog.set(false);
+    this.logFilter.set(null);
   }
 
   private disposeRun(): void {
