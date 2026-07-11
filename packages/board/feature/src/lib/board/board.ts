@@ -176,10 +176,13 @@ export class Board {
       'w-full px-[9px] py-[7px] text-[0.8125rem] text-text border border-[var(--border)] rounded-[var(--r-sm)] bg-[var(--surface-1)] outline-none transition-[border-color] duration-150 focus:border-[var(--accent)]',
   };
 
-  /** Visible-edge classes: selection accent, else resting stroke + hover growth. */
-  protected edgeClasses(selected: boolean): string {
+  /** Visible-edge classes: active flow, else selection accent, else resting. */
+  protected edgeClasses(selected: boolean, active: boolean): string {
     const base =
       'fill-none [pointer-events:none] transition-[stroke,stroke-width] duration-150';
+    if (active) {
+      return `${base} stroke-[var(--accent)] [stroke-width:2.5] [stroke-dasharray:8_4] animate-[pe-flow_0.5s_linear_infinite]`;
+    }
     return selected
       ? `${base} stroke-[var(--edge-selected)] [stroke-width:2.5]`
       : `${base} stroke-[var(--edge)] [stroke-width:2] group-hover:stroke-[var(--edge-hover)] group-hover:[stroke-width:2.5]`;
@@ -217,6 +220,17 @@ export class Board {
     const map: Record<string, NodeStatus> = {};
     for (const [id, nr] of Object.entries(r.nodes)) map[id] = nr.status;
     return map;
+  });
+  /** Edges whose data is currently in transit (source done → target running). */
+  protected readonly activeEdgeIds = computed<ReadonlySet<string>>(() => {
+    const rs = this.runStatuses();
+    const ids = new Set<string>();
+    for (const e of this.store.edges()) {
+      if (rs[e.source.nodeId] === 'success' && rs[e.target.nodeId] === 'running') {
+        ids.add(e.id);
+      }
+    }
+    return ids;
   });
   private paletteDrag: { kind: NodeKind; category?: ActionCategory; label: string } | null =
     null;

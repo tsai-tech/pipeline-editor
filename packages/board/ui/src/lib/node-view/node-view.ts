@@ -119,7 +119,7 @@ export class NodeView {
     switch (this.runStatus() ?? this.node().status) {
       case 'running':
         return {
-          ring: 'border-2 border-[var(--info)] animate-pulse',
+          ring: 'border-2 border-[var(--info)] shadow-[0_0_16px_var(--info)] animate-pulse',
           dot: 'bg-[var(--info)] animate-pulse',
         };
       case 'success':

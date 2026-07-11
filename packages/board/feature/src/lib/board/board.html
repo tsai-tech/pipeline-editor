@@ -41,10 +41,12 @@
           [attr.d]="edge.path"
         ></path>
         <path
-          [class]="edgeClasses(edge.selected)"
+          [class]="edgeClasses(edge.selected, activeEdgeIds().has(edge.id))"
           [attr.d]="edge.path"
           [attr.marker-end]="
-            edge.selected ? 'url(#pe-arrow-active)' : 'url(#pe-arrow)'
+            edge.selected || activeEdgeIds().has(edge.id)
+              ? 'url(#pe-arrow-active)'
+              : 'url(#pe-arrow)'
           "
         ></path>
         @if (edge.midLabel; as ml) {

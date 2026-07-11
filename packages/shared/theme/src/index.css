@@ -114,6 +114,13 @@
     background-size: var(--canvas-grid-size) var(--canvas-grid-size);
   }
 
+  /* Marching-ants flow along a connection whose data is currently in transit. */
+  @keyframes pe-flow {
+    to {
+      stroke-dashoffset: -12;
+    }
+  }
+
   /* Apple-style glass — theme-aware (see --glass-bg). Floating bars / menus. */
   .glass {
     background: var(--glass-bg);
