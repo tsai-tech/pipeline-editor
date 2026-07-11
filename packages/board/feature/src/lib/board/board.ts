@@ -265,6 +265,16 @@ export class Board {
     }
     return map;
   });
+  /** Per-node error message from the current run (for the on-node overlay). */
+  protected readonly runErrors = computed<Record<string, string>>(() => {
+    const r = this.run();
+    if (!r) return {};
+    const map: Record<string, string> = {};
+    for (const [id, nr] of Object.entries(r.nodes)) {
+      if (nr.error) map[id] = nr.error;
+    }
+    return map;
+  });
   /** Edges whose data is currently in transit (source done → target running). */
   protected readonly activeEdgeIds = computed<ReadonlySet<string>>(() => {
     const rs = this.runStatuses();

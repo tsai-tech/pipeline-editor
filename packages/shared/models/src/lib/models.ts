@@ -75,8 +75,17 @@ export type NodeType =
   | 'split'
   | 'merge';
 
-/** Runtime execution state of a node (drives the status overlay). */
-export type NodeStatus = 'idle' | 'running' | 'success' | 'error';
+/**
+ * Runtime execution state of a node (drives the status overlay). `skipped` means
+ * the node was not on the taken control-flow branch — distinct from `idle` (never
+ * reached because the run ended first).
+ */
+export type NodeStatus =
+  | 'idle'
+  | 'running'
+  | 'success'
+  | 'error'
+  | 'skipped';
 
 /** Which edge of a node a port sits on. Left = input; right/top/bottom = output. */
 export type PortSide = 'left' | 'right' | 'top' | 'bottom';

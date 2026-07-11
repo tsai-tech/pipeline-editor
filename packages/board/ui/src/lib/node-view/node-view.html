@@ -60,8 +60,16 @@
   <span
     class="absolute -top-1 -right-1 w-2.5 h-2.5 rounded-full border-2 border-[var(--surface-2)]"
     [class]="st.dot"
-    [attr.title]="node().status"
+    [attr.title]="runError() ?? (runStatus() ?? node().status)"
   ></span>
+}
+
+@if (showError()) {
+  <span
+    class="absolute -bottom-1.5 left-2 right-2 truncate px-1.5 py-0.5 rounded-[var(--r-sm)] text-[10px] font-medium text-white bg-[var(--danger)] border border-[var(--surface-2)] pointer-events-none"
+    [attr.title]="runError()"
+    >{{ runError() }}</span
+  >
 }
 
 @if (progress(); as pg) {

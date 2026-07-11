@@ -87,6 +87,7 @@
       [connecting]="isConnecting()"
       [resizable]="!readonly()"
       [runStatus]="runStatuses()[node.id]"
+      [runError]="runErrors()[node.id]"
       [progress]="runProgress()[node.id]"
       [targetPort]="
         snapTarget()?.nodeId === node.id ? snapTarget()!.portId : null

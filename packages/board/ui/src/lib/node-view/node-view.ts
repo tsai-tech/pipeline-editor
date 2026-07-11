@@ -69,6 +69,8 @@ export class NodeView {
   readonly resizable = input(true);
   /** Live run status; overrides the node's own status while a run is active. */
   readonly runStatus = input<NodeStatus | undefined>(undefined);
+  /** Error message from the current run, shown on the node when it failed. */
+  readonly runError = input<string | undefined>(undefined);
   /** Live per-item progress (e.g. 7/10) while a run fans this node out. */
   readonly progress = input<{ done: number; total: number } | undefined>(
     undefined,
@@ -136,10 +138,20 @@ export class NodeView {
           ring: 'border-2 border-[var(--danger)]',
           dot: 'bg-[var(--danger)]',
         };
+      case 'skipped':
+        return {
+          ring: 'border-2 border-dashed border-[var(--border)] opacity-70',
+          dot: 'bg-[var(--text-3,var(--text-2))]',
+        };
       default:
         return null;
     }
   });
+
+  /** Whether the node failed in the current run and has an error to surface. */
+  protected readonly showError = computed(
+    () => (this.runStatus() ?? this.node().status) === 'error' && !!this.runError(),
+  );
 
   /** Body classes, with selection accent overriding the resting border/shadow. */
   protected readonly bodyClasses = computed(() => {

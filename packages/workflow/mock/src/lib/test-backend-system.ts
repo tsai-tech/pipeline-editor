@@ -174,7 +174,9 @@ export class TestBackendSystem implements PipelineBackend {
     // Run a node only if it is a root, or an upstream node succeeded along a
     // *taken* branch (control-flow routes only through its selected output).
     if (!this.isReachable(run, pipeline, node)) {
+      nodeRun.status = 'skipped';
       this.log(run, `"${node.title}" not on the taken path — skipped.`, node.id);
+      this.emit(run);
       this.runNextNode(run, pipeline, order, index + 1);
       return;
     }

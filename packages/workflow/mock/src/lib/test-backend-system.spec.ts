@@ -193,7 +193,7 @@ describe('TestBackendSystem — control-flow branching', () => {
     const snap = await runToEnd(fast(), p);
     expect(snap.status).toBe('success');
     expect(snap.nodes['yes'].status).toBe('success');
-    expect(snap.nodes['no'].status).toBe('idle'); // skipped, never taken
+    expect(snap.nodes['no'].status).toBe('skipped'); // not the taken branch
     expect(snap.log.some((l) => /not on the taken path/i.test(l.message))).toBe(
       true,
     );
