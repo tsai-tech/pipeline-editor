@@ -155,7 +155,13 @@ const METHOD_OPTIONS = [
   { value: 'DELETE', label: 'DELETE' },
 ];
 
-/** Seed node catalog. Grouped by category via `nodeType`. */
+/**
+ * Seed node catalog. Grouped by category via `nodeType`.
+ *
+ * @experimental A stand-in for a real backend's node catalog — expect it to be
+ * supplied by the backend (and this constant to shrink/move) as the contract
+ * matures.
+ */
 export const NODE_CATALOG: NodeTypeSpec[] = [
   // Triggers — each channel emits a different message shape, so downstream
   // transforms must normalize (see `output`, used by expression help).

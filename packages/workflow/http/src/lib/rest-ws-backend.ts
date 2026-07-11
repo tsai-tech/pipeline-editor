@@ -74,6 +74,9 @@ const TERMINAL: ReadonlySet<RunStatus> = new Set<RunStatus>([
  *
  * Transport (`fetch`, `connect`) is injected, so the adapter stays headless and
  * unit-testable without a live server.
+ *
+ * @experimental A skeleton to prove the contract; the wire protocol (endpoints,
+ * message shapes, auth) is illustrative and expected to change.
  */
 export class RestWsBackend implements PipelineBackend {
   private readonly runs = new Map<string, LocalRun>();

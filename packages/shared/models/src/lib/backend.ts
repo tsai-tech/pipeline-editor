@@ -42,7 +42,14 @@ export interface RunSnapshot {
 export type RunListener = (snapshot: RunSnapshot) => void;
 export type Unsubscribe = () => void;
 
-/** The port the editor uses to run pipelines and observe their progress. */
+/**
+ * The port the editor uses to run pipelines and observe their progress.
+ *
+ * @experimental The shape is stabilising. In particular `startRun` is
+ * synchronous (returns an id immediately); it may become async to fit remote
+ * backends cleanly — a REST adapter currently mints a local id and reconciles
+ * the server id in the background.
+ */
 export interface PipelineBackend {
   /** Submit a pipeline to run; returns a run id. */
   startRun(pipeline: Pipeline): string;

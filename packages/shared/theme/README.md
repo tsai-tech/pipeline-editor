@@ -4,8 +4,12 @@ Design tokens + global stylesheet for Pipeline Editor. Dark-first, premium
 ("technological") visual language — single indigo accent, hairline borders,
 muted node-role tints.
 
-> To be scaffolded as an Nx library (`scope:shared`, `type:util`). For now it
-> ships two CSS files; no build step is required — the consuming app scans it.
+```bash
+npm i @tsai-pe/theme
+```
+
+It ships two CSS files; no build step is required — the consuming app imports and
+scans them.
 
 ## Files
 
