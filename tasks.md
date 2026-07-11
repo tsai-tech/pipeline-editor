@@ -15,12 +15,6 @@ Actionable, not-yet-done work only. No history.
       error on the node / inspector; log timestamps + per-node filter + autoscroll;
       optional ticking progress (1→N) instead of instant n/n.
 
-## quality / docs
-
-- [ ] Refresh ARCHITECTURE.md — registry, node catalog, backend contract,
-      `workflow/mock`, control-flow, the styling decision (Tailwind everywhere,
-      component CSS only for host/SVG state).
-
 ## ui-kit
 
 - [ ] Extract a shared **anchored-overlay** helper (`tsai-popover`) once Select /
