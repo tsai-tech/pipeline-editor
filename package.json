@@ -1,5 +1,5 @@
 {
-  "name": "@org/source",
+  "name": "@tsai-pe/source",
   "version": "0.0.0",
   "license": "MIT",
   "scripts": {},
@@ -84,5 +84,11 @@
   },
   "nx": {
     "includedScripts": []
+  },
+  "author": "Mikhail Tsai",
+  "description": "Pipeline Editor — Nx monorepo for the visual AI-agent pipeline editor libraries.",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/tsai-tech/pipeline-editor.git"
   }
 }

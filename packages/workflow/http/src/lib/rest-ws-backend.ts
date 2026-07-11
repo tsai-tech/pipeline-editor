@@ -5,7 +5,7 @@ import type {
   RunSnapshot,
   RunStatus,
   Unsubscribe,
-} from '@tsai-pe/shared/models';
+} from '@tsai-pe/models';
 
 /**
  * Minimal snapshot stream — the WebSocket/SSE seam. A real adapter wraps a

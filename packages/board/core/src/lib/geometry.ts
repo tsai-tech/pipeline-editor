@@ -6,7 +6,7 @@ import {
   portFraction,
   type PortSide,
   type Rect,
-} from '@tsai-pe/shared/models';
+} from '@tsai-pe/models';
 
 /** Size of one node-grid cell, in board (world) pixels. */
 export const GRID_CELL = 32;

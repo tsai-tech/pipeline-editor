@@ -15,15 +15,15 @@
     "skipDefaultLibCheck": true,
     "baseUrl": ".",
     "paths": {
-      "@tsai-pe/shared/theme": ["./packages/shared/theme/src/index.ts"],
+      "@tsai-pe/theme": ["./packages/shared/theme/src/index.ts"],
       "@tsai-pe/ui-kit": ["./packages/ui-kit/src/index.ts"],
-      "@tsai-pe/shared/models": ["./packages/shared/models/src/index.ts"],
-      "@tsai-pe/board/core": ["./packages/board/core/src/index.ts"],
-      "@tsai-pe/board/ui": ["./packages/board/ui/src/index.ts"],
-      "@tsai-pe/board/feature": ["./packages/board/feature/src/index.ts"],
-      "@tsai-pe/workflow/mock": ["./packages/workflow/mock/src/index.ts"],
-      "@tsai-pe/shared/nodes": ["./packages/shared/nodes/src/index.ts"],
-      "@tsai-pe/workflow/http": ["./packages/workflow/http/src/index.ts"]
+      "@tsai-pe/models": ["./packages/shared/models/src/index.ts"],
+      "@tsai-pe/board-core": ["./packages/board/core/src/index.ts"],
+      "@tsai-pe/board-ui": ["./packages/board/ui/src/index.ts"],
+      "@tsai-pe/board": ["./packages/board/feature/src/index.ts"],
+      "@tsai-pe/workflow-mock": ["./packages/workflow/mock/src/index.ts"],
+      "@tsai-pe/nodes": ["./packages/shared/nodes/src/index.ts"],
+      "@tsai-pe/workflow-http": ["./packages/workflow/http/src/index.ts"]
     }
   },
   "exclude": ["node_modules", "tmp"]

@@ -1,5 +1,5 @@
 import { InjectionToken } from '@angular/core';
-import type { PipelineStore } from '@tsai-pe/shared/models';
+import type { PipelineStore } from '@tsai-pe/models';
 
 /**
  * Optional persistence a `<pe-board>` uses for Save / Open. Provide a concrete

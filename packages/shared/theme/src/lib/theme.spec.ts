@@ -6,7 +6,7 @@ describe('theme', () => {
   });
 
   it('points the token/stylesheet specifiers at the package', () => {
-    expect(themeStylesheet).toContain('@tsai-pe/shared/theme');
-    expect(themeTokensStylesheet).toContain('@tsai-pe/shared/theme');
+    expect(themeStylesheet).toContain('@tsai-pe/theme');
+    expect(themeTokensStylesheet).toContain('@tsai-pe/theme');
   });
 });

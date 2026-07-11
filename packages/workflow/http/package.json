@@ -1,5 +1,5 @@
 {
-  "name": "@tsai-pe/workflow/http",
+  "name": "@tsai-pe/workflow-http",
   "version": "0.0.1",
   "private": true,
   "type": "commonjs",
@@ -7,6 +7,30 @@
   "types": "./src/index.d.ts",
   "dependencies": {
     "tslib": "^2.3.0",
-    "@tsai-pe/shared/models": "0.0.1"
+    "@tsai-pe/models": "0.0.1"
+  },
+  "description": "Pipeline Editor — REST/WS PipelineBackend adapter skeleton.",
+  "keywords": [
+    "pipeline",
+    "workflow",
+    "editor",
+    "angular",
+    "n8n",
+    "flow",
+    "dag",
+    "rest",
+    "websocket",
+    "backend"
+  ],
+  "license": "MIT",
+  "author": "Mikhail Tsai",
+  "homepage": "https://github.com/tsai-tech/pipeline-editor/tree/main/packages/workflow/http#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/tsai-tech/pipeline-editor.git",
+    "directory": "packages/workflow/http"
+  },
+  "bugs": {
+    "url": "https://github.com/tsai-tech/pipeline-editor/issues"
   }
 }

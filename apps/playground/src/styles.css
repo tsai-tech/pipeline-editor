@@ -1,6 +1,6 @@
 /* Global styles for the ui-kit playground. */
 
-/* Design tokens + Tailwind v4 entry from @tsai-pe/shared/theme.
+/* Design tokens + Tailwind v4 entry from @tsai-pe/theme.
    Imported by relative path so Tailwind's CSS resolver (which does not read
    tsconfig paths) can find the stylesheet. */
 @import '../../../packages/shared/theme/src/index.css';

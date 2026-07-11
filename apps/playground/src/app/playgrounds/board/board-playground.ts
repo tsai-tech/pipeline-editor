@@ -3,10 +3,10 @@ import {
   Board,
   PIPELINE_BACKEND,
   PIPELINE_STORE,
-} from '@tsai-pe/board/feature';
-import { type BoardNode, type Pipeline } from '@tsai-pe/shared/models';
-import { derivePorts } from '@tsai-pe/shared/nodes';
-import { InMemoryPipelineStore, TestBackendSystem } from '@tsai-pe/workflow/mock';
+} from '@tsai-pe/board';
+import { type BoardNode, type Pipeline } from '@tsai-pe/models';
+import { derivePorts } from '@tsai-pe/nodes';
+import { InMemoryPipelineStore, TestBackendSystem } from '@tsai-pe/workflow-mock';
 
 /** Build a node, deriving its port layout from its kind/config. */
 function node(spec: Omit<BoardNode, 'ports'>): BoardNode {

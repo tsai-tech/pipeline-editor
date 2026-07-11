@@ -3,7 +3,7 @@ import type {
   PipelineStore,
   PipelineSummary,
   RunSummary,
-} from '@tsai-pe/shared/models';
+} from '@tsai-pe/models';
 
 /**
  * In-browser, in-memory {@link PipelineStore} — the persistence counterpart to

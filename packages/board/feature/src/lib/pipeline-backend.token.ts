@@ -1,5 +1,5 @@
 import { InjectionToken } from '@angular/core';
-import type { PipelineBackend } from '@tsai-pe/shared/models';
+import type { PipelineBackend } from '@tsai-pe/models';
 
 /**
  * The backend a `<pe-board>` talks to when running a pipeline. Provide a concrete

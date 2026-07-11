@@ -17,13 +17,13 @@ import {
   nodeRect,
   portAnchor,
   snapToCell,
-} from '@tsai-pe/board/core';
+} from '@tsai-pe/board-core';
 import {
   BoardGrid,
   NODE_META,
   NodeView,
   type PortPointer,
-} from '@tsai-pe/board/ui';
+} from '@tsai-pe/board-ui';
 import {
   type ActionCategory,
   type BoardNode,
@@ -44,7 +44,7 @@ import {
   type Size,
   type Unsubscribe,
   type ValidationIssue,
-} from '@tsai-pe/shared/models';
+} from '@tsai-pe/models';
 import {
   catalogEntry,
   defaultControlFlowConfig,
@@ -53,7 +53,7 @@ import {
   type ParamField,
   paramSchema,
   variablePaths,
-} from '@tsai-pe/shared/nodes';
+} from '@tsai-pe/nodes';
 import { Button, Dialog } from '@tsai-pe/ui-kit';
 import { LucideAngularModule } from 'lucide-angular';
 import { PIPELINE_BACKEND } from '../pipeline-backend.token';

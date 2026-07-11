@@ -1,4 +1,4 @@
-import type { Pipeline } from '@tsai-pe/shared/models';
+import type { Pipeline } from '@tsai-pe/models';
 import { InMemoryPipelineStore } from './in-memory-pipeline-store';
 
 function pipeline(id: string, name = id, nodeCount = 0): Pipeline {

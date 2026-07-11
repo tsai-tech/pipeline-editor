@@ -4,8 +4,8 @@ import {
   computed,
   input,
 } from '@angular/core';
-import { GRID_CELL } from '@tsai-pe/board/core';
-import type { Point } from '@tsai-pe/shared/models';
+import { GRID_CELL } from '@tsai-pe/board-core';
+import type { Point } from '@tsai-pe/models';
 
 /**
  * Infinite 32×32 dot grid drawn as a single CSS `radial-gradient` layer whose

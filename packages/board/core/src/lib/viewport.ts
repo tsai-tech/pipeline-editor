@@ -1,5 +1,5 @@
 import { computed, signal, Signal } from '@angular/core';
-import type { Point, Rect, Size } from '@tsai-pe/shared/models';
+import type { Point, Rect, Size } from '@tsai-pe/models';
 import { clamp } from './geometry';
 
 const MIN_ZOOM = 0.35;

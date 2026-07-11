@@ -1,66 +1,60 @@
 # Pipeline Editor
 
-> Angular-библиотека для визуального редактирования пайплайнов AI-агентов.
+> Встраиваемый Angular-редактор визуальных пайплайнов AI-агентов.
 
-Pipeline Editor — это встраиваемый редактор на Angular, в котором пайплайн собирается
-из узлов на бесконечном холсте: **trigger → middleware → result**. Узлы соединяются
-рёбрами, свободно перетаскиваются, холст можно панорамировать и масштабировать.
+Холст, на котором пайплайн собирается из узлов (**trigger → action → effect**,
+плюс control-flow if/switch/filter и буферы split/merge): узлы соединяются рёбрами,
+перетаскиваются, холст панорамируется и масштабируется. Есть инспектор параметров,
+валидация графа, экспорт/импорт, персистентность и прогон через подключаемый бэкенд.
+Вдохновлён [n8n](https://n8n.io).
 
-Проект — Nx-монорепозиторий. Его основной артефакт — набор публикуемых Angular-библиотек
-(редактор + бизнес-слой исполнения пайплайнов, вдохновлённый архитектурой [n8n](https://n8n.io)).
-Приложение `playground` служит только площадкой для локальной разработки и ручной проверки.
+Проект — Nx-монорепозиторий; основной артефакт — набор публикуемых Angular-библиотек
+(Angular 21, signals, standalone, OnPush, Tailwind v4). Приложение `playground` —
+только площадка для локальной разработки, не публикуется.
 
-## Возможности
+> **Фронт не исполняет пайплайн** — семантикой владеет бэкенд. Редактор общается с ним
+> через вендор-нейтральный порт `PipelineBackend` (`startRun` / `observe` / `stop`).
+> Для разработки поставляется in-browser мок с настоящим вычислителем выражений.
 
-- **Бесконечный холст** с фоновой сеткой из точек 32×32 и навигацией мышью (pan / zoom).
-- **Узлы пайплайна** трёх ролей: триггеры, middleware и результаты — с портами входа/выхода.
-- **Соединения** между узлами с валидацией направления потока.
-- **Перетаскивание** узлов и выделение элементов.
-- **ui-kit** — переиспользуемые формы и компоненты для панелей настроек узлов.
-- **Бизнес-слой** — движок исполнения и каталог реальных интеграций (trigger/middleware/result).
+Подробнее о доменах, слоях и границах — в [ARCHITECTURE.md](./ARCHITECTURE.md).
 
-## Структура
+## Пакеты
 
-```
-apps/
-  playground/          — host-приложение для разработки редактора (не публикуется)
-packages/
-  board/               — холст: модель графа, viewport, навигация, рендер узлов и сетки
-  workflow/            — движок исполнения пайплайнов (домен, n8n-подобный)
-  nodes/               — конкретные интеграции узлов (trigger/middleware/result)
-  ui-kit/              — переиспользуемые UI-компоненты и формы
-  shared/              — общие модели и утилиты
-```
+| Пакет | Назначение |
+| ----- | ---------- |
+| `@tsai-pe/board` | Редактор `<pe-board>` — главный пакет |
+| `@tsai-pe/board-core` | Стор борды, геометрия, A\*-роутинг связей |
+| `@tsai-pe/board-ui` | Presentational-компоненты холста (узлы, сетка) |
+| `@tsai-pe/ui-kit` | Headless (Angular Aria) + Tailwind компоненты |
+| `@tsai-pe/models` | Модель данных, валидация, контракт бэкенда |
+| `@tsai-pe/nodes` | Реестр типов узлов (порты, каталог, схемы параметров) |
+| `@tsai-pe/theme` | Tailwind-токены и глобальный CSS |
 
-Подробнее о доменах, слоях и границах модулей — в [ARCHITECTURE.md](./ARCHITECTURE.md).
+`@tsai-pe/workflow-mock` (мок-бэкенд) и `@tsai-pe/workflow-http` (скелет REST/WS-адаптера)
+— dev/reference-пакеты, в npm не публикуются.
 
 ## Быстрый старт
 
 ```bash
 npm install
+npx nx serve playground        # → http://localhost:4200/board
+```
 
-# Запустить playground с редактором
-npx nx serve playground
+## Задачи
 
-# Сборка всех библиотек
-npx nx run-many -t build
-
-# Тесты / линт
-npx nx run-many -t test lint
-
-# Граф зависимостей проекта
-npx nx graph
+```bash
+npx nx run-many -t vite:test         # unit-тесты
+npx nx affected -t lint test build   # только затронутое (CI)
+npx nx run-many -t build             # собрать все библиотеки
+npx nx release                       # версии + публикация (independent, conv. commits)
+npx nx graph                         # граф зависимостей
 ```
 
 ## Стек
 
-- [Angular 21](https://angular.dev) — компоненты редактора и библиотек
-- [Angular Aria](https://angular.dev/guide/aria/overview) + [Angular CDK](https://material.angular.dev/cdk) — headless-база ui-kit (доступность, overlay, virtual scroll)
-- [Tailwind CSS v4](https://tailwindcss.com) — стили и дизайн-токены (своя dark-first премиум-тема)
-- [Nx 23](https://nx.dev) — монорепозиторий, границы модулей, кэш и релизы
-- [Vite](https://vite.dev) + [Vitest](https://vitest.dev) — сборка и unit-тесты библиотек
-- [Playwright](https://playwright.dev) — e2e-проверки playground
+Angular 21 · Angular Aria + CDK · Tailwind CSS v4 (своя dark-first тема) · Nx 23 ·
+Vite + Vitest · Playwright (e2e playground).
 
 ## Лицензия
 
-MIT
+[MIT](./LICENSE) © Mikhail Tsai

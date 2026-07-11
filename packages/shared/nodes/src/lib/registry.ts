@@ -8,7 +8,7 @@ import {
   type NodePort,
   type NodeType,
   nodeType,
-} from '@tsai-pe/shared/models';
+} from '@tsai-pe/models';
 
 /**
  * Node-type registry (n8n-style descriptions) shared by the editor and the

@@ -1,7 +1,6 @@
 {
-  "name": "@tsai-pe/shared-theme",
+  "name": "@tsai-pe/theme",
   "version": "0.0.1",
-  "private": true,
   "type": "commonjs",
   "main": "./src/index.js",
   "types": "./src/index.d.ts",
@@ -17,5 +16,32 @@
   },
   "dependencies": {
     "tslib": "^2.3.0"
+  },
+  "description": "Pipeline Editor — Tailwind design tokens and global CSS.",
+  "keywords": [
+    "pipeline",
+    "workflow",
+    "editor",
+    "angular",
+    "n8n",
+    "flow",
+    "dag",
+    "theme",
+    "tailwind",
+    "tokens"
+  ],
+  "license": "MIT",
+  "author": "Mikhail Tsai",
+  "homepage": "https://github.com/tsai-tech/pipeline-editor/tree/main/packages/shared/theme#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/tsai-tech/pipeline-editor.git",
+    "directory": "packages/shared/theme"
+  },
+  "bugs": {
+    "url": "https://github.com/tsai-tech/pipeline-editor/issues"
+  },
+  "publishConfig": {
+    "access": "public"
   }
 }

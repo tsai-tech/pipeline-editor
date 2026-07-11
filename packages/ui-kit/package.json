@@ -8,5 +8,32 @@
     "@angular/core": "^21.2.0",
     "@angular/forms": "^21.2.0"
   },
-  "sideEffects": false
+  "sideEffects": false,
+  "description": "Pipeline Editor — headless (Angular Aria) + Tailwind component kit.",
+  "keywords": [
+    "pipeline",
+    "workflow",
+    "editor",
+    "angular",
+    "n8n",
+    "flow",
+    "dag",
+    "ui",
+    "components",
+    "aria"
+  ],
+  "license": "MIT",
+  "author": "Mikhail Tsai",
+  "homepage": "https://github.com/tsai-tech/pipeline-editor/tree/main/packages/ui-kit#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/tsai-tech/pipeline-editor.git",
+    "directory": "packages/ui-kit"
+  },
+  "bugs": {
+    "url": "https://github.com/tsai-tech/pipeline-editor/issues"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
 }

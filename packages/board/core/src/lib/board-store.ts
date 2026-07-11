@@ -17,11 +17,11 @@ import {
   type Rect,
   type ValidationIssue,
   validatePipeline,
-} from '@tsai-pe/shared/models';
+} from '@tsai-pe/models';
 import {
   defaultControlFlowConfig,
   derivePorts,
-} from '@tsai-pe/shared/nodes';
+} from '@tsai-pe/nodes';
 import { boundsOf, edgePath, nodeRect, portAnchor, rectsIntersect } from './geometry';
 import { routeEdge } from './routing';
 import { Viewport } from './viewport';

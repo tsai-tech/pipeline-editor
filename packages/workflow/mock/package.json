@@ -1,13 +1,36 @@
 {
-  "name": "@tsai-pe/workflow/mock",
+  "name": "@tsai-pe/workflow-mock",
   "version": "0.0.1",
   "private": true,
   "type": "commonjs",
   "main": "./src/index.js",
   "types": "./src/index.d.ts",
   "dependencies": {
-    "@tsai-pe/shared/models": "0.0.1",
+    "@tsai-pe/models": "0.0.1",
     "tslib": "^2.3.0",
-    "@tsai-pe/shared/nodes": "0.0.1"
+    "@tsai-pe/nodes": "0.0.1"
+  },
+  "description": "Pipeline Editor — in-browser mock backend for dev/demo (evaluates expressions).",
+  "keywords": [
+    "pipeline",
+    "workflow",
+    "editor",
+    "angular",
+    "n8n",
+    "flow",
+    "dag",
+    "mock",
+    "backend"
+  ],
+  "license": "MIT",
+  "author": "Mikhail Tsai",
+  "homepage": "https://github.com/tsai-tech/pipeline-editor/tree/main/packages/workflow/mock#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/tsai-tech/pipeline-editor.git",
+    "directory": "packages/workflow/mock"
+  },
+  "bugs": {
+    "url": "https://github.com/tsai-tech/pipeline-editor/issues"
   }
 }

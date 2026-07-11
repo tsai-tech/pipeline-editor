@@ -1,11 +1,36 @@
 {
-  "name": "@tsai-pe/shared/models",
+  "name": "@tsai-pe/models",
   "version": "0.0.1",
-  "private": true,
   "type": "commonjs",
   "main": "./src/index.js",
   "types": "./src/index.d.ts",
   "dependencies": {
     "tslib": "^2.3.0"
+  },
+  "description": "Pipeline Editor — data model, validation and the vendor-neutral backend contract.",
+  "keywords": [
+    "pipeline",
+    "workflow",
+    "editor",
+    "angular",
+    "n8n",
+    "flow",
+    "dag",
+    "model",
+    "types"
+  ],
+  "license": "MIT",
+  "author": "Mikhail Tsai",
+  "homepage": "https://github.com/tsai-tech/pipeline-editor/tree/main/packages/shared/models#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/tsai-tech/pipeline-editor.git",
+    "directory": "packages/shared/models"
+  },
+  "bugs": {
+    "url": "https://github.com/tsai-tech/pipeline-editor/issues"
+  },
+  "publishConfig": {
+    "access": "public"
   }
 }

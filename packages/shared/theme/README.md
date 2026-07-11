@@ -1,4 +1,4 @@
-# @tsai-pe/shared/theme
+# @tsai-pe/theme
 
 Design tokens + global stylesheet for Pipeline Editor. Dark-first, premium
 ("technological") visual language — single indigo accent, hairline borders,
@@ -20,7 +20,7 @@ muted node-role tints.
 In the consuming app's global stylesheet (e.g. `apps/playground/src/styles.css`):
 
 ```css
-@import '@tsai-pe/shared/theme';
+@import '@tsai-pe/theme';
 
 /* Tailwind v4 monorepo scanning: point at the app + used libraries. */
 @source '../../../packages/board';

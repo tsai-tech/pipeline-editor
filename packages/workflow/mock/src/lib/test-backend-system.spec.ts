@@ -5,7 +5,7 @@ import type {
   NodePort,
   Pipeline,
   RunSnapshot,
-} from '@tsai-pe/shared/models';
+} from '@tsai-pe/models';
 import { TestBackendSystem } from './test-backend-system';
 
 // ── node / pipeline builders ────────────────────────────────────────────────

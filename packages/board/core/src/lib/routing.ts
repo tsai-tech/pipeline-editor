@@ -1,4 +1,4 @@
-import type { BoardNode, Point, PortSide } from '@tsai-pe/shared/models';
+import type { BoardNode, Point, PortSide } from '@tsai-pe/models';
 import { GRID_SUBCELL, nodeRect } from './geometry';
 
 /**

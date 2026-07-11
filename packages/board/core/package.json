@@ -1,16 +1,42 @@
 {
-  "name": "@tsai-pe/board/core",
+  "name": "@tsai-pe/board-core",
   "version": "0.0.1",
-  "private": true,
   "type": "commonjs",
   "main": "./src/index.js",
   "types": "./src/index.d.ts",
   "peerDependencies": {
     "@angular/core": "^21.2.0",
-    "@tsai-pe/shared/nodes": "0.0.1"
+    "@tsai-pe/nodes": "0.0.1"
   },
   "dependencies": {
-    "@tsai-pe/shared/models": "0.0.1",
+    "@tsai-pe/models": "0.0.1",
     "tslib": "^2.3.0"
+  },
+  "description": "Pipeline Editor — board state store, geometry and A* edge routing.",
+  "keywords": [
+    "pipeline",
+    "workflow",
+    "editor",
+    "angular",
+    "n8n",
+    "flow",
+    "dag",
+    "canvas",
+    "store",
+    "routing"
+  ],
+  "license": "MIT",
+  "author": "Mikhail Tsai",
+  "homepage": "https://github.com/tsai-tech/pipeline-editor/tree/main/packages/board/core#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/tsai-tech/pipeline-editor.git",
+    "directory": "packages/board/core"
+  },
+  "bugs": {
+    "url": "https://github.com/tsai-tech/pipeline-editor/issues"
+  },
+  "publishConfig": {
+    "access": "public"
   }
 }

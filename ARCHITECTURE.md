@@ -52,22 +52,27 @@
 apps/
   playground/               @scope:app  type:app         host-приложение (nx serve → /board)
 
-packages/
+packages/                   (папка / nx-имя      →  npm-имя)
   shared/
-    models/                 @tsai-pe/shared/models   scope:shared type:model  ← типы + валидация + контракт бэкенда
-    nodes/                  @tsai-pe/shared/nodes    scope:shared type:model  ← реестр типов узлов (derivePorts, каталог, схемы)
-    theme/                  @tsai-pe/shared/theme    scope:shared type:util   ← Tailwind-токены + глобальный CSS
-  ui-kit/                   @tsai-pe/ui-kit          scope:shared type:ui     ← Angular Aria + CDK + Tailwind
+    models/    (models)     @tsai-pe/models        scope:shared type:model  ← типы + валидация + контракт бэкенда
+    nodes/     (nodes)      @tsai-pe/nodes         scope:shared type:model  ← реестр типов узлов (derivePorts, каталог, схемы)
+    theme/     (theme)      @tsai-pe/theme         scope:shared type:util   ← Tailwind-токены + глобальный CSS
+  ui-kit/      (ui-kit)     @tsai-pe/ui-kit        scope:shared type:ui     ← Angular Aria + CDK + Tailwind
 
   board/
-    core/                   @tsai-pe/board/core      scope:board  type:core   ← BoardStore, viewport, geometry, A*-роутинг
-    ui/                     @tsai-pe/board/ui        scope:board  type:ui     ← pe-board-grid, pe-node
-    feature/                @tsai-pe/board/feature   scope:board  type:feature ← <pe-board> — публичный редактор
+    core/      (core)       @tsai-pe/board-core    scope:board  type:core   ← BoardStore, viewport, geometry, A*-роутинг
+    ui/        (ui)         @tsai-pe/board-ui      scope:board  type:ui     ← pe-board-grid, pe-node
+    feature/   (feature)    @tsai-pe/board         scope:board  type:feature ← <pe-board> — публичный редактор (главный пакет)
 
-  workflow/
-    mock/                   @tsai-pe/workflow/mock   scope:workflow type:core ← TestBackendSystem (in-browser мок-адаптер)
-    http/                   @tsai-pe/workflow/http   scope:workflow type:core ← RestWsBackend (REST + WS/SSE адаптер, скелет)
+  workflow/                 (private — в npm не публикуются)
+    mock/      (mock)       @tsai-pe/workflow-mock scope:workflow type:core ← TestBackendSystem (мок-бэкенд, вычисляет выражения)
+    http/      (http)       @tsai-pe/workflow-http scope:workflow type:core ← RestWsBackend (REST + WS/SSE адаптер, скелет)
 ```
+
+> Публичный scope — **`@tsai-pe`**; имена плоские (`@scope/name`, один слэш) — так
+> требует npm и так делают Angular/Vue/Nx. Иерархия домен/слой отражена в самом
+> имени (`board-core`, `board-ui`), а не вложенным путём. Папки/nx-имена проектов
+> при этом сохраняют вложенность.
 
 Публичный npm-scope — **`@tsai-pe`**. Реестр типов узлов вынесен в отдельную либу
 `shared/nodes` (не в `models`) намеренно: его читают и редактор, и будущий движок —
@@ -123,13 +128,13 @@ graph TD
 ### 4.2 Стили: Tailwind v4 (CSS-first)
 
 Стилизуемся на **Tailwind v4** без `tailwind.config.js`. Единый вход и токены —
-в `@tsai-pe/shared/theme` (`theme.css` — токены как CSS-переменные; `index.css` —
+в `@tsai-pe/theme` (`theme.css` — токены как CSS-переменные; `index.css` —
 `@import "tailwindcss"` + маппинг токенов в `@theme` + хелперы холста).
 
 Подключение в приложении (`styles.css`):
 
 ```css
-@import '@tsai-pe/shared/theme';
+@import '@tsai-pe/theme';
 @source '../../../packages/board'; /* сканирование классов из библиотек, включая .ts */
 @source '../../../packages/ui-kit';
 ```

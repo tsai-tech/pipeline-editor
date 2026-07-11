@@ -9,7 +9,7 @@ import {
   Split,
   Zap,
 } from 'lucide-angular';
-import type { ControlFlowKind, NodeType } from '@tsai-pe/shared/models';
+import type { ControlFlowKind, NodeType } from '@tsai-pe/models';
 
 /** Visual descriptor for a node type: icon, human label, and accent color. */
 export interface NodeMeta {

@@ -2,7 +2,7 @@
  * Pipeline Editor — global stylesheet entry.
  *
  * Every app/lib that renders UI imports this once (e.g. the playground app's
- * `styles.css` does `@import '@tsai-pe/shared/theme';`). It wires Tailwind v4,
+ * `styles.css` does `@import '@tsai-pe/theme';`). It wires Tailwind v4,
  * loads the design tokens, maps them into Tailwind's theme namespaces so
  * utilities like `bg-surface-1`, `text-text-2`, `rounded-md`, `shadow-elev-2`
  * work, and defines a small base layer + board-specific helpers.

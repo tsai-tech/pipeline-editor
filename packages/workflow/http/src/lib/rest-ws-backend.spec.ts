@@ -1,4 +1,4 @@
-import type { Pipeline, RunSnapshot } from '@tsai-pe/shared/models';
+import type { Pipeline, RunSnapshot } from '@tsai-pe/models';
 import { RestWsBackend, type RunSocket } from './rest-ws-backend';
 
 const pipeline: Pipeline = { id: 'p', name: 'P', nodes: [], edges: [] };

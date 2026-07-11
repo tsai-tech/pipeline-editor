@@ -1,4 +1,4 @@
-import type { BoardNode, ControlFlowConfig } from '@tsai-pe/shared/models';
+import type { BoardNode, ControlFlowConfig } from '@tsai-pe/models';
 import {
   catalogEntry,
   controlFlowOutputs,

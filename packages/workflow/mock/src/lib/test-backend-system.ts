@@ -10,13 +10,13 @@ import {
   type RunSnapshot,
   type RunStatus,
   type Unsubscribe,
-} from '@tsai-pe/shared/models';
+} from '@tsai-pe/models';
 import {
   catalogEntry,
   controlFlowOutputs,
   isControlFlow,
   paramSchema,
-} from '@tsai-pe/shared/nodes';
+} from '@tsai-pe/nodes';
 import {
   coerceExpression,
   type EvalContext,

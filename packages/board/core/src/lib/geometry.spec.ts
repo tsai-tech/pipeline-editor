@@ -1,4 +1,4 @@
-import type { BoardNode } from '@tsai-pe/shared/models';
+import type { BoardNode } from '@tsai-pe/models';
 import {
   boundsOf,
   cellToPx,
