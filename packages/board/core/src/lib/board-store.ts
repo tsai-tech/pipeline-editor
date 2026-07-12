@@ -19,8 +19,9 @@ import {
   validatePipeline,
 } from '@tsai-pe/models';
 import {
-  defaultControlFlowConfig,
-  derivePorts,
+  defaultData,
+  EMPTY_NODE_CATALOG,
+  type NodeCatalog,
 } from '@tsai-pe/nodes';
 import { boundsOf, edgePath, nodeRect, portAnchor, rectsIntersect } from './geometry';
 import { routeEdge } from './routing';
@@ -28,14 +29,15 @@ import { Viewport } from './viewport';
 
 /** Fields needed to add a fresh node; `ports` default from its kind/config. */
 export interface NewNode {
-  kind: NodeKind;
+  kind?: NodeKind;
   category?: ActionCategory;
   /** Concrete catalog type id (open-ended trigger/integration/effect). */
   type?: string;
-  title: string;
+  title?: string;
   subtitle?: string;
   pos: GridPos;
   size?: CellSize;
+  data?: Record<string, unknown>;
 }
 
 /** A resolved edge ready to render: its bezier `d` plus endpoint anchors. */
@@ -71,6 +73,35 @@ interface Snapshot {
   edges: readonly Edge[];
 }
 
+function legacyConfigPorts(node: BoardNode): NodePort[] | null {
+  const config = node.config;
+  if (node.category !== 'control-flow' || !config) return null;
+  const branches =
+    config.type === 'if'
+      ? [
+          { id: 'true', label: 'true' },
+          { id: 'false', label: 'false' },
+        ]
+      : config.type === 'filter'
+        ? [{ id: 'pass', label: 'pass' }]
+        : [
+            ...config.cases.map((c) => ({
+              id: `case-${c.id}`,
+              label: c.label || c.value || 'case',
+            })),
+            ...(config.hasDefault ? [{ id: 'default', label: 'default' }] : []),
+          ];
+  return [
+    { id: 'in', role: 'input', side: 'left' },
+    ...branches.map((branch): NodePort => ({
+      id: branch.id,
+      role: 'output',
+      side: 'right',
+      label: branch.label,
+    })),
+  ];
+}
+
 const HISTORY_LIMIT = 100;
 const PASTE_OFFSET: GridPos = { col: 2, row: 2 };
 
@@ -89,6 +120,8 @@ export class BoardStore {
   private clipboard: Snapshot | null = null;
   private readonly _canUndo = signal(false);
   private readonly _canRedo = signal(false);
+
+  constructor(private readonly catalog: NodeCatalog = EMPTY_NODE_CATALOG) {}
 
   readonly nodes: Signal<readonly BoardNode[]> = this._nodes.asReadonly();
   readonly edges: Signal<readonly Edge[]> = this._edges.asReadonly();
@@ -274,7 +307,7 @@ export class BoardStore {
       nodes.map((n) => {
         if (n.id !== id) return n;
         const next: BoardNode = { ...n, config };
-        const ports = derivePorts(next);
+        const ports = legacyConfigPorts(next) ?? this.derivePorts(next);
         const outputs = ports.filter((p) => p.role === 'output').length;
         const rows = Math.min(12, Math.max(n.size.rows, outputs + 1));
         return { ...next, ports, size: { ...n.size, rows } };
@@ -296,6 +329,25 @@ export class BoardStore {
           ports.get(e.target.nodeId)?.has(e.target.portId),
       ),
     );
+  }
+
+  /** Patch a node's data and rederive any data-driven ports. */
+  updateNodeData(id: string, patch: Record<string, unknown>): void {
+    this.record();
+    this._nodes.update((nodes) =>
+      nodes.map((n) => {
+        if (n.id !== id) return n;
+        const next: BoardNode = {
+          ...n,
+          data: { ...(n.data ?? {}), ...patch },
+        };
+        const ports = this.derivePorts(next);
+        const outputs = ports.filter((p) => p.role === 'output').length;
+        const rows = Math.min(12, Math.max(n.size.rows, outputs + 1));
+        return { ...next, ports, size: { ...n.size, rows } };
+      }),
+    );
+    this.pruneOrphanEdges();
   }
 
   /**
@@ -352,25 +404,40 @@ export class BoardStore {
   addNode(input: NewNode): string {
     this.record();
     const id = `node-${++this.seq}`;
-    const config: NodeConfig | undefined =
-      input.category === 'control-flow'
-        ? defaultControlFlowConfig('if')
-        : undefined;
+    const spec = this.catalog.entry(input.type);
+    const kind = input.kind ?? spec?.kind ?? 'action';
+    const category = input.category ?? spec?.category;
+    const data = { ...(spec ? defaultData(spec) : {}), ...(input.data ?? {}) };
     const base: BoardNode = {
       id,
-      kind: input.kind,
-      category: input.category,
+      kind,
+      category,
       type: input.type,
-      title: input.title,
+      title: input.title ?? spec?.label ?? this.titleCase(category ?? kind),
       subtitle: input.subtitle,
       pos: input.pos,
       size: input.size ?? { cols: 6, rows: 2 },
-      config,
+      data,
       ports: [],
     };
-    this._nodes.update((nodes) => [...nodes, { ...base, ports: derivePorts(base) }]);
+    this._nodes.update((nodes) => [
+      ...nodes,
+      { ...base, ports: this.derivePorts(base) },
+    ]);
     this.select(id);
     return id;
+  }
+
+  private derivePorts(
+    node: Pick<BoardNode, 'kind' | 'category' | 'type' | 'data' | 'ports'>,
+  ): NodePort[] {
+    return this.catalog.ports(node);
+  }
+
+  private titleCase(value: string): string {
+    return value.replace(/(^|-)([a-z])/g, (_m, sep: string, ch: string) =>
+      `${sep ? ' ' : ''}${ch.toUpperCase()}`,
+    );
   }
 
   /** Remove a node together with any connections touching it. */

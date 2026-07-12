@@ -5,8 +5,7 @@
     "@angular/core": "^21.2.0",
     "@tsai-pe/board-core": "0.0.1",
     "@tsai-pe/models": "0.0.1",
-    "lucide-angular": "^1.0.0",
-    "@tsai-pe/nodes": "0.0.1"
+    "lucide-angular": "^1.0.0"
   },
   "sideEffects": false,
   "description": "Pipeline Editor — presentational board components (nodes, grid).",

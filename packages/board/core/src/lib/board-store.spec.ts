@@ -1,4 +1,5 @@
 import { BoardStore, type NewNode } from './board-store';
+import { createNodeCatalog } from '@tsai-pe/nodes';
 
 /** A plain transform node spec at a given cell. */
 function action(title: string, col = 0, row = 0): NewNode {
@@ -18,19 +19,60 @@ describe('BoardStore — nodes', () => {
     expect(node.ports.filter((p) => p.role === 'output')).toHaveLength(3);
   });
 
-  it('gives control-flow nodes an if-config with true/false branches', () => {
-    const store = new BoardStore();
+  it('adds catalog-driven control-flow nodes with data-driven ports', () => {
+    const catalog = createNodeCatalog([
+      {
+        id: 'switch',
+        label: 'Switch',
+        kind: 'action',
+        category: 'control-flow',
+        params: [
+          {
+            key: 'cases',
+            label: 'Cases',
+            type: 'array',
+            defaultValue: [{ id: '1', label: 'Case 1', value: '' }],
+          },
+          {
+            key: 'hasDefault',
+            label: 'Default',
+            type: 'boolean',
+            defaultValue: true,
+          },
+        ],
+        ports: {
+          static: [{ id: 'in', role: 'input', side: 'left' }],
+          dynamic: [
+            {
+              role: 'output',
+              side: 'right',
+              from: 'cases',
+              id: 'case-{{id}}',
+              label: '{{label}}',
+            },
+          ],
+          conditional: [
+            {
+              role: 'output',
+              side: 'right',
+              when: 'hasDefault',
+              equals: true,
+              id: 'default',
+              label: 'default',
+            },
+          ],
+        },
+      },
+    ]);
+    const store = new BoardStore(catalog);
     const id = store.addNode({
-      kind: 'action',
-      category: 'control-flow',
-      title: 'If',
+      type: 'switch',
       pos: { col: 0, row: 0 },
     });
     const node = store.nodes().find((n) => n.id === id);
-    expect(node?.config?.type).toBe('if');
     expect(node?.ports.filter((p) => p.role === 'output').map((p) => p.id)).toEqual([
-      'true',
-      'false',
+      'case-1',
+      'default',
     ]);
   });
 

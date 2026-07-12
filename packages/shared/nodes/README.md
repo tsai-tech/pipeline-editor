@@ -13,18 +13,17 @@ npm i @tsai-pe/nodes
 
 ## Exports
 
-- **Ports from config** — `derivePorts`, `controlFlowOutputs`, `isControlFlow`,
-  `defaultControlFlowConfig`: control-flow (if/switch/filter) derives its named
-  output ports from configuration.
-- **Node catalog** — `NODE_CATALOG`, `catalogEntry`, `paramSchema`, and the
-  `NodeTypeSpec` / `ParamField` / `ParamType` types. The seed catalog stands in
-  for a real backend's node catalog (open-ended trigger / integration / effect
-  types, each with its own parameter schema and an illustrative `output` shape).
+- **Catalog contract** — `NodeCatalog`, `NodeTypeSpec`, `ParamField` and
+  `ParamType`. Concrete catalogs are supplied by a backend/host app.
+- **Ports from specs** — `derivePorts`: dynamic output ports can be derived from
+  node data, e.g. switch cases.
+- **Catalog helpers** — `createNodeCatalog`, `defaultData`, `fieldGroups`,
+  `EMPTY_NODE_CATALOG`.
 - **Expression help** — `variablePaths(value)`: flatten a node's output into the
   dotted/bracketed variable paths downstream expressions may reference.
 
 ```ts
-import { derivePorts, catalogEntry, variablePaths } from '@tsai-pe/nodes';
+import { createNodeCatalog, derivePorts, variablePaths } from '@tsai-pe/nodes';
 ```
 
 ## License

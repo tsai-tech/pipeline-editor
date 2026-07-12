@@ -750,72 +750,11 @@
               />
             </label>
 
+            @if (paramGroups(n).length) {
             <div class="h-px bg-[var(--border)]"></div>
-            <span class="text-xs font-semibold text-text-2">Mock runtime</span>
-            <div class="grid grid-cols-2 gap-3">
-              <label [class]="cls.field">
-                <span [class]="cls.fieldLabel">Delay ms</span>
-                <input
-                  [class]="cls.fieldInput"
-                  type="number"
-                  min="0"
-                  placeholder="default"
-                  [value]="paramValue(n, '__mockDelayMs')"
-                  [disabled]="readonly() || n.type === 'delay'"
-                  (change)="patchParam('__mockDelayMs', $any($event.target).value)"
-                />
-              </label>
-              <label [class]="cls.field">
-                <span [class]="cls.fieldLabel">Fail message</span>
-                <input
-                  [class]="cls.fieldInput"
-                  type="text"
-                  placeholder="none"
-                  [value]="paramValue(n, '__mockFailure')"
-                  [disabled]="readonly()"
-                  (change)="patchParam('__mockFailure', $any($event.target).value)"
-                />
-              </label>
-              <label [class]="cls.field">
-                <span [class]="cls.fieldLabel">Attempts</span>
-                <input
-                  [class]="cls.fieldInput"
-                  type="number"
-                  min="1"
-                  max="10"
-                  placeholder="1"
-                  [value]="paramValue(n, '__retryAttempts')"
-                  [disabled]="readonly()"
-                  (change)="patchParam('__retryAttempts', $any($event.target).value)"
-                />
-              </label>
-              <label [class]="cls.field">
-                <span [class]="cls.fieldLabel">Backoff ms</span>
-                <input
-                  [class]="cls.fieldInput"
-                  type="number"
-                  min="0"
-                  placeholder="0"
-                  [value]="paramValue(n, '__retryBackoffMs')"
-                  [disabled]="readonly()"
-                  (change)="patchParam('__retryBackoffMs', $any($event.target).value)"
-                />
-              </label>
-            </div>
-            <label class="flex flex-row items-center gap-2">
-              <input
-                type="checkbox"
-                [checked]="paramChecked(n, '__continueOnError')"
-                [disabled]="readonly()"
-                (change)="patchParam('__continueOnError', $any($event.target).checked)"
-              />
-              <span [class]="cls.fieldLabel">Continue on error</span>
-            </label>
-
-            @if (!isCf(n) && params(n).length) {
-            <div class="h-px bg-[var(--border)]"></div>
-            <span class="text-xs font-semibold text-text-2">Parameters</span>
-            @for (f of params(n); track f.key) { @switch (f.type) { @case
+            @for (group of paramGroups(n); track group.section) {
+            <span class="text-xs font-semibold text-text-2">{{ group.section }}</span>
+            @for (f of group.fields; track f.key) { @switch (f.type) { @case
             ('boolean') {
             <label class="flex flex-row items-center gap-2">
               <input
@@ -871,6 +810,58 @@
               }
             </label>
             } @case ('array') {
+            @if (arrayItemFields(f).length) {
+            <div [class]="cls.field">
+              <span [class]="cls.fieldLabel">{{ f.label }}</span>
+              @for (item of arrayValue(n, f.key); track arrayItemTrack(item, $index)) {
+              <div class="grid grid-cols-[minmax(0,1fr)_auto] gap-2 rounded-[var(--r-sm)] border border-[var(--border)] bg-[var(--surface-1)] p-2">
+                <div class="grid gap-2">
+                  @for (child of arrayItemFields(f); track child.key) {
+                  <div [class]="cls.field">
+                    <span [class]="cls.fieldLabel">{{ child.label }}</span>
+                    @if (child.type === 'expression') {
+                    <tsai-expression-field
+                      [scope]="editorExpressionScope()"
+                      [template]="false"
+                      [value]="arrayItemValue(item, child.key)"
+                      [placeholder]="child.placeholder ?? ''"
+                      [disabled]="readonly()"
+                      (valueChange)="patchArrayItem(f.key, $index, child.key, $event)"
+                    />
+                    } @else {
+                    <input
+                      [class]="cls.fieldInput"
+                      [type]="paramInputType(child.type)"
+                      [value]="arrayItemValue(item, child.key)"
+                      [disabled]="readonly()"
+                      (change)="patchArrayItem(f.key, $index, child.key, $any($event.target).value)"
+                    />
+                    }
+                  </div>
+                  }
+                </div>
+                @if (!readonly()) {
+                <button
+                  type="button"
+                  class="grid size-7 place-items-center rounded-[var(--r-sm)] text-text-2 hover:bg-[var(--danger-quiet)] hover:text-[var(--danger)]"
+                  aria-label="Remove item"
+                  (click)="removeArrayItem(f.key, $index)"
+                >
+                  ✕
+                </button>
+                }
+              </div>
+              } @if (!readonly()) {
+              <button
+                type="button"
+                class="mt-1 flex items-center justify-center px-2.5 py-[7px] text-[0.8125rem] text-text-2 rounded-[var(--r-sm)] border border-dashed border-[var(--border)] cursor-pointer hover:bg-[var(--surface-3)]"
+                (click)="addArrayItem(f)"
+              >
+                + Add {{ f.label }}
+              </button>
+              }
+            </div>
+            } @else {
             <label [class]="cls.field">
               <span [class]="cls.fieldLabel">{{ f.label }}</span>
               <textarea
@@ -881,6 +872,7 @@
                 (change)="patchParam(f.key, $any($event.target).value)"
               ></textarea>
             </label>
+            }
             } @case ('object') {
             <label [class]="cls.field">
               <span [class]="cls.fieldLabel">{{ f.label }}</span>
@@ -956,7 +948,7 @@
                 (change)="patchBuffer($any($event.target).value)"
               />
             </label>
-            } @if (n.kind === 'effect') {
+            } } @if (n.kind === 'effect') {
             <label class="flex flex-row items-center gap-2">
               <input
                 type="checkbox"
@@ -968,165 +960,7 @@
                 >Required (failure fails the run)</span
               >
             </label>
-            } @if (isCf(n)) {
-            <div class="h-px bg-[var(--border)]"></div>
-
-            <div [class]="cls.field">
-              <span [class]="cls.fieldLabel">Control flow</span>
-              <div class="flex gap-1">
-                @for (t of cfTypes; track t) {
-                <button
-                  type="button"
-                  [class]="cfTypeClass(t)"
-                  [disabled]="readonly()"
-                  (click)="setControlFlowType(t)"
-                >
-                  {{ t }}
-                </button>
-                }
-              </div>
-            </div>
-
-            @if (exprCfg(); as e) {
-            <div [class]="cls.field">
-              <span [class]="cls.fieldLabel"
-                >{{ e.type === 'filter' ? 'Keep when' : 'Condition' }}</span
-              >
-              <tsai-expression-field
-                [scope]="editorExpressionScope()"
-                [template]="false"
-                placeholder="$json.count > 5"
-                [value]="e.expression"
-                [disabled]="readonly()"
-                (valueChange)="patchExpression($event)"
-              />
-              <span [class]="cls.hint">{{ exprSyntax.condition }}</span>
-            </div>
-            } @if (switchCfg(); as sw) {
-            <div [class]="cls.field">
-              <span [class]="cls.fieldLabel">Discriminant</span>
-              <tsai-expression-field
-                [scope]="editorExpressionScope()"
-                [template]="false"
-                placeholder="$json.source"
-                [value]="sw.discriminant"
-                [disabled]="readonly()"
-                (valueChange)="patchDiscriminant($event)"
-              />
-              <span [class]="cls.hint">{{ exprSyntax.condition }}</span>
-            </div>
-
-            <div [class]="cls.field">
-              <span [class]="cls.fieldLabel">Cases → outputs</span>
-              <span [class]="cls.hint">
-                The <b>match value</b> is compared to the discriminant (routes
-                here when equal). The <b>label</b> only names the output port.
-              </span>
-              <div class="flex items-center gap-1">
-                <span [class]="cls.hint + ' flex-1'">Output label</span>
-                <span [class]="cls.hint + ' flex-1'"
-                  >Match value (= discriminant)</span
-                >
-                <span class="w-7 shrink-0"></span>
-              </div>
-              @for (c of sw.cases; track c.id) {
-              <div class="flex items-center gap-1">
-                <input
-                  [class]="cls.fieldInput + ' flex-1'"
-                  type="text"
-                  placeholder="e.g. WhatsApp"
-                  [value]="c.label"
-                  [disabled]="readonly()"
-                  (change)="patchCaseLabel(c.id, $any($event.target).value)"
-                />
-                <input
-                  [class]="cls.fieldInput + ' flex-1 font-mono'"
-                  type="text"
-                  placeholder="e.g. whatsapp"
-                  [value]="c.value"
-                  [disabled]="readonly()"
-                  (change)="patchCaseValue(c.id, $any($event.target).value)"
-                />
-                @if (!readonly()) {
-                <button
-                  type="button"
-                  class="shrink-0 grid place-items-center w-7 h-7 text-text-2 rounded-[var(--r-sm)] hover:text-[var(--danger)] hover:bg-[var(--danger-quiet)]"
-                  aria-label="Remove case"
-                  (click)="removeCase(c.id)"
-                >
-                  ✕
-                </button>
-                }
-              </div>
-              } @if (!readonly()) {
-              <button
-                type="button"
-                class="mt-1 flex items-center justify-center px-2.5 py-[7px] text-[0.8125rem] text-text-2 rounded-[var(--r-sm)] border border-dashed border-[var(--border)] cursor-pointer hover:bg-[var(--surface-3)]"
-                (click)="addCase()"
-              >
-                + Add case
-              </button>
-              }
-            </div>
-
-            <label class="flex flex-row items-center gap-2">
-              <input
-                type="checkbox"
-                [checked]="sw.hasDefault"
-                [disabled]="readonly()"
-                (change)="toggleDefault($any($event.target).checked)"
-              />
-              <span [class]="cls.fieldLabel">Default branch</span>
-            </label>
-            } @if (context().length || editorTrigger()) {
-            <div [class]="cls.field">
-              <span [class]="cls.fieldLabel">Pipeline context</span>
-              <div class="flex flex-wrap gap-1">
-                @if (editorTrigger()) {
-                <button
-                  type="button"
-                  class="px-2 py-1 font-mono text-[11px] rounded-full border border-[var(--border)] text-warning cursor-pointer hover:bg-[var(--surface-3)] disabled:opacity-50"
-                  title="Insert a reference to $trigger"
-                  [disabled]="readonly()"
-                  (click)="insertTrigger()"
-                >
-                  $trigger
-                </button>
-                @for (p of triggerPaths(); track p) {
-                <button
-                  type="button"
-                  class="px-2 py-1 font-mono text-[11px] rounded-full border border-[var(--border)] text-warning cursor-pointer hover:bg-[var(--surface-3)] disabled:opacity-50"
-                  [title]="'Insert $trigger.' + p"
-                  [disabled]="readonly()"
-                  (click)="insertTrigger(p)"
-                >
-                  .{{ p }}
-                </button>
-                } }
-                @for (cn of context(); track cn.id) {
-                <button
-                  type="button"
-                  class="px-2 py-1 text-[11px] rounded-full border border-[var(--border)] text-text-2 cursor-pointer hover:bg-[var(--surface-3)] disabled:opacity-50"
-                  [title]="'Insert a reference to ' + cn.title"
-                  [disabled]="readonly()"
-                  (click)="insertContext(cn)"
-                >
-                  {{ cn.title }}
-                </button>
-                @for (p of varPaths(cn); track p) {
-                <button
-                  type="button"
-                  class="px-2 py-1 font-mono text-[11px] rounded-full border border-[var(--border)] text-[var(--accent)] cursor-pointer hover:bg-[var(--surface-3)] disabled:opacity-50"
-                  [title]="'Insert ' + cn.title + '.' + p"
-                  [disabled]="readonly()"
-                  (click)="insertContext(cn, p)"
-                >
-                  .{{ p }}
-                </button>
-                } }
-              </div>
-            </div>
-            } } @if (inspectedRun(); as ir) {
+            } @if (inspectedRun(); as ir) {
             <div class="h-px bg-[var(--border)]"></div>
             <span class="text-xs font-semibold text-text-2">
               Run data · <span class="capitalize">{{ ir.status }}</span>

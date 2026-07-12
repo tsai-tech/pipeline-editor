@@ -203,8 +203,9 @@ drag-and-drop from the catalog palette, copy/paste, undo/redo, hotkeys, resize,
 context menu, alignment guides, delete-safety), draws the minimap and the
 issues panel and the run log. The node editor is a wide modal: left side shows
 pipeline context (`$json`, `$trigger`, `$node["Title"]`) with draggable JSON
-paths; right side renders catalog-driven params, control-flow config, mock runtime
-knobs, effect settings and run output. It injects the backend via the
+paths; right side renders catalog-driven params, including dynamic arrays such as
+switch cases, effect settings and run output. Mock-only settings are just fields
+from the mock catalog. It injects the backend via the
 `PIPELINE_BACKEND` token and observes the run. Modals/buttons come from `ui-kit`.
 
 Depends on: `board/core`, `board/ui`, `ui-kit`, `shared/models`, `shared/nodes`.
@@ -388,15 +389,14 @@ duplicate of the same connection.
 
 ### Node-type registry — `shared/nodes`
 
-The registry (n8n-style) is read by both the editor and the future engine:
-
-- **control-flow** (`if`/`switch`/`filter`) — a fixed set with its own form; output
-  ports are **derived from config** (`derivePorts` / `controlFlowOutputs`),
-  `defaultControlFlowConfig` gives the starting configuration.
-- **trigger / integration / effect** — **open-ended**: each concrete `node.type`
-  from `NODE_CATALOG` has its own parameter schema (`ParamField[]`, `paramSchema`),
-  values live in `node.data`. The catalog here is a seed; a real backend supplies
-  its own.
+The registry package is the backend-provided catalog contract, not a concrete
+demo catalog. `NodeCatalog`/`NodeTypeSpec` describe palette sections, visual
+kind/category, parameter fields, output schema/examples and static/dynamic ports.
+Concrete trigger / integration / transform / flow / effect nodes come from the
+host app or backend. The mock backend ships `MOCK_NODE_CATALOG`; a real backend
+can return its own catalog with real credentials/settings. Values live in
+`node.data`; switch cases are a normal `array` field, and output ports are derived
+from that data.
 
 ---
 

@@ -31,14 +31,20 @@ npm i @tsai-pe/board @tsai-pe/theme
 @import '@angular/cdk/overlay-prebuilt.css'; /* overlays: menus, dialogs */
 ```
 
-**2. Provide a backend** (optional — enables Run) and **a store** (optional —
-enables Save / Open). For local dev use the in-browser mock:
+**2. Provide a node catalog**, a backend (optional — enables Run) and a store
+(optional — enables Save / Open). For local dev use the in-browser mock catalog
+and backend:
 
 ```ts
-import { PIPELINE_BACKEND, PIPELINE_STORE } from '@tsai-pe/board';
-import { TestBackendSystem, InMemoryPipelineStore } from '@tsai-pe/workflow-mock';
+import { PIPELINE_BACKEND, PIPELINE_NODE_CATALOG, PIPELINE_STORE } from '@tsai-pe/board';
+import {
+  MOCK_NODE_CATALOG,
+  TestBackendSystem,
+  InMemoryPipelineStore,
+} from '@tsai-pe/workflow-mock';
 
 providers: [
+  { provide: PIPELINE_NODE_CATALOG, useValue: MOCK_NODE_CATALOG },
   { provide: PIPELINE_BACKEND, useFactory: () => new TestBackendSystem() },
   { provide: PIPELINE_STORE, useFactory: () => new InMemoryPipelineStore() },
 ]
@@ -79,6 +85,7 @@ The board fills its host — give it a sized container (`h-dvh`, a flex child, �
 Tokens (from this package):
 
 - `PIPELINE_BACKEND` — a [`PipelineBackend`](../../shared/models); absent → Run hidden.
+- `PIPELINE_NODE_CATALOG` — a [`NodeCatalog`](../../shared/nodes); absent → empty palette/forms.
 - `PIPELINE_STORE` — an optional [`PipelineStore`](../../shared/models); absent → Save/Open hidden.
 
 > **Getting changes out:** edits live in the board's internal store; persistence

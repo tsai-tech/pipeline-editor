@@ -31,8 +31,6 @@ import {
 import {
   type ActionCategory,
   type BoardNode,
-  type ControlFlowConfig,
-  type ControlFlowKind,
   type EdgeEnd,
   type GridPos,
   type NodeKind,
@@ -53,13 +51,13 @@ import {
   type ValidationIssue,
 } from '@tsai-pe/models';
 import {
-  defaultControlFlowConfig,
+  fieldGroups,
   isControlFlow,
   type NodeCatalog,
   type NodeTypeSpec,
   type ParamField,
   type ParamType,
-  STATIC_NODE_CATALOG,
+  EMPTY_NODE_CATALOG,
   variablePaths,
 } from '@tsai-pe/nodes';
 import {
@@ -116,8 +114,8 @@ function paletteDescription(spec: NodeTypeSpec): string {
   if (spec.params.length) {
     return spec.params.map((param) => param.label).join(' · ');
   }
-  if (spec.output) {
-    return `Outputs ${Object.keys(spec.output).slice(0, 3).join(', ')}`;
+  if (spec.outputExample) {
+    return `Outputs ${Object.keys(spec.outputExample).slice(0, 3).join(', ')}`;
   }
   return spec.category ? `${spec.category} node` : `${spec.kind} node`;
 }
@@ -138,7 +136,7 @@ function paletteSearchText(
         ...(param.options?.flatMap((o) => [o.value, o.label]) ?? []),
       ])
       .join(' ') ?? '';
-  const outputText = variablePaths(spec?.output).join(' ');
+  const outputText = variablePaths(spec?.outputExample).join(' ');
   return [
     group,
     item.label,
@@ -154,33 +152,23 @@ function paletteSearchText(
 }
 
 function paletteGroups(catalog: NodeCatalog): PaletteGroup[] {
-  const byType = (t: NodeType) =>
-    catalog
-      .specs()
-      .filter((s) => nodeType(s) === t)
-      .map(fromCatalog);
+  const groups: PaletteGroup[] = [];
+  for (const spec of catalog.specs()) {
+    const label = spec.section ?? defaultSection(spec);
+    const group = groups.find((g) => g.label === label);
+    if (group) group.items.push(fromCatalog(spec));
+    else groups.push({ label, items: [fromCatalog(spec)] });
+  }
+  return groups;
+}
 
-  return [
-    { label: 'Triggers', items: byType('trigger') },
-    { label: 'Integrations', items: byType('integration') },
-    { label: 'Transforms', items: byType('transform') },
-    {
-      label: 'Flow',
-      items: [
-        ...byType('split'),
-        ...byType('merge'),
-        {
-          label: 'Control flow',
-          description: 'Branch, switch, or filter by expression',
-          kind: 'action',
-          category: 'control-flow',
-          icon: NODE_META['control-flow'].icon,
-          color: NODE_META['control-flow'].color,
-        },
-      ],
-    },
-    { label: 'Effects', items: byType('effect') },
-  ];
+function defaultSection(spec: NodeTypeSpec): string {
+  const t = nodeType(spec);
+  if (t === 'trigger') return 'Triggers';
+  if (t === 'effect') return 'Effects';
+  if (t === 'integration') return 'Integrations';
+  if (t === 'transform') return 'Transforms';
+  return 'Flow';
 }
 
 /** A resolved port drop target under the cursor. */
@@ -309,8 +297,8 @@ export class Board {
   readonly readonly = input(false);
 
   private readonly catalog =
-    inject(PIPELINE_NODE_CATALOG, { optional: true }) ?? STATIC_NODE_CATALOG;
-  protected readonly store = new BoardStore();
+    inject(PIPELINE_NODE_CATALOG, { optional: true }) ?? EMPTY_NODE_CATALOG;
+  protected readonly store = new BoardStore(this.catalog);
   protected readonly paletteGroups = paletteGroups(this.catalog);
   protected readonly paletteSearch = signal('');
   protected readonly paletteCollapsed = signal(false);
@@ -1188,118 +1176,21 @@ export class Board {
     })),
   }));
 
-  protected isCf(node: BoardNode): boolean {
-    return isControlFlow(node);
-  }
-
-  protected readonly cfTypes: ControlFlowKind[] = ['if', 'switch', 'filter'];
-  private readonly cfg = computed(() => this.inspectNode()?.config ?? null);
-  /** Narrowed to the if/filter variants (both hold a single `expression`). */
-  protected readonly exprCfg = computed(() => {
-    const c = this.cfg();
-    return c && (c.type === 'if' || c.type === 'filter') ? c : null;
-  });
-  protected readonly switchCfg = computed(() => {
-    const c = this.cfg();
-    return c && c.type === 'switch' ? c : null;
-  });
-  protected cfType(): ControlFlowKind | undefined {
-    return this.cfg()?.type;
-  }
-
-  protected cfTypeClass(type: ControlFlowKind): string {
-    const base =
-      'flex-1 h-8 text-xs font-medium rounded-[var(--r-sm)] border transition-colors capitalize disabled:opacity-50';
-    return this.cfType() === type
-      ? `${base} border-[var(--accent)] text-[var(--accent)] bg-[var(--accent-quiet)]`
-      : `${base} border-[var(--border)] text-text-2 enabled:hover:bg-[var(--surface-3)]`;
-  }
-
-  private setConfig(config: ControlFlowConfig): void {
-    const id = this.inspectId();
-    if (id && !this.readonly()) this.store.applyConfig(id, config);
-  }
-
-  protected setControlFlowType(type: ControlFlowKind): void {
-    this.setConfig(defaultControlFlowConfig(type));
-  }
-
-  protected patchExpression(value: string): void {
-    const c = this.inspectNode()?.config;
-    if (c?.type === 'if' || c?.type === 'filter') {
-      this.setConfig({ ...c, expression: value });
-    }
-  }
-
-  protected patchDiscriminant(value: string): void {
-    const c = this.inspectNode()?.config;
-    if (c?.type === 'switch') this.setConfig({ ...c, discriminant: value });
-  }
-
-  protected addCase(): void {
-    const c = this.inspectNode()?.config;
-    if (c?.type !== 'switch') return;
-    const id = `${Date.now().toString(36)}`;
-    this.setConfig({
-      ...c,
-      cases: [
-        ...c.cases,
-        { id, label: `Case ${c.cases.length + 1}`, value: '' },
-      ],
-    });
-  }
-
-  protected removeCase(caseId: string): void {
-    const c = this.inspectNode()?.config;
-    if (c?.type === 'switch') {
-      this.setConfig({ ...c, cases: c.cases.filter((x) => x.id !== caseId) });
-    }
-  }
-
-  protected patchCaseLabel(caseId: string, value: string): void {
-    const c = this.inspectNode()?.config;
-    if (c?.type === 'switch') {
-      this.setConfig({
-        ...c,
-        cases: c.cases.map((x) =>
-          x.id === caseId ? { ...x, label: value } : x,
-        ),
-      });
-    }
-  }
-
-  protected patchCaseValue(caseId: string, value: string): void {
-    const c = this.inspectNode()?.config;
-    if (c?.type === 'switch') {
-      this.setConfig({
-        ...c,
-        cases: c.cases.map((x) => (x.id === caseId ? { ...x, value } : x)),
-      });
-    }
-  }
-
-  protected toggleDefault(hasDefault: boolean): void {
-    const c = this.inspectNode()?.config;
-    if (c?.type === 'switch') this.setConfig({ ...c, hasDefault });
-  }
-
   /**
    * Variable paths an expression may pull from an upstream node — derived from
    * the shape of what that node produced in the current run. Empty until a run
    * has output for it (then the editor only offers the bare node reference).
    */
   protected varPaths(node: BoardNode): string[] {
-    // Prefer the node's real run output; before a run, fall back to the catalog's
-    // illustrative output shape so variables are offered while building.
     const output =
-      this.run()?.nodes[node.id]?.output ?? this.catalog.sampleOutput(node.type);
+      this.run()?.nodes[node.id]?.output ?? this.catalog.outputExample(node.type);
     return output === undefined ? [] : variablePaths(output);
   }
 
   protected nodeOutput(node: BoardNode): unknown {
     return (
       this.run()?.nodes[node.id]?.output ??
-      this.catalog.sampleOutput(node.type) ??
+      this.catalog.outputExample(node.type) ??
       {}
     );
   }
@@ -1312,11 +1203,7 @@ export class Board {
     return variablePaths(this.editorTrigger());
   }
 
-  /**
-   * An upstream reference, optionally to a variable path. Control-flow conditions
-   * are pure expressions, so `template: false` inserts a bare `$node[...]`; string
-   * params use `{{ … }}` template syntax.
-   */
+  /** An upstream reference, optionally to a variable path. */
   private contextRef(
     title: string,
     path: string | undefined,
@@ -1327,33 +1214,13 @@ export class Board {
     return template ? `{{ ${ref} }}` : ref;
   }
 
-  /** Append an upstream reference (bare — control-flow is a pure expression). */
-  protected insertContext(node: BoardNode, path?: string): void {
-    const c = this.inspectNode()?.config;
-    if (!c) return;
-    const ref = this.contextRef(node.title, path, false);
-    if (c.type === 'switch') {
-      this.setConfig({ ...c, discriminant: `${c.discriminant} ${ref}`.trim() });
-    } else {
-      this.setConfig({ ...c, expression: `${c.expression} ${ref}`.trim() });
-    }
-  }
-
-  protected insertTrigger(path?: string): void {
-    const c = this.inspectNode()?.config;
-    if (!c) return;
-    const accessor = !path ? '' : path.startsWith('[') ? path : `.${path}`;
-    const ref = `$trigger${accessor}`;
-    if (c.type === 'switch') {
-      this.setConfig({ ...c, discriminant: `${c.discriminant} ${ref}`.trim() });
-    } else {
-      this.setConfig({ ...c, expression: `${c.expression} ${ref}`.trim() });
-    }
-  }
-
   // ── Generic node parameters (from the catalog) + run data ────────────────
   protected params(node: BoardNode): ParamField[] {
     return this.catalog.params(node);
+  }
+
+  protected paramGroups(node: BoardNode): { section: string; fields: ParamField[] }[] {
+    return fieldGroups(this.params(node));
   }
 
   protected catalogLabel(node: BoardNode): string {
@@ -1397,9 +1264,8 @@ export class Board {
 
   protected patchParam(key: string, value: unknown): void {
     const id = this.inspectId();
-    const n = this.inspectNode();
     if (id && !this.readonly()) {
-      this.store.updateNode(id, { data: { ...(n?.data ?? {}), [key]: value } });
+      this.store.updateNodeData(id, { [key]: value });
     }
   }
 
@@ -1411,6 +1277,67 @@ export class Board {
     const current = String(this.inspectNode()?.data?.[key] ?? '');
     const ref = this.contextRef(node.title, path, true);
     this.patchParam(key, `${current} ${ref}`.trim());
+  }
+
+  protected arrayItemFields(field: ParamField): ParamField[] {
+    return Array.isArray(field.item) ? field.item : [];
+  }
+
+  protected arrayValue(node: BoardNode, key: string): Record<string, unknown>[] {
+    const value = node.data?.[key];
+    return Array.isArray(value)
+      ? value.filter(
+          (item): item is Record<string, unknown> =>
+            !!item && typeof item === 'object' && !Array.isArray(item),
+        )
+      : [];
+  }
+
+  protected arrayItemValue(item: Record<string, unknown>, key: string): string {
+    const value = item[key];
+    return value == null ? '' : String(value);
+  }
+
+  protected arrayItemTrack(item: Record<string, unknown>, index: number): string {
+    return typeof item['id'] === 'string' ? item['id'] : String(index);
+  }
+
+  protected addArrayItem(field: ParamField): void {
+    const node = this.inspectNode();
+    if (!node || this.readonly()) return;
+    const items = this.arrayValue(node, field.key);
+    const next: Record<string, unknown> = {};
+    for (const child of this.arrayItemFields(field)) {
+      if (child.key === 'id') next[child.key] = `${items.length + 1}`;
+      else if (child.defaultValue !== undefined) next[child.key] = child.defaultValue;
+      else next[child.key] = '';
+    }
+    this.patchParam(field.key, [...items, next]);
+  }
+
+  protected removeArrayItem(key: string, index: number): void {
+    const node = this.inspectNode();
+    if (!node || this.readonly()) return;
+    this.patchParam(
+      key,
+      this.arrayValue(node, key).filter((_item, i) => i !== index),
+    );
+  }
+
+  protected patchArrayItem(
+    key: string,
+    index: number,
+    itemKey: string,
+    value: unknown,
+  ): void {
+    const node = this.inspectNode();
+    if (!node || this.readonly()) return;
+    this.patchParam(
+      key,
+      this.arrayValue(node, key).map((item, i) =>
+        i === index ? { ...item, [itemKey]: value } : item,
+      ),
+    );
   }
 
   private triggerChannel(node: BoardNode): string {

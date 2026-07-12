@@ -16,7 +16,6 @@ import {
   portFraction,
   type PortSide,
 } from '@tsai-pe/models';
-import { isControlFlow } from '@tsai-pe/nodes';
 import { CONTROL_FLOW_ICONS, NODE_META } from './node-meta';
 
 /** A raw pointer intent originating from a specific port. */
@@ -95,7 +94,13 @@ export class NodeView {
     const node = this.node();
     const base = NODE_META[nodeType(node)];
     // Control-flow subtypes (if / switch / filter) get a distinct icon.
-    if (isControlFlow(node) && node.config) {
+    if (
+      node.category === 'control-flow' &&
+      (node.type === 'if' || node.type === 'switch' || node.type === 'filter')
+    ) {
+      return { ...base, icon: CONTROL_FLOW_ICONS[node.type] };
+    }
+    if (node.category === 'control-flow' && node.config) {
       return { ...base, icon: CONTROL_FLOW_ICONS[node.config.type] };
     }
     return base;

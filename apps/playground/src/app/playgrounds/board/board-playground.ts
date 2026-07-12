@@ -5,19 +5,24 @@ import {
   inject,
   signal,
 } from '@angular/core';
-import { Board, PIPELINE_BACKEND, PIPELINE_STORE } from '@tsai-pe/board';
+import {
+  Board,
+  PIPELINE_BACKEND,
+  PIPELINE_NODE_CATALOG,
+  PIPELINE_STORE,
+} from '@tsai-pe/board';
 import { Button, DialogService, ToastService } from '@tsai-pe/ui-kit';
 import { type BoardNode, type Pipeline } from '@tsai-pe/models';
-import { derivePorts } from '@tsai-pe/nodes';
 import {
   LocalStoragePipelineStore,
+  MOCK_NODE_CATALOG,
   type MockSideEffect,
   TestBackendSystem,
 } from '@tsai-pe/workflow-mock';
 
 /** Build a node, deriving its port layout from its kind/config. */
 function node(spec: Omit<BoardNode, 'ports'>): BoardNode {
-  return { ...spec, ports: derivePorts({ ...spec, ports: [] }) };
+  return { ...spec, ports: MOCK_NODE_CATALOG.ports({ ...spec, ports: [] }) };
 }
 
 const SIZE = { cols: 8, rows: 2 } as const;
@@ -102,14 +107,14 @@ const CAT_PIPELINE: Pipeline = {
     }),
     node({
       id: 'switch-trigger',
+      type: 'switch',
       kind: 'action',
       category: 'control-flow',
       title: 'Switch by Trigger',
       subtitle: '$trigger.channel',
       pos: { col: 23, row: 8 },
       size: { cols: 9, rows: 4 },
-      config: {
-        type: 'switch',
+      data: {
         discriminant: '$trigger.channel',
         cases: [
           { id: 'tg', label: 'telegram', value: 'telegram' },
@@ -318,13 +323,14 @@ const CAT_PIPELINE: Pipeline = {
     }),
     node({
       id: 'sla-filter',
+      type: 'filter',
       kind: 'action',
       category: 'control-flow',
       title: 'VIP Filter',
       subtitle: 'optional alert',
       pos: { col: 45, row: 19 },
       size: { cols: 8, rows: 3 },
-      config: { type: 'filter', expression: '$trigger.channel == "whatsapp"' },
+      data: { expression: '$trigger.channel == "whatsapp"' },
     }),
     node({
       id: 'sla-log',
@@ -401,6 +407,10 @@ function edge(id: string, from: string, fromPort: string, to: string) {
     {
       provide: PIPELINE_STORE,
       useValue: BOARD_STORAGE,
+    },
+    {
+      provide: PIPELINE_NODE_CATALOG,
+      useValue: MOCK_NODE_CATALOG,
     },
   ],
   template: `<div class="flex h-full flex-col gap-3">

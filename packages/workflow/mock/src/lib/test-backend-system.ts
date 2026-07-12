@@ -14,11 +14,10 @@ import {
   type Unsubscribe,
 } from '@tsai-pe/models';
 import {
-  controlFlowOutputs,
   isControlFlow,
   type NodeCatalog,
-  STATIC_NODE_CATALOG,
 } from '@tsai-pe/nodes';
+import { MOCK_NODE_CATALOG } from './mock-node-catalog';
 import {
   coerceExpression,
   type EvalContext,
@@ -186,7 +185,7 @@ export class TestBackendSystem implements PipelineBackend {
     this.now = options.now ?? (() => Date.now());
     this.tickProgressMs = options.tickProgressMs ?? 0;
     this.firingTrigger = options.firingTrigger;
-    this.catalog = options.catalog ?? STATIC_NODE_CATALOG;
+    this.catalog = options.catalog ?? MOCK_NODE_CATALOG;
     this.publicApiFetcher = options.publicApiFetcher ?? cannedPublicApi;
     this.modelLoader = options.modelLoader ?? cannedModelLoad;
   }
@@ -861,8 +860,9 @@ export class TestBackendSystem implements PipelineBackend {
     node: BoardNode,
     ctx: EvalContext,
   ): void {
-    if (!isControlFlow(node) || !node.config) return;
-    const config = node.config;
+    if (!isControlFlow(node)) return;
+    const config = controlFlowRuntimeConfig(node);
+    if (!config) return;
     let portId: string;
     if (config.type === 'if') {
       portId = truthy(coerceExpression(config.expression, ctx))
@@ -884,11 +884,7 @@ export class TestBackendSystem implements PipelineBackend {
           : BRANCH_NONE;
     }
     run.selected[node.id] = portId;
-    const label =
-      portId === BRANCH_NONE
-        ? 'no branch'
-        : (controlFlowOutputs(config).find((o) => o.id === portId)?.label ??
-          portId);
+    const label = portId === BRANCH_NONE ? 'no branch' : branchLabel(node, portId);
     this.log(run, `"${node.title}" → ${label}`, node.id);
   }
 
@@ -973,7 +969,7 @@ export class TestBackendSystem implements PipelineBackend {
     if (node.type === 'llm-agent') return this.llmOutput(node, ctx);
     if (node.type === 'image-gen') return this.imageOutput(node, ctx, fanItems);
     if (isAiNode(node.type)) return this.aiOutput(node);
-    const sample = this.catalog.sampleOutput(node.type);
+    const sample = this.catalog.outputExample(node.type);
     return sample ? JSON.parse(JSON.stringify(sample)) : { ok: true };
   }
 
@@ -1000,7 +996,7 @@ export class TestBackendSystem implements PipelineBackend {
         result: configured,
       };
     }
-    const sample = this.catalog.sampleOutput(node.type);
+    const sample = this.catalog.outputExample(node.type);
     return {
       model: stringValue(node.data?.['model']) ?? 'mock-llm',
       prompt,
@@ -1182,7 +1178,7 @@ export class TestBackendSystem implements PipelineBackend {
   }
 
   private triggerOutput(node: BoardNode, run: RunState): unknown {
-    const sample = this.catalog.sampleOutput(node.type);
+    const sample = this.catalog.outputExample(node.type);
     const configured = mockOutputValue(node.data?.['sampleOutput']);
     const base = sample
       ? (JSON.parse(JSON.stringify(sample)) as Record<string, unknown>)
@@ -1564,6 +1560,59 @@ export class TestBackendSystem implements PipelineBackend {
     const snapshot = this.snapshot(run);
     for (const listener of run.listeners) listener(snapshot);
   }
+}
+
+type RuntimeControlFlow =
+  | { type: 'if'; expression: string }
+  | { type: 'filter'; expression: string }
+  | {
+      type: 'switch';
+      discriminant: string;
+      cases: { id: string; label?: string; value: string }[];
+      hasDefault: boolean;
+    };
+
+function controlFlowRuntimeConfig(node: BoardNode): RuntimeControlFlow | null {
+  if (node.type === 'if') {
+    return { type: 'if', expression: String(node.data?.['expression'] ?? '') };
+  }
+  if (node.type === 'filter') {
+    return {
+      type: 'filter',
+      expression: String(node.data?.['expression'] ?? ''),
+    };
+  }
+  if (node.type === 'switch') {
+    const cases = Array.isArray(node.data?.['cases'])
+      ? (node.data['cases'] as unknown[])
+          .filter((item): item is Record<string, unknown> =>
+            Boolean(item && typeof item === 'object' && !Array.isArray(item)),
+          )
+          .map((item, index) => ({
+            id: String(item['id'] ?? index + 1),
+            label: String(item['label'] ?? item['value'] ?? 'case'),
+            value: String(item['value'] ?? ''),
+          }))
+      : [];
+    return {
+      type: 'switch',
+      discriminant: String(node.data?.['discriminant'] ?? ''),
+      cases,
+      hasDefault: node.data?.['hasDefault'] !== false,
+    };
+  }
+  return node.config ?? null;
+}
+
+function branchLabel(node: BoardNode, portId: string): string {
+  const config = controlFlowRuntimeConfig(node);
+  if (!config) return portId;
+  if (config.type === 'switch') {
+    if (portId === 'default') return 'default';
+    const found = config.cases.find((c) => `case-${c.id}` === portId);
+    return found?.label || found?.value || portId;
+  }
+  return portId;
 }
 
 /** Resolve a switch case's comparison value (template, expression, or literal). */
