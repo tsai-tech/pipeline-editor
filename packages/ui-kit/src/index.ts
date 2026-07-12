@@ -44,6 +44,7 @@ export * from './lib/layout/actionbar';
 export * from './lib/dialog/dialog';
 export * from './lib/drawer/drawer';
 export * from './lib/menu/menu';
+export * from './lib/overlay/modal-overlay';
 export * from './lib/tooltip/tooltip';
 export * from './lib/toast/toast';
 

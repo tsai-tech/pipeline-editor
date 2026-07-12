@@ -2,6 +2,7 @@
   "name": "@tsai-pe/board",
   "version": "0.0.1",
   "peerDependencies": {
+    "@angular/cdk": "^21.2.0",
     "@angular/core": "^21.2.0",
     "@tsai-pe/board-core": "0.0.1",
     "@tsai-pe/board-ui": "0.0.1",

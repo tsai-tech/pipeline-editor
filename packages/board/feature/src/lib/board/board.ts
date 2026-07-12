@@ -8,8 +8,12 @@ import {
   inject,
   input,
   signal,
+  TemplateRef,
   viewChild,
+  ViewContainerRef,
 } from '@angular/core';
+import { CdkTrapFocus } from '@angular/cdk/a11y';
+import { Overlay } from '@angular/cdk/overlay';
 import {
   BoardStore,
   edgePath,
@@ -54,7 +58,15 @@ import {
   paramSchema,
   variablePaths,
 } from '@tsai-pe/nodes';
-import { Button, Dialog, Input } from '@tsai-pe/ui-kit';
+import {
+  Button,
+  Dialog,
+  ExpressionField,
+  ExpressionScope,
+  JsonView,
+  Input,
+  ModalOverlay,
+} from '@tsai-pe/ui-kit';
 import { LucideAngularModule } from 'lucide-angular';
 import { PIPELINE_BACKEND } from '../pipeline-backend.token';
 import { PIPELINE_STORE } from '../pipeline-store.token';
@@ -177,7 +189,17 @@ interface ContextMenu {
  */
 @Component({
   selector: 'pe-board',
-  imports: [BoardGrid, NodeView, LucideAngularModule, Dialog, Button, Input],
+  imports: [
+    BoardGrid,
+    NodeView,
+    LucideAngularModule,
+    Dialog,
+    Button,
+    Input,
+    CdkTrapFocus,
+    JsonView,
+    ExpressionField,
+  ],
   templateUrl: './board.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
   host: {
@@ -306,6 +328,13 @@ export class Board {
 
   private readonly hostEl = inject<ElementRef<HTMLElement>>(ElementRef);
   private readonly surfaceEl = viewChild<ElementRef<HTMLElement>>('surface');
+  private readonly editorPanel =
+    viewChild.required<TemplateRef<unknown>>('editorPanel');
+  private readonly overlay = inject(Overlay);
+  private readonly editorModal = new ModalOverlay(
+    this.overlay,
+    inject(ViewContainerRef),
+  );
   private readonly backend = inject(PIPELINE_BACKEND, { optional: true });
   private readonly persistence = inject(PIPELINE_STORE, { optional: true });
 
@@ -510,7 +539,14 @@ export class Board {
       const pipeline = this.pipeline();
       if (pipeline) this.store.load(pipeline);
     });
-    inject(DestroyRef).onDestroy(() => this.disposeRun());
+    effect(() => {
+      if (this.inspectNode()) this.attachEditorModal();
+      else this.editorModal.close();
+    });
+    inject(DestroyRef).onDestroy(() => {
+      this.disposeRun();
+      this.editorModal.close();
+    });
   }
 
   // ── Board-level pointer handling (empty space, pan, drop) ────────────────
@@ -975,6 +1011,18 @@ export class Board {
     this.inspectId.set(null);
   }
 
+  private attachEditorModal(): void {
+    this.editorModal.open(this.editorPanel(), {
+      positionStrategy: this.overlay
+        .position()
+        .global()
+        .centerHorizontally()
+        .centerVertically(),
+      onDismiss: () => this.closeInspector(),
+      dismissible: () => true,
+    });
+  }
+
   protected editNodeFromMenu(): void {
     const id = this.menu()?.nodeId;
     if (id) this.openInspector(id);
@@ -1007,6 +1055,25 @@ export class Board {
     const id = this.inspectId();
     return id ? this.store.ancestorsOf(id) : [];
   });
+  protected readonly editorJson = computed(() => {
+    const context = this.context();
+    const last = context[context.length - 1];
+    return last ? this.nodeOutput(last) : {};
+  });
+  protected readonly editorNodeContexts = computed(() =>
+    this.context().map((node) => ({
+      id: node.id,
+      title: node.title,
+      output: this.nodeOutput(node),
+    })),
+  );
+  protected readonly editorExpressionScope = computed<ExpressionScope>(() => ({
+    json: this.editorJson(),
+    nodes: this.editorNodeContexts().map((node) => ({
+      title: node.title,
+      output: node.output,
+    })),
+  }));
 
   protected isCf(node: BoardNode): boolean {
     return isControlFlow(node);
@@ -1114,6 +1181,18 @@ export class Board {
     const output =
       this.run()?.nodes[node.id]?.output ?? catalogEntry(node.type)?.output;
     return output === undefined ? [] : variablePaths(output);
+  }
+
+  protected nodeOutput(node: BoardNode): unknown {
+    return (
+      this.run()?.nodes[node.id]?.output ??
+      catalogEntry(node.type)?.output ??
+      {}
+    );
+  }
+
+  protected nodeRoot(title: string): string {
+    return `$node["${title.replace(/\\/g, '\\\\').replace(/"/g, '\\"')}"]`;
   }
 
   /**
