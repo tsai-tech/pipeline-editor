@@ -406,7 +406,7 @@ for (const p of CAT_PIPELINE.nodes.find((n) => n.id === 'merge')?.ports ?? []) {
 
 const BOARD_STORAGE = new LocalStoragePipelineStore(
   browserStorage(),
-  'tsai-pe:board-playground',
+  'tsai-pe:board-playground:v2',
 );
 BOARD_STORAGE.seed(CAT_PIPELINE);
 const DEMO_BACKEND = new TestBackendSystem({

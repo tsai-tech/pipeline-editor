@@ -648,6 +648,90 @@ describe('TestBackendSystem — failures', () => {
     });
   });
 
+  it('emits the preview gallery after a fan-out merge with multiple downstream effects', async () => {
+    const tg: BoardNode = {
+      ...trigger('telegram'),
+      type: 'telegram-trigger',
+      data: { sampleOutput: { message: 'Draw 2 cats' } },
+    };
+    const llm: BoardNode = {
+      ...action('llm', 'integration'),
+      type: 'llm-agent',
+      title: 'Plan Telegram Media',
+      data: {
+        prompt: '{{ $json.message }}',
+        mockOutput: {
+          count: 2,
+          commands: [{ prompt: 'Cat one' }, { prompt: 'Cat two' }],
+        },
+      },
+    };
+    const split: BoardNode = {
+      ...action('split', 'split'),
+      type: 'split',
+      data: { items: '{{ $json.commands }}' },
+    };
+    const image: BoardNode = {
+      ...action('image', 'integration'),
+      type: 'image-gen',
+      title: 'Image Generator',
+      data: { prompt: '{{ $json.prompt }}' },
+    };
+    const merge: BoardNode = {
+      ...action('merge', 'merge'),
+      type: 'merge',
+      data: { expectedCount: '{{ $node["Plan Telegram Media"].count }}' },
+    };
+    const send: BoardNode = {
+      ...effect('send'),
+      type: 'telegram-send',
+      data: { chat: '1', text: 'done' },
+    };
+    const toast: BoardNode = {
+      ...effect('toast', false),
+      type: 'toast-effect',
+      data: { message: 'done' },
+    };
+    const preview: BoardNode = {
+      ...effect('preview', false),
+      type: 'image-preview',
+      data: { title: 'Generated images', images: '{{ $json.batch }}' },
+    };
+    const sys = fast();
+    let gallery:
+      | {
+          images?: { imageUrl: string; caption?: string }[];
+        }
+      | undefined;
+    sys.observeSideEffects((event) => {
+      if (event.kind === 'dialog') gallery = event;
+    });
+
+    const snap = await runToEnd(
+      sys,
+      pipeline(
+        [tg, llm, split, image, merge, send, toast, preview],
+        [
+          edge('telegram', 'llm'),
+          edge('llm', 'split'),
+          edge('split', 'image'),
+          edge('image', 'merge'),
+          edge('merge', 'send', 'out-top'),
+          edge('merge', 'toast', 'out-bottom'),
+          edge('merge', 'preview'),
+        ],
+      ),
+    );
+
+    expect(snap.status).toBe('success');
+    expect(snap.nodes['preview'].status).toBe('success');
+    expect(gallery?.images).toHaveLength(2);
+    expect(gallery?.images?.map((image) => image.caption)).toEqual([
+      'Cat one',
+      'Cat two',
+    ]);
+  });
+
   it('loads browser-local AI demo models through the mock model loader', async () => {
     const classify: BoardNode = {
       ...action('classify', 'integration'),
