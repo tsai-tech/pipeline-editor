@@ -6,9 +6,16 @@
   "sourceRoot": "apps/playground/src",
   "tags": ["scope:app", "type:app"],
   "targets": {
+    "build-info": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "node tools/write-playground-build-info.mjs"
+      }
+    },
     "build": {
       "executor": "@angular/build:application",
       "outputs": ["{options.outputPath}"],
+      "dependsOn": ["build-info", "^build"],
       "defaultConfiguration": "production",
       "options": {
         "outputPath": "dist/apps/playground",
@@ -48,6 +55,7 @@
     "serve": {
       "continuous": true,
       "executor": "@angular/build:dev-server",
+      "dependsOn": ["build-info"],
       "defaultConfiguration": "development",
       "configurations": {
         "production": {
@@ -64,11 +72,20 @@
     "serve-static": {
       "continuous": true,
       "executor": "@nx/web:file-server",
+      "dependsOn": ["build-info"],
       "options": {
         "buildTarget": "playground:build",
         "port": 4200,
         "staticFilePath": "dist/apps/playground/browser",
         "spa": true
+      }
+    },
+    "typecheck": {
+      "executor": "nx:run-commands",
+      "dependsOn": ["build-info"],
+      "options": {
+        "cwd": "apps/playground",
+        "command": "tsc --noEmit -p tsconfig.app.json"
       }
     }
   }

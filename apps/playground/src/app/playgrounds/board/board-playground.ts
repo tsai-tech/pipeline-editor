@@ -406,7 +406,7 @@ for (const p of CAT_PIPELINE.nodes.find((n) => n.id === 'merge')?.ports ?? []) {
 
 const BOARD_STORAGE = new LocalStoragePipelineStore(
   browserStorage(),
-  'tsai-pe:board-playground:v2',
+  `tsai-pe:board-playground:${playgroundBuildCommit()}`,
 );
 BOARD_STORAGE.seed(CAT_PIPELINE);
 const DEMO_BACKEND = new TestBackendSystem({
@@ -594,6 +594,12 @@ function browserStorage(): Storage {
     return globalThis.localStorage;
   }
   return new MemoryStorage();
+}
+
+function playgroundBuildCommit(): string {
+  const global = globalThis as { __TSAI_PE_PLAYGROUND_COMMIT__?: unknown };
+  const commit = global.__TSAI_PE_PLAYGROUND_COMMIT__;
+  return typeof commit === 'string' && commit.trim() ? commit.trim() : 'dev';
 }
 
 class MemoryStorage implements Storage {
