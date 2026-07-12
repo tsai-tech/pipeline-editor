@@ -719,6 +719,16 @@ export const NODE_CATALOG: NodeTypeSpec[] = [
         type: 'expression',
         placeholder: '{{ $json.commands }}',
       },
+      {
+        key: 'mode',
+        label: 'Mode',
+        type: 'select',
+        defaultValue: 'sequential',
+        options: [
+          { value: 'sequential', label: 'Sequential' },
+          { value: 'parallel', label: 'Parallel' },
+        ],
+      },
     ],
     output: { items: [{ index: 0, value: 'item' }] },
   },

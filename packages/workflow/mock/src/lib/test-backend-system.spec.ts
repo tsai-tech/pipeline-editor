@@ -1208,6 +1208,51 @@ describe('TestBackendSystem — split/merge fan-out', () => {
 });
 
 describe('TestBackendSystem — fan-out waves', () => {
+  it('uses the aggregate fan-out path when split mode is parallel', async () => {
+    const sys = new TestBackendSystem({ stepDelayMs: 0, tickProgressMs: 1 });
+    const p = pipeline(
+      [
+        trigger('t'),
+        {
+          ...action('split', 'split'),
+          type: 'split',
+          data: { mode: 'parallel' },
+        },
+        {
+          ...action('img', 'integration'),
+          type: 'image-gen',
+          data: { prompt: '{{ $json }}' },
+        },
+        action('merge', 'merge'),
+      ],
+      [edge('t', 'split'), edge('split', 'img'), edge('img', 'merge')],
+    );
+    const states: {
+      splitStatus?: string;
+      img?: number;
+      merge?: number;
+    }[] = [];
+    await new Promise<void>((resolve) => {
+      let unsub: () => void = () => undefined;
+      const id = sys.startRun(p);
+      unsub = sys.observe(id, (s) => {
+        states.push({
+          splitStatus: s.nodes['split']?.status,
+          img: s.nodes['img']?.progress?.done,
+          merge: s.nodes['merge']?.progress?.done,
+        });
+        if (s.status === 'success' || s.status === 'error') {
+          unsub();
+          resolve();
+        }
+      });
+    });
+
+    expect(states.some((s) => s.splitStatus === 'success')).toBe(true);
+    expect(states.some((s) => s.img === 1)).toBe(true);
+    expect(states.some((s) => s.merge === 1)).toBe(true);
+  });
+
   it('queues split items, then moves them through worker and merge one at a time', async () => {
     const sys = new TestBackendSystem({ stepDelayMs: 0, tickProgressMs: 1 });
     const p = pipeline(

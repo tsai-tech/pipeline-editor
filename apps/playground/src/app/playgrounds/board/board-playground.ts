@@ -21,6 +21,7 @@ function node(spec: Omit<BoardNode, 'ports'>): BoardNode {
 }
 
 const SIZE = { cols: 8, rows: 2 } as const;
+const DEMO_STORAGE_REVISION = 'split-mode-modal-gallery-v1';
 const TELEGRAM_PROMPT = 'Draw 10 cats and 20 elephants';
 const TELEGRAM_MEDIA_COMMANDS = [
   ...Array.from({ length: 10 }, (_, index) => ({
@@ -143,7 +144,7 @@ const CAT_PIPELINE: Pipeline = {
       subtitle: 'commands → items',
       pos: { col: 45, row: 2 },
       size: SIZE,
-      data: { items: '{{ $json.commands }}' },
+      data: { items: '{{ $json.commands }}', mode: 'sequential' },
     }),
     node({
       id: 'download-plan',
@@ -234,7 +235,7 @@ const CAT_PIPELINE: Pipeline = {
       id: 'log-tg',
       type: 'toast-effect',
       kind: 'effect',
-      title: 'Telegram Toast',
+      title: 'Browser Toast',
       subtitle: 'browser side effect',
       pos: { col: 75, row: 6 },
       size: SIZE,
@@ -399,15 +400,9 @@ const CAT_PIPELINE: Pipeline = {
   ],
 };
 
-// Label the merge node's fan-out ports so their connections show branch names.
-for (const p of CAT_PIPELINE.nodes.find((n) => n.id === 'merge')?.ports ?? []) {
-  if (p.id === 'out-top') p.label = 'send';
-  if (p.id === 'out-bottom') p.label = 'audit';
-}
-
 const BOARD_STORAGE = new LocalStoragePipelineStore(
   browserStorage(),
-  `tsai-pe:board-playground:${playgroundBuildCommit()}`,
+  `tsai-pe:board-playground:${playgroundBuildCommit()}:${DEMO_STORAGE_REVISION}`,
 );
 BOARD_STORAGE.seed(CAT_PIPELINE);
 const DEMO_BACKEND = new TestBackendSystem({

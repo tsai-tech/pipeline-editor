@@ -414,7 +414,7 @@ export class TestBackendSystem implements PipelineBackend {
       try {
         const ctx = this.evalContext(run, pipeline, node);
         if (isControlFlow(node)) this.resolveBranch(run, node, ctx);
-        if (node.category === 'split') {
+        if (node.category === 'split' && splitMode(node) === 'sequential') {
           const segment = this.fanSegment(pipeline, order, index);
           if (segment) {
             this.runFanSegment(
@@ -1596,6 +1596,10 @@ function triggerChannel(node: BoardNode): string {
   }
   const type = node.type ?? node.title;
   return type.replace(/-trigger$/, '').toLowerCase();
+}
+
+function splitMode(node: BoardNode): 'sequential' | 'parallel' {
+  return node.data?.['mode'] === 'parallel' ? 'parallel' : 'sequential';
 }
 
 function stringValue(value: unknown): string | undefined {
