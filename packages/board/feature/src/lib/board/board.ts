@@ -347,6 +347,8 @@ export class Board {
   /** Transient "Saved" confirmation flag after a successful save. */
   protected readonly justSaved = signal(false);
   private savedTimer?: ReturnType<typeof setTimeout>;
+  private autosaveTimer?: ReturnType<typeof setTimeout>;
+  private readonly loadedPipelineId = signal<string | null>(null);
 
   private drag: Drag | null = null;
   private longPress?: ReturnType<typeof setTimeout>;
@@ -537,7 +539,16 @@ export class Board {
   constructor() {
     effect(() => {
       const pipeline = this.pipeline();
-      if (pipeline) this.store.load(pipeline);
+      if (pipeline) {
+        this.store.load(pipeline);
+        this.loadedPipelineId.set(pipeline.id);
+      }
+    });
+    effect(() => {
+      if (!this.persistence || this.readonly()) return;
+      const pipeline = this.store.toPipeline();
+      if (this.loadedPipelineId() !== pipeline.id) return;
+      this.queueAutosave(pipeline);
     });
     effect(() => {
       if (this.inspectNode()) this.attachEditorModal();
@@ -546,6 +557,8 @@ export class Board {
     inject(DestroyRef).onDestroy(() => {
       this.disposeRun();
       this.editorModal.close();
+      clearTimeout(this.savedTimer);
+      clearTimeout(this.autosaveTimer);
     });
   }
 
@@ -1350,6 +1363,13 @@ export class Board {
     this.justSaved.set(true);
     clearTimeout(this.savedTimer);
     this.savedTimer = setTimeout(() => this.justSaved.set(false), 1500);
+  }
+
+  private queueAutosave(pipeline: Pipeline): void {
+    clearTimeout(this.autosaveTimer);
+    this.autosaveTimer = setTimeout(() => {
+      void this.persistence?.save(pipeline);
+    }, 200);
   }
 
   /** Load the saved-pipeline list and open the picker dialog. */

@@ -1,9 +1,10 @@
 import { ChangeDetectionStrategy, Component, signal } from '@angular/core';
 import { Board, PIPELINE_BACKEND, PIPELINE_STORE } from '@tsai-pe/board';
+import { Button } from '@tsai-pe/ui-kit';
 import { type BoardNode, type Pipeline } from '@tsai-pe/models';
 import { derivePorts } from '@tsai-pe/nodes';
 import {
-  InMemoryPipelineStore,
+  LocalStoragePipelineStore,
   TestBackendSystem,
 } from '@tsai-pe/workflow-mock';
 
@@ -134,6 +135,12 @@ for (const p of CAT_PIPELINE.nodes.find((n) => n.id === 'node-5')?.ports ??
   if (p.id === 'out-bottom') p.label = 'fallback';
 }
 
+const BOARD_STORAGE = new LocalStoragePipelineStore(
+  browserStorage(),
+  'tsai-pe:board-playground',
+);
+BOARD_STORAGE.seed(CAT_PIPELINE);
+
 /** A 1:1 connection from a node's output port onto the next node's input. */
 function edge(id: string, from: string, fromPort: string, to: string) {
   return {
@@ -147,7 +154,7 @@ function edge(id: string, from: string, fromPort: string, to: string) {
 @Component({
   selector: 'app-board',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [Board],
+  imports: [Board, Button],
   host: { class: 'block h-full min-h-0' },
   providers: [
     {
@@ -157,11 +164,7 @@ function edge(id: string, from: string, fromPort: string, to: string) {
     },
     {
       provide: PIPELINE_STORE,
-      useFactory: () => {
-        const store = new InMemoryPipelineStore();
-        void store.save(CAT_PIPELINE); // seed so Open has an entry
-        return store;
-      },
+      useValue: BOARD_STORAGE,
     },
   ],
   template: `<div class="flex h-full flex-col gap-3">
@@ -184,15 +187,65 @@ function edge(id: string, from: string, fromPort: string, to: string) {
         />
         Read-only
       </label>
+      <tsai-button variant="secondary" size="sm" (click)="resetInitial()">
+        Reset to initial
+      </tsai-button>
     </div>
     <pe-board
-      [pipeline]="pipeline"
+      [pipeline]="pipeline()"
       [readonly]="readonly()"
       class="min-h-0 flex-1 overflow-hidden rounded-xl border border-border"
     />
   </div>`,
 })
 export class BoardPlayground {
-  protected readonly pipeline = CAT_PIPELINE;
+  protected readonly pipeline = signal(
+    clone(BOARD_STORAGE.loadSync(CAT_PIPELINE.id) ?? CAT_PIPELINE),
+  );
   protected readonly readonly = signal(false);
+
+  protected resetInitial(): void {
+    BOARD_STORAGE.clear();
+    BOARD_STORAGE.seed(CAT_PIPELINE);
+    this.pipeline.set(clone(CAT_PIPELINE));
+  }
+}
+
+function browserStorage(): Storage {
+  if (typeof globalThis.localStorage !== 'undefined') {
+    return globalThis.localStorage;
+  }
+  return new MemoryStorage();
+}
+
+class MemoryStorage implements Storage {
+  private readonly data = new Map<string, string>();
+
+  get length(): number {
+    return this.data.size;
+  }
+
+  clear(): void {
+    this.data.clear();
+  }
+
+  getItem(key: string): string | null {
+    return this.data.get(key) ?? null;
+  }
+
+  key(index: number): string | null {
+    return [...this.data.keys()][index] ?? null;
+  }
+
+  removeItem(key: string): void {
+    this.data.delete(key);
+  }
+
+  setItem(key: string, value: string): void {
+    this.data.set(key, value);
+  }
+}
+
+function clone(pipeline: Pipeline): Pipeline {
+  return JSON.parse(JSON.stringify(pipeline)) as Pipeline;
 }
