@@ -1365,6 +1365,9 @@ export class Board {
     if (typeof v === 'object' && v !== null && 'name' in v) {
       return String((v as { name?: unknown }).name ?? '');
     }
+    if (typeof v === 'object' && v !== null) {
+      return JSON.stringify(v, null, 2);
+    }
     return v == null ? '' : String(v);
   }
 

@@ -392,7 +392,15 @@ export class TestBackendSystem implements PipelineBackend {
     this.schedule(run, this.nodeDelayMs(node), () => {
       const failure = this.nodeFailure(node, pipeline);
       if (failure) {
-        this.failNodeRun(run, pipeline, order, index, node, nodeRun, String(failure));
+        this.failNodeRun(
+          run,
+          pipeline,
+          order,
+          index,
+          node,
+          nodeRun,
+          String(failure),
+        );
         return;
       }
 
@@ -457,8 +465,10 @@ export class TestBackendSystem implements PipelineBackend {
         node.id,
       );
       this.emit(run);
-      this.schedule(run, clampInt(node.data?.['__retryBackoffMs'], 0, 0, 60_000), () =>
-        this.runNextNode(run, pipeline, order, index),
+      this.schedule(
+        run,
+        clampInt(node.data?.['__retryBackoffMs'], 0, 0, 60_000),
+        () => this.runNextNode(run, pipeline, order, index),
       );
       return;
     }
@@ -571,7 +581,8 @@ export class TestBackendSystem implements PipelineBackend {
       output &&
       typeof output === 'object' &&
       (output as Record<string, unknown>)['continued'] === true;
-    if (status !== 'success' && !(status === 'error' && continued)) return false;
+    if (status !== 'success' && !(status === 'error' && continued))
+      return false;
     if (!(edge.source.nodeId in run.outputs)) return false;
     const selected = run.selected[edge.source.nodeId];
     // Non-branching source: always taken. Branching: only the selected port.
@@ -653,10 +664,11 @@ export class TestBackendSystem implements PipelineBackend {
     }
     if (node.category === 'merge') {
       const total = inFan > 1 ? inFan : (node.bufferSize ?? count);
+      const batch = this.mergeBatch(upstream, total);
       run.outFan[node.id] = 1;
       nodeRun.progress = { done: total, total };
       this.log(run, `Merge buffered ${total}/${total} → 1 batch`, node.id);
-      return { batch: Array.from({ length: total }, (_, i) => i) };
+      return { batch, count: batch.length };
     }
 
     // Normal node: it runs once per upstream item.
@@ -669,12 +681,13 @@ export class TestBackendSystem implements PipelineBackend {
     if (node.category === 'control-flow') {
       return { branch: run.selected[node.id] };
     }
-    if (node.category === 'integration') return this.integrationOutput(node);
+    if (node.category === 'integration')
+      return this.integrationOutput(node, ctx);
     if (node.category === 'transform') return this.transformOutput(node, ctx);
     return { ok: true, count };
   }
 
-  private integrationOutput(node: BoardNode): unknown {
+  private integrationOutput(node: BoardNode, ctx: EvalContext): unknown {
     if (node.type === 'public-api-request') {
       const preset = stringValue(node.data?.['preset']) ?? 'jsonplaceholder';
       const url =
@@ -685,19 +698,95 @@ export class TestBackendSystem implements PipelineBackend {
       const timeoutMs = clampInt(node.data?.['timeoutMs'], 5000, 100, 60_000);
       return this.publicApiFetcher({ preset, url, timeoutMs });
     }
+    if (node.type === 'llm-agent') return this.llmOutput(node, ctx);
+    if (node.type === 'image-gen') return this.imageOutput(node, ctx);
     if (isAiNode(node.type)) return this.aiOutput(node);
     const sample = this.catalog.sampleOutput(node.type);
     return sample ? JSON.parse(JSON.stringify(sample)) : { ok: true };
   }
 
+  private llmOutput(node: BoardNode, ctx: EvalContext): unknown {
+    const prompt = String(
+      resolveTemplate(String(node.data?.['prompt'] ?? ''), ctx) ?? '',
+    );
+    const configured = mockOutputValue(node.data?.['mockOutput']);
+    if (
+      configured &&
+      typeof configured === 'object' &&
+      !Array.isArray(configured)
+    ) {
+      return {
+        model: stringValue(node.data?.['model']) ?? 'mock-llm',
+        prompt,
+        ...(configured as Record<string, unknown>),
+      };
+    }
+    if (configured !== undefined) {
+      return {
+        model: stringValue(node.data?.['model']) ?? 'mock-llm',
+        prompt,
+        result: configured,
+      };
+    }
+    const sample = this.catalog.sampleOutput(node.type);
+    return {
+      model: stringValue(node.data?.['model']) ?? 'mock-llm',
+      prompt,
+      ...(sample ? JSON.parse(JSON.stringify(sample)) : {}),
+    };
+  }
+
+  private imageOutput(node: BoardNode, ctx: EvalContext): unknown {
+    const model = stringValue(node.data?.['model']) ?? 'mock-image-v1';
+    const prompt = String(
+      resolveTemplate(String(node.data?.['prompt'] ?? ''), ctx) ?? '',
+    );
+    const items =
+      ctx.json && typeof ctx.json === 'object'
+        ? (ctx.json as Record<string, unknown>)['items']
+        : undefined;
+    const prompts = Array.isArray(items)
+      ? items.map((item, index) => itemPrompt(item, index))
+      : [prompt];
+    const images = prompts.map((itemPromptValue, index) => ({
+      index,
+      prompt: itemPromptValue,
+      imageUrl: mockPromptPng(itemPromptValue),
+      model,
+    }));
+    return {
+      model,
+      prompt: images[0]?.prompt ?? prompt,
+      imageUrl: images[0]?.imageUrl ?? mockPromptPng(prompt),
+      images,
+      count: images.length,
+    };
+  }
+
   private aiOutput(node: BoardNode): unknown {
-    const model = this.modelLoader(stringValue(node.data?.['model']) ?? node.type ?? 'demo');
+    const model = this.modelLoader(
+      stringValue(node.data?.['model']) ?? node.type ?? 'demo',
+    );
     if (node.type === 'text-classification') {
-      const labels = stringArray(node.data?.['labels'], ['sales', 'support', 'other']);
-      return { model, label: labels[1] ?? labels[0] ?? 'other', confidence: 0.92 };
+      const labels = stringArray(node.data?.['labels'], [
+        'sales',
+        'support',
+        'other',
+      ]);
+      return {
+        model,
+        label: labels[1] ?? labels[0] ?? 'other',
+        confidence: 0.92,
+      };
     }
     if (node.type === 'sentiment-classifier') {
-      return { model, sentiment: 'positive', priority: 'normal', toxicity: 0.01, confidence: 0.88 };
+      return {
+        model,
+        sentiment: 'positive',
+        priority: 'normal',
+        toxicity: 0.01,
+        confidence: 0.88,
+      };
     }
     if (node.type === 'ocr-image-recognition') {
       return {
@@ -737,7 +826,10 @@ export class TestBackendSystem implements PipelineBackend {
         ...base,
         [node.type === 'throttle' ? 'throttled' : 'debounced']: true,
         windowMs: clampInt(node.data?.['windowMs'], 1000, 1, 60_000),
-        key: resolveTemplate(String(node.data?.['key'] ?? '{{ $trigger.id }}'), ctx),
+        key: resolveTemplate(
+          String(node.data?.['key'] ?? '{{ $trigger.id }}'),
+          ctx,
+        ),
       };
     }
     if (node.type === 'repeat') {
@@ -759,8 +851,10 @@ export class TestBackendSystem implements PipelineBackend {
         ...base,
         items: parseCsv(
           String(
-            resolveTemplate(String(node.data?.['csv'] ?? '{{ $json.csv }}'), ctx) ??
-              '',
+            resolveTemplate(
+              String(node.data?.['csv'] ?? '{{ $json.csv }}'),
+              ctx,
+            ) ?? '',
           ),
           String(node.data?.['delimiter'] ?? ',') || ',',
           node.data?.['headers'] !== false,
@@ -812,9 +906,17 @@ export class TestBackendSystem implements PipelineBackend {
 
   private triggerOutput(node: BoardNode, run: RunState): unknown {
     const sample = this.catalog.sampleOutput(node.type);
+    const configured = mockOutputValue(node.data?.['sampleOutput']);
     const base = sample
       ? (JSON.parse(JSON.stringify(sample)) as Record<string, unknown>)
       : { count: 10, source: 'telegram' };
+    if (
+      configured &&
+      typeof configured === 'object' &&
+      !Array.isArray(configured)
+    ) {
+      Object.assign(base, configured);
+    }
     const tick = triggerTick(run);
 
     if (node.type === 'interval-trigger') {
@@ -864,7 +966,11 @@ export class TestBackendSystem implements PipelineBackend {
       const raw = node.data?.[param.key];
       if (typeof raw === 'string' && raw.includes('{{')) {
         out[param.key] = resolveTemplate(raw, ctx);
-      } else if (param.type === 'expression' && typeof raw === 'string' && raw) {
+      } else if (
+        param.type === 'expression' &&
+        typeof raw === 'string' &&
+        raw
+      ) {
         out[param.key] = resolveTemplate(raw, ctx);
       } else if (raw !== undefined) {
         out[param.key] = raw;
@@ -875,7 +981,9 @@ export class TestBackendSystem implements PipelineBackend {
 
   private nodeDelayMs(node: BoardNode): number {
     const configured =
-      node.type === 'delay' ? node.data?.['duration'] : node.data?.['__mockDelayMs'];
+      node.type === 'delay'
+        ? node.data?.['duration']
+        : node.data?.['__mockDelayMs'];
     const delay = numberValue(configured);
     return delay === undefined ? this.stepDelayMs : Math.max(0, delay);
   }
@@ -984,7 +1092,11 @@ export class TestBackendSystem implements PipelineBackend {
     };
   }
 
-  private splitItems(node: BoardNode, ctx: EvalContext, fallback: number): unknown[] {
+  private splitItems(
+    node: BoardNode,
+    ctx: EvalContext,
+    fallback: number,
+  ): unknown[] {
     const raw = node.data?.['items'];
     if (typeof raw === 'string' && raw.trim()) {
       const resolved = raw.includes('{{')
@@ -993,6 +1105,17 @@ export class TestBackendSystem implements PipelineBackend {
       if (Array.isArray(resolved)) return resolved;
     }
     return Array.from({ length: fallback }, (_, i) => i);
+  }
+
+  private mergeBatch(upstream: unknown[], total: number): unknown[] {
+    for (const out of upstream) {
+      if (!out || typeof out !== 'object') continue;
+      const rec = out as Record<string, unknown>;
+      if (Array.isArray(rec['images'])) return rec['images'];
+      if (Array.isArray(rec['items'])) return rec['items'];
+      if (Array.isArray(rec['batch'])) return rec['batch'];
+    }
+    return Array.from({ length: total }, (_, i) => i);
   }
 
   private triggerContext(
@@ -1190,6 +1313,327 @@ function jsonValue(value: unknown, fallback: unknown): unknown {
   }
 }
 
+function mockOutputValue(value: unknown): unknown {
+  if (typeof value !== 'string') return cloneJson(value);
+  if (!value.trim()) return undefined;
+  try {
+    return JSON.parse(value) as unknown;
+  } catch {
+    return value;
+  }
+}
+
+function cloneJson(value: unknown): unknown {
+  return value === undefined ? undefined : JSON.parse(JSON.stringify(value));
+}
+
+function itemPrompt(item: unknown, index: number): string {
+  if (item && typeof item === 'object') {
+    const rec = item as Record<string, unknown>;
+    return (
+      stringValue(rec['prompt']) ??
+      stringValue(rec['description']) ??
+      stringValue(rec['value']) ??
+      `Generated image ${index + 1}`
+    );
+  }
+  return stringValue(item) ?? `Generated image ${index + 1}`;
+}
+
+function mockPromptPng(prompt: string): string {
+  return renderTextPng(
+    `Mock generated \nimage for prompt:\n${prompt}`,
+    768,
+    432,
+  );
+}
+
+function renderTextPng(text: string, width: number, height: number): string {
+  const rgba = new Uint8Array(width * height * 4);
+  fillRect(rgba, width, height, 0, 0, width, height, [246, 247, 249, 255]);
+  fillRect(rgba, width, height, 0, 0, width, 12, [37, 99, 235, 255]);
+  drawWrappedText(rgba, width, height, text, 36, 44, width - 72, 4);
+  return `data:image/png;base64,${base64(pngBytes(width, height, rgba))}`;
+}
+
+function drawWrappedText(
+  rgba: Uint8Array,
+  width: number,
+  height: number,
+  text: string,
+  x: number,
+  y: number,
+  maxWidth: number,
+  scale: number,
+): void {
+  const charWidth = 6 * scale;
+  const lineHeight = 10 * scale;
+  const lines = text
+    .split('\n')
+    .flatMap((line) =>
+      wrapWords(line, Math.max(1, Math.floor(maxWidth / charWidth))),
+    );
+  lines
+    .slice(0, Math.floor((height - y - 24) / lineHeight))
+    .forEach((line, i) => {
+      drawText(
+        rgba,
+        width,
+        height,
+        line,
+        x,
+        y + i * lineHeight,
+        scale,
+        [17, 24, 39, 255],
+      );
+    });
+}
+
+function wrapWords(line: string, maxChars: number): string[] {
+  const out: string[] = [];
+  let current = '';
+  for (const word of line.split(/\s+/)) {
+    if (!word) continue;
+    if (!current) {
+      current = word;
+    } else if (`${current} ${word}`.length <= maxChars) {
+      current += ` ${word}`;
+    } else {
+      out.push(current);
+      current = word;
+    }
+  }
+  if (current || !out.length) out.push(current);
+  return out;
+}
+
+function drawText(
+  rgba: Uint8Array,
+  width: number,
+  height: number,
+  text: string,
+  x: number,
+  y: number,
+  scale: number,
+  color: [number, number, number, number],
+): void {
+  [...text].forEach((char, index) => {
+    drawChar(rgba, width, height, char, x + index * 6 * scale, y, scale, color);
+  });
+}
+
+function drawChar(
+  rgba: Uint8Array,
+  width: number,
+  height: number,
+  char: string,
+  x: number,
+  y: number,
+  scale: number,
+  color: [number, number, number, number],
+): void {
+  const glyph = glyphRows(char);
+  for (let gy = 0; gy < glyph.length; gy++) {
+    const row = glyph[gy] ?? '';
+    for (let gx = 0; gx < row.length; gx++) {
+      if (row[gx] !== '1') continue;
+      fillRect(
+        rgba,
+        width,
+        height,
+        x + gx * scale,
+        y + gy * scale,
+        scale,
+        scale,
+        color,
+      );
+    }
+  }
+}
+
+function glyphRows(char: string): string[] {
+  return FONT[char.toUpperCase()] ?? FONT['?'];
+}
+
+function fillRect(
+  rgba: Uint8Array,
+  width: number,
+  height: number,
+  x: number,
+  y: number,
+  w: number,
+  h: number,
+  color: [number, number, number, number],
+): void {
+  for (let yy = Math.max(0, y); yy < Math.min(height, y + h); yy++) {
+    for (let xx = Math.max(0, x); xx < Math.min(width, x + w); xx++) {
+      const i = (yy * width + xx) * 4;
+      rgba[i] = color[0];
+      rgba[i + 1] = color[1];
+      rgba[i + 2] = color[2];
+      rgba[i + 3] = color[3];
+    }
+  }
+}
+
+function pngBytes(width: number, height: number, rgba: Uint8Array): Uint8Array {
+  const raw = new Uint8Array((width * 4 + 1) * height);
+  for (let y = 0; y < height; y++) {
+    raw[y * (width * 4 + 1)] = 0;
+    raw.set(
+      rgba.subarray(y * width * 4, (y + 1) * width * 4),
+      y * (width * 4 + 1) + 1,
+    );
+  }
+  return concatBytes([
+    new Uint8Array([137, 80, 78, 71, 13, 10, 26, 10]),
+    pngChunk(
+      'IHDR',
+      concatBytes([u32(width), u32(height), new Uint8Array([8, 6, 0, 0, 0])]),
+    ),
+    pngChunk('IDAT', zlibStore(raw)),
+    pngChunk('IEND', new Uint8Array()),
+  ]);
+}
+
+function pngChunk(type: string, data: Uint8Array): Uint8Array {
+  const name = ascii(type);
+  return concatBytes([
+    u32(data.length),
+    name,
+    data,
+    u32(crc32(concatBytes([name, data]))),
+  ]);
+}
+
+function zlibStore(data: Uint8Array): Uint8Array {
+  const chunks: Uint8Array[] = [new Uint8Array([0x78, 0x01])];
+  for (let offset = 0; offset < data.length; offset += 65535) {
+    const block = data.subarray(offset, offset + 65535);
+    const final = offset + block.length >= data.length ? 1 : 0;
+    const len = block.length;
+    chunks.push(
+      new Uint8Array([
+        final,
+        len & 0xff,
+        (len >> 8) & 0xff,
+        ~len & 0xff,
+        (~len >> 8) & 0xff,
+      ]),
+      block,
+    );
+  }
+  chunks.push(u32(adler32(data)));
+  return concatBytes(chunks);
+}
+
+function u32(value: number): Uint8Array {
+  return new Uint8Array([
+    (value >>> 24) & 0xff,
+    (value >>> 16) & 0xff,
+    (value >>> 8) & 0xff,
+    value & 0xff,
+  ]);
+}
+
+function ascii(text: string): Uint8Array {
+  return new Uint8Array([...text].map((c) => c.charCodeAt(0)));
+}
+
+function concatBytes(parts: Uint8Array[]): Uint8Array {
+  const out = new Uint8Array(parts.reduce((sum, part) => sum + part.length, 0));
+  let offset = 0;
+  for (const part of parts) {
+    out.set(part, offset);
+    offset += part.length;
+  }
+  return out;
+}
+
+function crc32(data: Uint8Array): number {
+  let crc = 0xffffffff;
+  for (const byte of data) {
+    crc ^= byte;
+    for (let i = 0; i < 8; i++) {
+      crc = crc & 1 ? 0xedb88320 ^ (crc >>> 1) : crc >>> 1;
+    }
+  }
+  return (crc ^ 0xffffffff) >>> 0;
+}
+
+function adler32(data: Uint8Array): number {
+  let a = 1;
+  let b = 0;
+  for (const byte of data) {
+    a = (a + byte) % 65521;
+    b = (b + a) % 65521;
+  }
+  return ((b << 16) | a) >>> 0;
+}
+
+function base64(bytes: Uint8Array): string {
+  const chars =
+    'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/';
+  let out = '';
+  for (let i = 0; i < bytes.length; i += 3) {
+    const a = bytes[i] ?? 0;
+    const b = bytes[i + 1] ?? 0;
+    const c = bytes[i + 2] ?? 0;
+    const n = (a << 16) | (b << 8) | c;
+    out += chars[(n >> 18) & 63];
+    out += chars[(n >> 12) & 63];
+    out += i + 1 < bytes.length ? chars[(n >> 6) & 63] : '=';
+    out += i + 2 < bytes.length ? chars[n & 63] : '=';
+  }
+  return out;
+}
+
+const FONT: Record<string, string[]> = {
+  ' ': ['00000', '00000', '00000', '00000', '00000', '00000', '00000'],
+  '?': ['01110', '10001', '00001', '00010', '00100', '00000', '00100'],
+  ':': ['00000', '00100', '00100', '00000', '00100', '00100', '00000'],
+  '.': ['00000', '00000', '00000', '00000', '00000', '01100', '01100'],
+  ',': ['00000', '00000', '00000', '00000', '01100', '00100', '01000'],
+  '-': ['00000', '00000', '00000', '11111', '00000', '00000', '00000'],
+  '/': ['00001', '00010', '00100', '01000', '10000', '00000', '00000'],
+  '0': ['01110', '10001', '10011', '10101', '11001', '10001', '01110'],
+  '1': ['00100', '01100', '00100', '00100', '00100', '00100', '01110'],
+  '2': ['01110', '10001', '00001', '00010', '00100', '01000', '11111'],
+  '3': ['11110', '00001', '00001', '01110', '00001', '00001', '11110'],
+  '4': ['00010', '00110', '01010', '10010', '11111', '00010', '00010'],
+  '5': ['11111', '10000', '10000', '11110', '00001', '00001', '11110'],
+  '6': ['01110', '10000', '10000', '11110', '10001', '10001', '01110'],
+  '7': ['11111', '00001', '00010', '00100', '01000', '01000', '01000'],
+  '8': ['01110', '10001', '10001', '01110', '10001', '10001', '01110'],
+  '9': ['01110', '10001', '10001', '01111', '00001', '00001', '01110'],
+  A: ['01110', '10001', '10001', '11111', '10001', '10001', '10001'],
+  B: ['11110', '10001', '10001', '11110', '10001', '10001', '11110'],
+  C: ['01111', '10000', '10000', '10000', '10000', '10000', '01111'],
+  D: ['11110', '10001', '10001', '10001', '10001', '10001', '11110'],
+  E: ['11111', '10000', '10000', '11110', '10000', '10000', '11111'],
+  F: ['11111', '10000', '10000', '11110', '10000', '10000', '10000'],
+  G: ['01111', '10000', '10000', '10011', '10001', '10001', '01110'],
+  H: ['10001', '10001', '10001', '11111', '10001', '10001', '10001'],
+  I: ['01110', '00100', '00100', '00100', '00100', '00100', '01110'],
+  J: ['00111', '00010', '00010', '00010', '10010', '10010', '01100'],
+  K: ['10001', '10010', '10100', '11000', '10100', '10010', '10001'],
+  L: ['10000', '10000', '10000', '10000', '10000', '10000', '11111'],
+  M: ['10001', '11011', '10101', '10101', '10001', '10001', '10001'],
+  N: ['10001', '11001', '10101', '10011', '10001', '10001', '10001'],
+  O: ['01110', '10001', '10001', '10001', '10001', '10001', '01110'],
+  P: ['11110', '10001', '10001', '11110', '10000', '10000', '10000'],
+  Q: ['01110', '10001', '10001', '10001', '10101', '10010', '01101'],
+  R: ['11110', '10001', '10001', '11110', '10100', '10010', '10001'],
+  S: ['01111', '10000', '10000', '01110', '00001', '00001', '11110'],
+  T: ['11111', '00100', '00100', '00100', '00100', '00100', '00100'],
+  U: ['10001', '10001', '10001', '10001', '10001', '10001', '01110'],
+  V: ['10001', '10001', '10001', '10001', '10001', '01010', '00100'],
+  W: ['10001', '10001', '10001', '10101', '10101', '10101', '01010'],
+  X: ['10001', '10001', '01010', '00100', '01010', '10001', '10001'],
+  Y: ['10001', '10001', '01010', '00100', '00100', '00100', '00100'],
+  Z: ['11111', '00001', '00010', '00100', '01000', '10000', '11111'],
+};
+
 function filePayload(node: BoardNode): {
   name: string;
   mime: string;
@@ -1226,7 +1670,9 @@ function publicApiPresetUrl(preset: string): string {
   return 'https://jsonplaceholder.typicode.com/todos/1';
 }
 
-function cannedPublicApi(request: MockPublicApiRequest): Record<string, unknown> {
+function cannedPublicApi(
+  request: MockPublicApiRequest,
+): Record<string, unknown> {
   if (request.preset === 'hacker-news') {
     return {
       status: 200,
@@ -1297,7 +1743,9 @@ function numberValue(value: unknown): number | undefined {
   return undefined;
 }
 
-function toastVariant(value: unknown): 'info' | 'success' | 'warning' | 'danger' {
+function toastVariant(
+  value: unknown,
+): 'info' | 'success' | 'warning' | 'danger' {
   return value === 'success' ||
     value === 'warning' ||
     value === 'danger' ||
@@ -1367,8 +1815,10 @@ function markdownToHtml(markdown: string): string {
     .map((block) => block.trim())
     .filter(Boolean)
     .map((block) => {
-      if (block.startsWith('### ')) return `<h3>${inlineMd(block.slice(4))}</h3>`;
-      if (block.startsWith('## ')) return `<h2>${inlineMd(block.slice(3))}</h2>`;
+      if (block.startsWith('### '))
+        return `<h3>${inlineMd(block.slice(4))}</h3>`;
+      if (block.startsWith('## '))
+        return `<h2>${inlineMd(block.slice(3))}</h2>`;
       if (block.startsWith('# ')) return `<h1>${inlineMd(block.slice(2))}</h1>`;
       const lines = block.split('\n');
       if (lines.every((line) => line.startsWith('- '))) {

@@ -21,6 +21,23 @@ function node(spec: Omit<BoardNode, 'ports'>): BoardNode {
 }
 
 const SIZE = { cols: 8, rows: 2 } as const;
+const TELEGRAM_PROMPT = 'Draw 10 cats and 20 elephants';
+const TELEGRAM_MEDIA_COMMANDS = [
+  ...Array.from({ length: 10 }, (_, index) => ({
+    subject: 'cat',
+    index: index + 1,
+    prompt: `Cat ${index + 1}: playful studio portrait, warm light`,
+  })),
+  ...Array.from({ length: 20 }, (_, index) => ({
+    subject: 'elephant',
+    index: index + 1,
+    prompt: `Elephant ${index + 1}: cinematic safari scene, soft dust`,
+  })),
+];
+const TELEGRAM_MEDIA_PLAN = {
+  count: TELEGRAM_MEDIA_COMMANDS.length,
+  commands: TELEGRAM_MEDIA_COMMANDS,
+};
 
 /**
  * Multi-trigger demo: two channel triggers feed one switch via `$trigger.channel`.
@@ -41,7 +58,15 @@ const CAT_PIPELINE: Pipeline = {
       subtitle: 'message.received',
       pos: { col: 2, row: 4 },
       size: SIZE,
-      data: { chat: '@support_bot', event: 'message.received' },
+      data: {
+        chat: '@support_bot',
+        event: 'message.received',
+        sampleOutput: {
+          source: 'telegram',
+          message: TELEGRAM_PROMPT,
+          chatId: 4242,
+        },
+      },
     }),
     node({
       id: 'wa-trigger',
@@ -99,12 +124,14 @@ const CAT_PIPELINE: Pipeline = {
       kind: 'action',
       category: 'integration',
       title: 'Plan Telegram Media',
-      subtitle: 'text → commands[10]',
+      subtitle: 'text → commands[30]',
       pos: { col: 35, row: 2 },
       size: SIZE,
       data: {
-        model: 'gpt',
-        prompt: 'Create image prompts for: {{ $json.text }}',
+        model: 'mock-llm',
+        prompt:
+          'Parse the user request and produce one image command per requested image: {{ $json.text }}',
+        mockOutput: TELEGRAM_MEDIA_PLAN,
       },
     }),
     node({
@@ -123,8 +150,8 @@ const CAT_PIPELINE: Pipeline = {
       type: 'download-file',
       kind: 'effect',
       title: 'Download Plan',
-      subtitle: 'JSON artifact',
-      pos: { col: 45, row: 7 },
+      subtitle: '30 commands JSON',
+      pos: { col: 45, row: 6 },
       size: SIZE,
       required: false,
       data: {
@@ -139,11 +166,11 @@ const CAT_PIPELINE: Pipeline = {
       kind: 'action',
       category: 'transform',
       title: 'Parse CSV Sample',
-      subtitle: 'csv → items',
-      pos: { col: 55, row: 7 },
+      subtitle: 'request totals',
+      pos: { col: 45, row: -2 },
       size: SIZE,
       data: {
-        csv: 'prompt,priority\n"{{ $json.text }}",high\nFollow-up,normal',
+        csv: 'subject,count\ncats,10\nelephants,20',
         delimiter: ',',
         headers: true,
       },
@@ -155,11 +182,11 @@ const CAT_PIPELINE: Pipeline = {
       category: 'transform',
       title: 'Render Summary',
       subtitle: 'markdown → html',
-      pos: { col: 65, row: 7 },
+      pos: { col: 55, row: -2 },
       size: SIZE,
       data: {
         markdown:
-          '## Telegram plan\n\n- Source: {{ $trigger.channel }}\n- First prompt: {{ $node["Plan Telegram Media"].commands[0].prompt }}',
+          '## Telegram plan\n\n- Request: {{ $node["Plan Telegram Media"].prompt }}\n- Total images: {{ $node["Plan Telegram Media"].count }}\n- First prompt: {{ $node["Plan Telegram Media"].commands[0].prompt }}',
       },
     }),
     node({
@@ -182,10 +209,10 @@ const CAT_PIPELINE: Pipeline = {
       kind: 'action',
       category: 'merge',
       title: 'Merge Renders',
-      subtitle: 'buffer ×10 → batch',
+      subtitle: 'buffer ×30 → batch',
       pos: { col: 65, row: 2 },
       size: SIZE,
-      bufferSize: 10,
+      bufferSize: 30,
     }),
     node({
       id: 'send-tg',
@@ -193,12 +220,12 @@ const CAT_PIPELINE: Pipeline = {
       kind: 'effect',
       title: 'Telegram Send',
       subtitle: 'required',
-      pos: { col: 77, row: 0 },
+      pos: { col: 75, row: -2 },
       size: SIZE,
       required: true,
       data: {
         chat: '{{ $node["Telegram"].chatId }}',
-        text: 'Generated {{ $json.batch[0] }} media batch for {{ $trigger.title }}',
+        text: 'Generated {{ $node["Plan Telegram Media"].count }} images for {{ $trigger.title }}',
       },
     }),
     node({
@@ -207,12 +234,13 @@ const CAT_PIPELINE: Pipeline = {
       kind: 'effect',
       title: 'Telegram Toast',
       subtitle: 'browser side effect',
-      pos: { col: 77, row: 5 },
+      pos: { col: 75, row: 6 },
       size: SIZE,
       required: false,
       data: {
         title: 'Telegram complete',
-        message: 'Generated media batch for {{ $trigger.channel }}',
+        message:
+          'Generated {{ $node["Plan Telegram Media"].count }} images for {{ $trigger.channel }}',
         variant: 'success',
         duration: 5000,
       },
@@ -223,13 +251,14 @@ const CAT_PIPELINE: Pipeline = {
       kind: 'effect',
       title: 'Image Preview',
       subtitle: 'browser modal',
-      pos: { col: 77, row: 10 },
+      pos: { col: 75, row: 2 },
       size: SIZE,
       required: false,
       data: {
         title: 'Generated preview',
         imageUrl: '{{ $node["Image Generator"].imageUrl }}',
-        caption: 'Prompt: {{ $node["Image Generator"].prompt }}',
+        caption:
+          'First of {{ $node["Image Generator"].count }}: {{ $node["Image Generator"].prompt }}',
       },
     }),
     node({
@@ -252,7 +281,7 @@ const CAT_PIPELINE: Pipeline = {
       kind: 'effect',
       title: 'WhatsApp Send',
       subtitle: 'direct response',
-      pos: { col: 47, row: 11 },
+      pos: { col: 65, row: 10 },
       size: SIZE,
       required: true,
       data: {
@@ -266,7 +295,7 @@ const CAT_PIPELINE: Pipeline = {
       kind: 'effect',
       title: 'Copy Reply',
       subtitle: 'clipboard',
-      pos: { col: 47, row: 6 },
+      pos: { col: 45, row: 10 },
       size: SIZE,
       required: false,
       data: {
@@ -280,7 +309,7 @@ const CAT_PIPELINE: Pipeline = {
       category: 'transform',
       title: 'Typing Delay',
       subtitle: '800 ms',
-      pos: { col: 57, row: 11 },
+      pos: { col: 55, row: 13 },
       size: SIZE,
       data: {
         duration: 800,
@@ -293,7 +322,7 @@ const CAT_PIPELINE: Pipeline = {
       category: 'transform',
       title: 'Extract Reply',
       subtitle: 'reply → preview',
-      pos: { col: 67, row: 11 },
+      pos: { col: 65, row: 16 },
       size: SIZE,
       data: {
         mode: 'pick',
@@ -307,7 +336,7 @@ const CAT_PIPELINE: Pipeline = {
       kind: 'effect',
       title: 'Unknown Trigger Log',
       subtitle: 'default branch',
-      pos: { col: 35, row: 19 },
+      pos: { col: 35, row: 24 },
       size: SIZE,
       required: false,
       data: {
@@ -321,7 +350,7 @@ const CAT_PIPELINE: Pipeline = {
       category: 'control-flow',
       title: 'VIP Filter',
       subtitle: 'optional alert',
-      pos: { col: 47, row: 16 },
+      pos: { col: 45, row: 19 },
       size: { cols: 8, rows: 3 },
       config: { type: 'filter', expression: '$trigger.channel == "whatsapp"' },
     }),
@@ -331,7 +360,7 @@ const CAT_PIPELINE: Pipeline = {
       kind: 'effect',
       title: 'WhatsApp Dialog',
       subtitle: 'result modal',
-      pos: { col: 57, row: 16 },
+      pos: { col: 58, row: 19 },
       size: SIZE,
       required: false,
       data: {
@@ -457,7 +486,7 @@ function edge(id: string, from: string, fromPort: string, to: string) {
         @if (dialog.json !== undefined) {
           <pre
             class="mt-3 max-h-64 overflow-auto rounded-sm border border-border bg-surface-2 p-3 font-mono text-xs text-text-2"
-          >{{ json(dialog.json) }}</pre>
+            >{{ json(dialog.json) }}</pre>
         }
       }
     </tsai-dialog>

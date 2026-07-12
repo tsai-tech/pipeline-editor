@@ -430,6 +430,13 @@ export const NODE_CATALOG: NodeTypeSpec[] = [
         ],
       },
       { key: 'prompt', label: 'Prompt', type: 'expression' },
+      {
+        key: 'mockOutput',
+        label: 'Mock response',
+        type: 'json',
+        language: 'json',
+        help: 'Browser simulation output for this LLM call.',
+      },
     ],
     output: {
       text: 'Draw 10 cats',

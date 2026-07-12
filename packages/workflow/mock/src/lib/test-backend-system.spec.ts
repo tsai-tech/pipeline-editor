@@ -331,7 +331,9 @@ describe('TestBackendSystem — failures', () => {
     );
 
     expect(snap.status).toBe('error');
-    expect(snap.log.filter((entry) => /retry/.test(entry.message))).toHaveLength(2);
+    expect(
+      snap.log.filter((entry) => /retry/.test(entry.message)),
+    ).toHaveLength(2);
     expect(snap.nodes['bad'].error).toBe('Configured failure');
   });
 
@@ -343,7 +345,10 @@ describe('TestBackendSystem — failures', () => {
     const done = effect('done');
     const snap = await runToEnd(
       fast(),
-      pipeline([trigger('t'), bad, done], [edge('t', 'bad'), edge('bad', 'done')]),
+      pipeline(
+        [trigger('t'), bad, done],
+        [edge('t', 'bad'), edge('bad', 'done')],
+      ),
     );
 
     expect(snap.status).toBe('success');
@@ -359,10 +364,10 @@ describe('TestBackendSystem — failures', () => {
     };
     const snap = await runToEnd(
       fast(),
-      pipeline([trigger('t'), wait, effect('done')], [
-        edge('t', 'wait'),
-        edge('wait', 'done'),
-      ]),
+      pipeline(
+        [trigger('t'), wait, effect('done')],
+        [edge('t', 'wait'), edge('wait', 'done')],
+      ),
     );
 
     expect(snap.status).toBe('success');
@@ -422,10 +427,10 @@ describe('TestBackendSystem — failures', () => {
     };
     const snap = await runToEnd(
       fast(),
-      pipeline([trigger('t'), split, filter], [
-        edge('t', 'split'),
-        edge('split', 'filter'),
-      ]),
+      pipeline(
+        [trigger('t'), split, filter],
+        [edge('t', 'split'), edge('split', 'filter')],
+      ),
     );
 
     expect(snap.nodes['filter'].output).toMatchObject({
@@ -511,6 +516,96 @@ describe('TestBackendSystem — failures', () => {
       url: 'https://hacker-news.firebaseio.com/v0/item/8863.json',
       body: { title: 'My YC app: Dropbox' },
       timeoutMs: 1200,
+    });
+  });
+
+  it('threads a configured LLM media plan through split, image generation and merge', async () => {
+    const tg: BoardNode = {
+      ...trigger('telegram'),
+      type: 'telegram-trigger',
+      data: {
+        sampleOutput: {
+          source: 'telegram',
+          message: 'Draw 1 cat and 2 elephants',
+          chatId: 4242,
+        },
+      },
+    };
+    const llm: BoardNode = {
+      ...action('llm', 'integration'),
+      type: 'llm-agent',
+      title: 'Plan Telegram Media',
+      data: {
+        model: 'mock-llm',
+        prompt: 'Plan: {{ $json.message }}',
+        mockOutput: {
+          count: 3,
+          commands: [
+            { subject: 'cat', prompt: 'Cat portrait' },
+            { subject: 'elephant', prompt: 'Elephant safari 1' },
+            { subject: 'elephant', prompt: 'Elephant safari 2' },
+          ],
+        },
+      },
+    };
+    const split: BoardNode = {
+      ...action('split', 'split'),
+      type: 'split',
+      data: { items: '{{ $json.commands }}' },
+    };
+    const image: BoardNode = {
+      ...action('image', 'integration'),
+      type: 'image-gen',
+      title: 'Image Generator',
+      data: { model: 'mock-image-v1', prompt: '{{ $json.items[0].prompt }}' },
+    };
+    const merge: BoardNode = { ...action('merge', 'merge'), type: 'merge' };
+    const snap = await runToEnd(
+      fast(),
+      pipeline(
+        [tg, llm, split, image, merge],
+        [
+          edge('telegram', 'llm'),
+          edge('llm', 'split'),
+          edge('split', 'image'),
+          edge('image', 'merge'),
+        ],
+      ),
+    );
+
+    expect(snap.nodes['llm'].output).toMatchObject({
+      model: 'mock-llm',
+      prompt: 'Plan: Draw 1 cat and 2 elephants',
+      count: 3,
+    });
+    expect(snap.nodes['split'].progress).toEqual({ done: 3, total: 3 });
+    expect(snap.nodes['image'].output).toMatchObject({
+      count: 3,
+      images: [
+        expect.objectContaining({ prompt: 'Cat portrait' }),
+        expect.objectContaining({ prompt: 'Elephant safari 1' }),
+        expect.objectContaining({ prompt: 'Elephant safari 2' }),
+      ],
+    });
+    const imageOutput = snap.nodes['image'].output as {
+      imageUrl: string;
+      images: { imageUrl: string }[];
+    };
+    expect(imageOutput.imageUrl).toMatch(/^data:image\/png;base64,/);
+    expect(imageOutput.images[0]?.imageUrl).toMatch(/^data:image\/png;base64,/);
+    expect(
+      Buffer.from(imageOutput.imageUrl.split(',')[1] ?? '', 'base64').subarray(
+        0,
+        8,
+      ),
+    ).toEqual(Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]));
+    expect(snap.nodes['merge'].output).toMatchObject({
+      count: 3,
+      batch: [
+        expect.objectContaining({ prompt: 'Cat portrait' }),
+        expect.objectContaining({ prompt: 'Elephant safari 1' }),
+        expect.objectContaining({ prompt: 'Elephant safari 2' }),
+      ],
     });
   });
 
@@ -936,7 +1031,10 @@ describe('TestBackendSystem — smart evaluation', () => {
     const events: unknown[] = [];
     sys.observeSideEffects((event) => events.push(event));
 
-    await runToEnd(sys, pipeline([trigger('t'), clip], [edge('t', 'clipboard')]));
+    await runToEnd(
+      sys,
+      pipeline([trigger('t'), clip], [edge('t', 'clipboard')]),
+    );
 
     expect(events).toEqual([
       {
