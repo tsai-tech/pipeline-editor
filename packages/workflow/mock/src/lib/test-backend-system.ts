@@ -568,7 +568,9 @@ export class TestBackendSystem implements PipelineBackend {
     run.outFan[split.id] = total;
     run.fanItems[split.id] = items;
     splitRun.output = splitOutput;
-    splitRun.progress = { done: 0, total };
+    splitRun.progress = { done: total, total };
+    splitRun.status = 'success';
+    this.recordPassOutput(run, split.id, splitOutput);
 
     for (const node of [...segment.nodes, segment.merge]) {
       const nr = run.nodes[node.id];
@@ -585,8 +587,6 @@ export class TestBackendSystem implements PipelineBackend {
     const step = (itemIndex: number): void => {
       if (run.canceled) return;
       if (itemIndex >= total) {
-        splitRun.status = 'success';
-        this.recordPassOutput(run, split.id, splitOutput);
         for (const node of segment.nodes) {
           const nr = run.nodes[node.id];
           nr.status = 'success';
@@ -614,8 +614,6 @@ export class TestBackendSystem implements PipelineBackend {
       }
 
       this.schedule(run, this.tickProgressMs || this.stepDelayMs, () => {
-        splitRun.progress = { done: itemIndex + 1, total };
-        this.emit(run);
         this.runFanWorkerPhase(
           run,
           pipeline,

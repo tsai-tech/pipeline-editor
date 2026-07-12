@@ -698,13 +698,19 @@ describe('TestBackendSystem — failures', () => {
       data: { title: 'Generated images', images: '{{ $json.batch }}' },
     };
     const sys = fast();
+    const dialogs: {
+      images?: { imageUrl: string; caption?: string }[];
+    }[] = [];
     let gallery:
       | {
           images?: { imageUrl: string; caption?: string }[];
         }
       | undefined;
     sys.observeSideEffects((event) => {
-      if (event.kind === 'dialog') gallery = event;
+      if (event.kind === 'dialog') {
+        dialogs.push(event);
+        gallery = event;
+      }
     });
 
     const snap = await runToEnd(
@@ -725,6 +731,7 @@ describe('TestBackendSystem — failures', () => {
 
     expect(snap.status).toBe('success');
     expect(snap.nodes['preview'].status).toBe('success');
+    expect(dialogs).toHaveLength(1);
     expect(gallery?.images).toHaveLength(2);
     expect(gallery?.images?.map((image) => image.caption)).toEqual([
       'Cat one',
@@ -1201,7 +1208,7 @@ describe('TestBackendSystem — split/merge fan-out', () => {
 });
 
 describe('TestBackendSystem — fan-out waves', () => {
-  it('moves fan-out items through split, worker and merge one node at a time', async () => {
+  it('queues split items, then moves them through worker and merge one at a time', async () => {
     const sys = new TestBackendSystem({ stepDelayMs: 0, tickProgressMs: 1 });
     const p = pipeline(
       [
@@ -1245,25 +1252,19 @@ describe('TestBackendSystem — fan-out waves', () => {
       });
     });
     expect(
-      states.some((s) => s.split === 0 && s.img === 0 && s.merge === 0),
+      states.some((s) => s.split === 10 && s.img === 0 && s.merge === 0),
     ).toBe(true);
     expect(
-      states.some((s) => s.split === 1 && s.img === 0 && s.merge === 0),
+      states.some((s) => s.split === 10 && s.img === 1 && s.merge === 0),
     ).toBe(true);
     expect(
-      states.some((s) => s.split === 1 && s.img === 1 && s.merge === 0),
+      states.some((s) => s.split === 10 && s.img === 1 && s.merge === 1),
     ).toBe(true);
     expect(
-      states.some((s) => s.split === 1 && s.img === 1 && s.merge === 1),
+      states.some((s) => s.split === 10 && s.img === 2 && s.merge === 1),
     ).toBe(true);
     expect(
-      states.some((s) => s.split === 2 && s.img === 1 && s.merge === 1),
-    ).toBe(true);
-    expect(
-      states.some((s) => s.split === 2 && s.img === 2 && s.merge === 1),
-    ).toBe(true);
-    expect(
-      states.some((s) => s.split === 2 && s.img === 2 && s.merge === 2),
+      states.some((s) => s.split === 10 && s.img === 2 && s.merge === 2),
     ).toBe(true);
     expect(
       states.some((s) => s.split === 10 && s.img === 10 && s.merge === 10),
