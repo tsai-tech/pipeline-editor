@@ -14,6 +14,10 @@ export * from './lib/switch/switch';
 export * from './lib/radio/radio-group';
 export * from './lib/select/select';
 export * from './lib/combobox/combobox';
+export * from './lib/expression/expression-complete';
+export * from './lib/expression/expression-field';
+export * from './lib/expression/json-view';
+export * from './lib/expression/variable';
 export * from './lib/segmented/segmented';
 export * from './lib/slider/slider';
 

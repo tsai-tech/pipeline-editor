@@ -260,6 +260,72 @@
       </tsai-card>
     </section>
 
+    <!-- ══ EXPRESSION ══ -->
+    <section id="expression" class="flex flex-col gap-4">
+      <h2 class="text-lg font-semibold text-text">Expression</h2>
+
+      <div class="grid gap-4 xl:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)]">
+        <tsai-card title="Context JSON">
+          <div class="flex flex-col gap-4">
+            <div class="flex flex-wrap items-center gap-2">
+              <tsai-variable
+                ref="$json.checkout.total"
+                label="$json.checkout.total"
+                variant="json"
+              />
+              <tsai-variable
+                ref='$node["AI Summary"].summary'
+                label="AI Summary.summary"
+                variant="node"
+              />
+            </div>
+            <div
+              class="max-h-96 overflow-auto rounded-sm border border-border bg-surface-1 p-3"
+            >
+              <tsai-json-view
+                [data]="expressionData"
+                root="$json"
+                [autoExpandDepth]="3"
+              />
+            </div>
+          </div>
+        </tsai-card>
+
+        <tsai-card title="Expression field">
+          <div class="flex flex-col gap-4">
+            <tsai-field label="Template value">
+              <tsai-expression-field
+                [scope]="expressionScope"
+                [value]="expressionValue()"
+                (valueChange)="expressionValue.set($event)"
+                placeholder="Type $json or drop a key…"
+              />
+            </tsai-field>
+
+            <tsai-field label="Condition">
+              <tsai-expression-field
+                [scope]="expressionScope"
+                [template]="false"
+                [value]="conditionValue()"
+                (valueChange)="conditionValue.set($event)"
+                placeholder="$json.checkout.total > 100"
+              />
+            </tsai-field>
+
+            <tsai-field label="Message body">
+              <tsai-expression-field
+                [scope]="expressionScope"
+                [multiline]="true"
+                [value]="expressionValue()"
+                (valueChange)="expressionValue.set($event)"
+                placeholder="Compose a template…"
+              />
+            </tsai-field>
+          </div>
+        </tsai-card>
+      </div>
+    </section>
+
     <!-- ══ FORMS (signal forms) ══ -->
     <section id="forms" class="flex flex-col gap-4">
       <h2 class="text-lg font-semibold text-text">Forms · signal forms</h2>

@@ -42,6 +42,8 @@ import {
   DatePicker,
   Dialog,
   Drawer,
+  ExpressionField,
+  ExpressionScope,
   Field,
   FormRow,
   GlowSurface,
@@ -73,6 +75,8 @@ import {
   Tooltip,
   ToastService,
   ToastVariant,
+  JsonView,
+  Variable,
 } from '@tsai-pe/ui-kit';
 
 interface Section {
@@ -108,6 +112,9 @@ interface ChatEntry {
     RadioGroup,
     Select,
     Combobox,
+    ExpressionField,
+    JsonView,
+    Variable,
     Segmented,
     Slider,
     Table,
@@ -156,6 +163,7 @@ export class UiKitPlayground {
   protected readonly sections: Section[] = [
     { id: 'buttons', label: 'Buttons' },
     { id: 'inputs', label: 'Inputs' },
+    { id: 'expression', label: 'Expression' },
     { id: 'forms', label: 'Forms' },
     { id: 'blocks', label: 'Blocks' },
     { id: 'feedback', label: 'Feedback' },
@@ -220,6 +228,38 @@ export class UiKitPlayground {
   protected readonly country = signal('');
   protected readonly calendarDate = signal('2026-01-15');
   protected readonly volume = signal(40);
+  protected readonly expressionValue = signal(
+    'Order total: {{ $json.checkout.total }}',
+  );
+  protected readonly conditionValue = signal('$json.checkout.total > 100');
+  protected readonly expressionData = {
+    checkout: {
+      id: 'ord_1001',
+      total: 149.5,
+      paid: true,
+      customer: {
+        name: 'Ada Lovelace',
+        email: 'ada@example.com',
+      },
+      items: [
+        { sku: 'book', qty: 1, price: 49.5 },
+        { sku: 'course', qty: 1, price: 100 },
+      ],
+    },
+  };
+  protected readonly expressionScope: ExpressionScope = {
+    json: this.expressionData,
+    nodes: [
+      {
+        title: 'Telegram Trigger',
+        output: { chat: { id: 12345 }, message: { text: 'Hello' } },
+      },
+      {
+        title: 'AI Summary',
+        output: { summary: 'Customer asked for an invoice', score: 0.91 },
+      },
+    ],
+  };
 
   protected readonly tableColumns: TableColumn[] = [
     { key: 'name', label: 'Name' },
