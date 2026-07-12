@@ -615,36 +615,79 @@ export class TestBackendSystem implements PipelineBackend {
 
       this.schedule(run, this.tickProgressMs || this.stepDelayMs, () => {
         splitRun.progress = { done: itemIndex + 1, total };
-        let item: unknown = items[itemIndex];
-        for (const node of segment.nodes) {
-          const nr = run.nodes[node.id];
-          const output = this.produceFanItemOutput(
-            run,
-            pipeline,
-            node,
-            item,
-            itemIndex,
-          );
-          const accumulated = this.accumulateFanOutput(
-            run.outputs[node.id],
-            output,
-          );
-          run.outputs[node.id] = accumulated;
-          run.fanItems[node.id] = this.outputFanItems(accumulated);
-          run.outFan[node.id] = total;
-          nr.output = accumulated;
-          nr.progress = { done: itemIndex + 1, total };
-          item = output;
-        }
+        this.emit(run);
+        this.runFanWorkerPhase(
+          run,
+          pipeline,
+          segment,
+          items[itemIndex],
+          itemIndex,
+          total,
+          batch,
+          0,
+          step,
+        );
+      });
+    };
+    step(0);
+  }
+
+  private runFanWorkerPhase(
+    run: RunState,
+    pipeline: Pipeline,
+    segment: { nodes: BoardNode[]; merge: BoardNode; endIndex: number },
+    item: unknown,
+    itemIndex: number,
+    total: number,
+    batch: unknown[],
+    nodeIndex: number,
+    nextItem: (itemIndex: number) => void,
+  ): void {
+    if (run.canceled) return;
+    const node = segment.nodes[nodeIndex];
+    if (!node) {
+      this.schedule(run, this.tickProgressMs || this.stepDelayMs, () => {
         batch.push(item);
         const mergeRun = run.nodes[segment.merge.id];
         mergeRun.output = { batch: [...batch], count: batch.length };
         mergeRun.progress = { done: itemIndex + 1, total };
         this.emit(run);
-        step(itemIndex + 1);
+        nextItem(itemIndex + 1);
       });
-    };
-    step(0);
+      return;
+    }
+
+    this.schedule(run, this.tickProgressMs || this.stepDelayMs, () => {
+      const nr = run.nodes[node.id];
+      const output = this.produceFanItemOutput(
+        run,
+        pipeline,
+        node,
+        item,
+        itemIndex,
+      );
+      const accumulated = this.accumulateFanOutput(
+        run.outputs[node.id],
+        output,
+      );
+      run.outputs[node.id] = accumulated;
+      run.fanItems[node.id] = this.outputFanItems(accumulated);
+      run.outFan[node.id] = total;
+      nr.output = accumulated;
+      nr.progress = { done: itemIndex + 1, total };
+      this.emit(run);
+      this.runFanWorkerPhase(
+        run,
+        pipeline,
+        segment,
+        output,
+        itemIndex,
+        total,
+        batch,
+        nodeIndex + 1,
+        nextItem,
+      );
+    });
   }
 
   private fanSegment(

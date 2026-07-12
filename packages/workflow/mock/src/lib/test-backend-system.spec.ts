@@ -1201,7 +1201,7 @@ describe('TestBackendSystem — split/merge fan-out', () => {
 });
 
 describe('TestBackendSystem — fan-out waves', () => {
-  it('ticks split, worker and merge together, releasing downstream only at N/N', async () => {
+  it('moves fan-out items through split, worker and merge one node at a time', async () => {
     const sys = new TestBackendSystem({ stepDelayMs: 0, tickProgressMs: 1 });
     const p = pipeline(
       [
@@ -1248,7 +1248,19 @@ describe('TestBackendSystem — fan-out waves', () => {
       states.some((s) => s.split === 0 && s.img === 0 && s.merge === 0),
     ).toBe(true);
     expect(
+      states.some((s) => s.split === 1 && s.img === 0 && s.merge === 0),
+    ).toBe(true);
+    expect(
+      states.some((s) => s.split === 1 && s.img === 1 && s.merge === 0),
+    ).toBe(true);
+    expect(
       states.some((s) => s.split === 1 && s.img === 1 && s.merge === 1),
+    ).toBe(true);
+    expect(
+      states.some((s) => s.split === 2 && s.img === 1 && s.merge === 1),
+    ).toBe(true);
+    expect(
+      states.some((s) => s.split === 2 && s.img === 2 && s.merge === 1),
     ).toBe(true);
     expect(
       states.some((s) => s.split === 2 && s.img === 2 && s.merge === 2),
