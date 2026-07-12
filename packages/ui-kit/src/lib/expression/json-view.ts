@@ -148,6 +148,9 @@ export class JsonView {
 
   protected formatValue(value: unknown): string {
     if (typeof value === 'string') return `"${value}"`;
+    if (Array.isArray(value))
+      return value.length ? `Array(${value.length})` : '[]';
+    if (isRecord(value)) return Object.keys(value).length ? '{…}' : '{}';
     if (value === null) return 'null';
     return String(value);
   }

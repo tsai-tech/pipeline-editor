@@ -26,11 +26,15 @@ function cfNode(config: ControlFlowConfig): BoardNode {
 
 describe('isControlFlow', () => {
   it('is true only for action + control-flow', () => {
-    expect(isControlFlow({ kind: 'action', category: 'control-flow' })).toBe(true);
+    expect(isControlFlow({ kind: 'action', category: 'control-flow' })).toBe(
+      true,
+    );
   });
 
   it('is false for other actions and non-actions', () => {
-    expect(isControlFlow({ kind: 'action', category: 'transform' })).toBe(false);
+    expect(isControlFlow({ kind: 'action', category: 'transform' })).toBe(
+      false,
+    );
     expect(isControlFlow({ kind: 'trigger' })).toBe(false);
     expect(isControlFlow({ kind: 'effect' })).toBe(false);
   });
@@ -133,20 +137,29 @@ describe('paramSchema', () => {
   });
 
   it('falls back to the per-category schema when no catalog type matches', () => {
-    const keys = paramSchema({ kind: 'trigger', type: undefined }).map((p) => p.key);
+    const keys = paramSchema({ kind: 'trigger', type: undefined }).map(
+      (p) => p.key,
+    );
     expect(keys).toEqual(['event']);
   });
 
   it('is empty for control-flow (bespoke form)', () => {
     expect(
-      paramSchema({ kind: 'action', category: 'control-flow', type: undefined }),
+      paramSchema({
+        kind: 'action',
+        category: 'control-flow',
+        type: undefined,
+      }),
     ).toEqual([]);
   });
 });
 
 describe('defaultControlFlowConfig', () => {
   it('seeds an if expression', () => {
-    expect(defaultControlFlowConfig('if')).toEqual({ type: 'if', expression: '' });
+    expect(defaultControlFlowConfig('if')).toEqual({
+      type: 'if',
+      expression: '',
+    });
   });
 
   it('seeds a filter expression', () => {
@@ -189,5 +202,11 @@ describe('NODE_CATALOG', () => {
     expect(variablePaths(catalogEntry('slack-trigger')?.output)).toContain(
       'event.text',
     );
+  });
+
+  it('gives every concrete catalog node a non-empty output shape', () => {
+    for (const spec of NODE_CATALOG) {
+      expect(variablePaths(spec.output), spec.id).not.toEqual([]);
+    }
   });
 });

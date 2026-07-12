@@ -20,7 +20,9 @@ import {
  */
 
 /** Whether a node is a control-flow node (if / switch / filter). */
-export function isControlFlow(node: Pick<BoardNode, 'kind' | 'category'>): boolean {
+export function isControlFlow(
+  node: Pick<BoardNode, 'kind' | 'category'>,
+): boolean {
   return node.kind === 'action' && node.category === 'control-flow';
 }
 
@@ -55,14 +57,12 @@ export function derivePorts(node: BoardNode): NodePort[] {
   if (isControlFlow(node) && node.config) {
     return [
       { id: 'in', role: 'input', side: 'left' },
-      ...controlFlowOutputs(node.config).map(
-        (o): NodePort => ({
-          id: o.id,
-          role: 'output',
-          side: 'right',
-          label: o.label,
-        }),
-      ),
+      ...controlFlowOutputs(node.config).map((o): NodePort => ({
+        id: o.id,
+        role: 'output',
+        side: 'right',
+        label: o.label,
+      })),
     ];
   }
   return defaultPorts(node.kind);
@@ -70,12 +70,7 @@ export function derivePorts(node: BoardNode): NodePort[] {
 
 /** The kind of input a node parameter takes (drives the inspector form). */
 export type ParamType =
-  | 'text'
-  | 'number'
-  | 'textarea'
-  | 'boolean'
-  | 'select'
-  | 'expression';
+  'text' | 'number' | 'textarea' | 'boolean' | 'select' | 'expression';
 
 /** One configurable parameter of a node type. */
 export interface ParamField {
@@ -96,7 +91,12 @@ export interface ParamField {
  */
 const PARAM_SCHEMAS: Record<NodeType, ParamField[]> = {
   trigger: [
-    { key: 'event', label: 'Event', type: 'text', placeholder: 'message.received' },
+    {
+      key: 'event',
+      label: 'Event',
+      type: 'text',
+      placeholder: 'message.received',
+    },
   ],
   integration: [
     {
@@ -121,7 +121,12 @@ const PARAM_SCHEMAS: Record<NodeType, ParamField[]> = {
     },
   ],
   effect: [
-    { key: 'target', label: 'Target', type: 'text', placeholder: 'chat id / url' },
+    {
+      key: 'target',
+      label: 'Target',
+      type: 'text',
+      placeholder: 'chat id / url',
+    },
     { key: 'message', label: 'Message', type: 'expression' },
   ],
   split: [],
@@ -170,20 +175,34 @@ export const NODE_CATALOG: NodeTypeSpec[] = [
     label: 'Telegram',
     kind: 'trigger',
     params: [{ key: 'chat', label: 'Chat / bot', type: 'text' }],
-    output: { source: 'telegram', message: 'Hello from Telegram', chatId: 4242 },
+    output: {
+      source: 'telegram',
+      message: 'Hello from Telegram',
+      chatId: 4242,
+    },
   },
   {
     id: 'whatsapp-trigger',
     label: 'WhatsApp',
     kind: 'trigger',
     params: [{ key: 'number', label: 'Number / bot', type: 'text' }],
-    output: { source: 'whatsapp', chat: { text: 'Hi via WhatsApp', from: '+15550101' } },
+    output: {
+      source: 'whatsapp',
+      chat: { text: 'Hi via WhatsApp', from: '+15550101' },
+    },
   },
   {
     id: 'slack-trigger',
     label: 'Slack',
     kind: 'trigger',
-    params: [{ key: 'channel', label: 'Channel', type: 'text', placeholder: '#general' }],
+    params: [
+      {
+        key: 'channel',
+        label: 'Channel',
+        type: 'text',
+        placeholder: '#general',
+      },
+    ],
     output: {
       source: 'slack',
       event: { text: 'Yo from Slack', user: 'U0421', channel: 'C7' },
@@ -193,7 +212,9 @@ export const NODE_CATALOG: NodeTypeSpec[] = [
     id: 'webhook-trigger',
     label: 'Webhook',
     kind: 'trigger',
-    params: [{ key: 'path', label: 'Path', type: 'text', placeholder: '/hook' }],
+    params: [
+      { key: 'path', label: 'Path', type: 'text', placeholder: '/hook' },
+    ],
     output: { source: 'webhook', body: { text: 'payload' } },
   },
   {
@@ -212,10 +233,20 @@ export const NODE_CATALOG: NodeTypeSpec[] = [
     kind: 'action',
     category: 'integration',
     params: [
-      { key: 'method', label: 'Method', type: 'select', options: METHOD_OPTIONS },
+      {
+        key: 'method',
+        label: 'Method',
+        type: 'select',
+        options: METHOD_OPTIONS,
+      },
       { key: 'url', label: 'URL', type: 'expression' },
       { key: 'body', label: 'Body', type: 'expression' },
     ],
+    output: {
+      status: 200,
+      headers: { 'content-type': 'application/json' },
+      body: { ok: true, id: 'res_123' },
+    },
   },
   {
     id: 'llm-agent',
@@ -235,6 +266,11 @@ export const NODE_CATALOG: NodeTypeSpec[] = [
       },
       { key: 'prompt', label: 'Prompt', type: 'expression' },
     ],
+    output: {
+      text: 'Draw 10 cats',
+      count: 10,
+      commands: [{ prompt: 'A playful orange cat in watercolor' }],
+    },
   },
   {
     id: 'image-gen',
@@ -245,6 +281,10 @@ export const NODE_CATALOG: NodeTypeSpec[] = [
       { key: 'model', label: 'Model', type: 'text' },
       { key: 'prompt', label: 'Prompt', type: 'expression' },
     ],
+    output: {
+      imageUrl: 'https://example.test/cat.png',
+      prompt: 'A playful orange cat in watercolor',
+    },
   },
   // Transforms
   {
@@ -271,12 +311,32 @@ export const NODE_CATALOG: NodeTypeSpec[] = [
     kind: 'action',
     category: 'transform',
     params: [
-      { key: 'code', label: 'JS', type: 'textarea', placeholder: 'return items;' },
+      {
+        key: 'code',
+        label: 'JS',
+        type: 'textarea',
+        placeholder: 'return items;',
+      },
     ],
+    output: { value: 'computed', items: [{ id: 1, value: 'row' }] },
   },
   // Split / merge
-  { id: 'split', label: 'Split', kind: 'action', category: 'split', params: [] },
-  { id: 'merge', label: 'Merge', kind: 'action', category: 'merge', params: [] },
+  {
+    id: 'split',
+    label: 'Split',
+    kind: 'action',
+    category: 'split',
+    params: [],
+    output: { items: [{ index: 0, value: 'item' }] },
+  },
+  {
+    id: 'merge',
+    label: 'Merge',
+    kind: 'action',
+    category: 'merge',
+    params: [],
+    output: { batch: [{ index: 0, value: 'item' }] },
+  },
   // Effects
   {
     id: 'telegram-send',
@@ -286,6 +346,7 @@ export const NODE_CATALOG: NodeTypeSpec[] = [
       { key: 'chat', label: 'Chat', type: 'expression' },
       { key: 'text', label: 'Text', type: 'expression' },
     ],
+    output: { acknowledged: true, messageId: 1001 },
   },
   {
     id: 'http-effect',
@@ -293,8 +354,14 @@ export const NODE_CATALOG: NodeTypeSpec[] = [
     kind: 'effect',
     params: [
       { key: 'url', label: 'URL', type: 'expression' },
-      { key: 'method', label: 'Method', type: 'select', options: METHOD_OPTIONS },
+      {
+        key: 'method',
+        label: 'Method',
+        type: 'select',
+        options: METHOD_OPTIONS,
+      },
     ],
+    output: { acknowledged: true, status: 202 },
   },
   {
     id: 'logger',
@@ -313,13 +380,16 @@ export const NODE_CATALOG: NodeTypeSpec[] = [
       },
       { key: 'message', label: 'Message', type: 'expression' },
     ],
+    output: { acknowledged: true, level: 'info' },
   },
 ];
 
 const CATALOG_BY_ID = new Map(NODE_CATALOG.map((spec) => [spec.id, spec]));
 
 /** Look up a concrete catalog type. */
-export function catalogEntry(type: string | undefined): NodeTypeSpec | undefined {
+export function catalogEntry(
+  type: string | undefined,
+): NodeTypeSpec | undefined {
   return type ? CATALOG_BY_ID.get(type) : undefined;
 }
 

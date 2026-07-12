@@ -29,4 +29,17 @@ describe('JsonView', () => {
 
     expect(picked).toBe('$json.customerName');
   });
+
+  it('renders empty containers explicitly instead of object stringification', async () => {
+    const fixture = TestBed.createComponent(JsonView);
+    fixture.componentRef.setInput('data', {});
+    await fixture.whenStable();
+
+    expect(fixture.nativeElement.textContent).toContain('{}');
+
+    fixture.componentRef.setInput('data', []);
+    await fixture.whenStable();
+
+    expect(fixture.nativeElement.textContent).toContain('[]');
+  });
 });
