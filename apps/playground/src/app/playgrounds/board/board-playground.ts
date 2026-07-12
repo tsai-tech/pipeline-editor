@@ -6,7 +6,7 @@ import {
   signal,
 } from '@angular/core';
 import { Board, PIPELINE_BACKEND, PIPELINE_STORE } from '@tsai-pe/board';
-import { Button, Dialog, ToastService } from '@tsai-pe/ui-kit';
+import { Button, DialogService, ToastService } from '@tsai-pe/ui-kit';
 import { type BoardNode, type Pipeline } from '@tsai-pe/models';
 import { derivePorts } from '@tsai-pe/nodes';
 import {
@@ -21,7 +21,7 @@ function node(spec: Omit<BoardNode, 'ports'>): BoardNode {
 }
 
 const SIZE = { cols: 8, rows: 2 } as const;
-const DEMO_STORAGE_REVISION = 'split-mode-modal-gallery-v1';
+const DEMO_STORAGE_REVISION = 'split-mode-modal-gallery-v3';
 const TELEGRAM_PROMPT = 'Draw 10 cats and 20 elephants';
 const TELEGRAM_MEDIA_COMMANDS = [
   ...Array.from({ length: 10 }, (_, index) => ({
@@ -232,23 +232,6 @@ const CAT_PIPELINE: Pipeline = {
       },
     }),
     node({
-      id: 'log-tg',
-      type: 'toast-effect',
-      kind: 'effect',
-      title: 'Browser Toast',
-      subtitle: 'browser side effect',
-      pos: { col: 75, row: 6 },
-      size: SIZE,
-      required: false,
-      data: {
-        title: 'Telegram complete',
-        message:
-          'Generated {{ $node["Plan Telegram Media"].count }} images for {{ $trigger.channel }}',
-        variant: 'success',
-        duration: 5000,
-      },
-    }),
-    node({
       id: 'preview-tg',
       type: 'image-preview',
       kind: 'effect',
@@ -256,7 +239,7 @@ const CAT_PIPELINE: Pipeline = {
       subtitle: 'browser modal',
       pos: { col: 75, row: 2 },
       size: SIZE,
-      required: false,
+      required: true,
       data: {
         title: 'Generated images',
         images: '{{ $json.batch }}',
@@ -289,19 +272,6 @@ const CAT_PIPELINE: Pipeline = {
       required: true,
       data: {
         number: '{{ $node["WhatsApp"].chat.from }}',
-        text: '{{ $json.reply }}',
-      },
-    }),
-    node({
-      id: 'copy-wa',
-      type: 'clipboard-effect',
-      kind: 'effect',
-      title: 'Copy Reply',
-      subtitle: 'clipboard',
-      pos: { col: 45, row: 10 },
-      size: SIZE,
-      required: false,
-      data: {
         text: '{{ $json.reply }}',
       },
     }),
@@ -387,13 +357,11 @@ const CAT_PIPELINE: Pipeline = {
     edge('e7', 'split', 'out-right', 'image'),
     edge('e8', 'image', 'out-right', 'merge'),
     edge('e9', 'merge', 'out-top', 'send-tg'),
-    edge('e10', 'merge', 'out-bottom', 'log-tg'),
     edge('e16', 'merge', 'out-right', 'preview-tg'),
     edge('e11', 'switch-trigger', 'case-wa', 'wa-format'),
     edge('e12', 'wa-format', 'out-right', 'wa-delay'),
     edge('e19', 'wa-delay', 'out-right', 'send-wa'),
     edge('e20', 'wa-delay', 'out-bottom', 'wa-query'),
-    edge('e18', 'wa-format', 'out-top', 'copy-wa'),
     edge('e15', 'wa-format', 'out-bottom', 'sla-filter'),
     edge('e13', 'sla-filter', 'pass', 'sla-log'),
     edge('e14', 'switch-trigger', 'default', 'unknown-log'),
@@ -408,6 +376,7 @@ BOARD_STORAGE.seed(CAT_PIPELINE);
 const DEMO_BACKEND = new TestBackendSystem({
   stepDelayMs: 550,
   tickProgressMs: 120,
+  firingTrigger: 'tg-trigger',
 });
 
 /** A 1:1 connection from a node's output port onto the next node's input. */
@@ -423,7 +392,7 @@ function edge(id: string, from: string, fromPort: string, to: string) {
 @Component({
   selector: 'app-board',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [Board, Button, Dialog],
+  imports: [Board, Button],
   host: { class: 'block h-full min-h-0' },
   providers: [
     {
@@ -464,62 +433,16 @@ function edge(id: string, from: string, fromPort: string, to: string) {
       [readonly]="readonly()"
       class="min-h-0 flex-1 overflow-hidden rounded-xl border border-border"
     />
-    <tsai-dialog
-      [open]="!!resultDialog()"
-      (openChange)="!$event && resultDialog.set(null)"
-      [title]="resultDialog()?.title ?? 'Pipeline result'"
-      size="lg"
-    >
-      @if (resultDialog(); as dialog) {
-        @if (dialog.images?.length) {
-          <div
-            class="grid max-h-[70vh] grid-cols-2 gap-3 overflow-auto pr-1 md:grid-cols-3"
-          >
-            @for (image of dialog.images; track image.imageUrl) {
-              <figure class="min-w-0">
-                <img
-                  class="aspect-[16/9] w-full rounded-md border border-border object-contain"
-                  [src]="image.imageUrl"
-                  alt=""
-                />
-                @if (image.caption) {
-                  <figcaption class="mt-1 truncate text-xs text-text-2">
-                    {{ image.caption }}
-                  </figcaption>
-                }
-              </figure>
-            }
-          </div>
-        } @else if (dialog.imageUrl) {
-          <img
-            class="mb-3 max-h-80 w-full rounded-md border border-border object-contain"
-            [src]="dialog.imageUrl"
-            alt=""
-          />
-        }
-        @if (dialog.body) {
-          <p class="whitespace-pre-wrap">{{ dialog.body }}</p>
-        }
-        @if (dialog.json !== undefined) {
-          <pre
-            class="mt-3 max-h-64 overflow-auto rounded-sm border border-border bg-surface-2 p-3 font-mono text-xs text-text-2"
-            >{{ json(dialog.json) }}</pre>
-        }
-      }
-    </tsai-dialog>
   </div>`,
 })
 export class BoardPlayground {
   private readonly toasts = inject(ToastService);
+  private readonly dialogs = inject(DialogService);
 
   protected readonly pipeline = signal(
     clone(BOARD_STORAGE.loadSync(CAT_PIPELINE.id) ?? CAT_PIPELINE),
   );
   protected readonly readonly = signal(false);
-  protected readonly resultDialog = signal<Extract<
-    MockSideEffect,
-    { kind: 'dialog' }
-  > | null>(null);
 
   constructor() {
     const unsub = DEMO_BACKEND.observeSideEffects((event) => {
@@ -531,11 +454,16 @@ export class BoardPlayground {
           duration: event.duration,
         });
       } else if (event.kind === 'dialog') {
-        this.resultDialog.set(event);
+        this.dialogs.show({
+          title: event.title,
+          body: event.body,
+          imageUrl: event.imageUrl,
+          images: event.images,
+          json: event.json,
+          size: 'lg',
+        });
       } else if (event.kind === 'download') {
         this.download(event);
-      } else if (event.kind === 'clipboard') {
-        void this.copy(event.text);
       }
     });
     inject(DestroyRef).onDestroy(unsub);
@@ -545,10 +473,6 @@ export class BoardPlayground {
     BOARD_STORAGE.clear();
     BOARD_STORAGE.seed(CAT_PIPELINE);
     this.pipeline.set(clone(CAT_PIPELINE));
-  }
-
-  protected json(value: unknown): string {
-    return JSON.stringify(value, null, 2);
   }
 
   private download(event: Extract<MockSideEffect, { kind: 'download' }>): void {
@@ -564,24 +488,6 @@ export class BoardPlayground {
       message: event.fileName,
       variant: 'success',
     });
-  }
-
-  private async copy(text: string): Promise<void> {
-    try {
-      await navigator.clipboard.writeText(text);
-      this.toasts.show({
-        title: 'Copied',
-        message: text,
-        variant: 'success',
-      });
-    } catch {
-      this.toasts.show({
-        title: 'Clipboard unavailable',
-        message: text,
-        variant: 'warning',
-        duration: 6000,
-      });
-    }
   }
 }
 

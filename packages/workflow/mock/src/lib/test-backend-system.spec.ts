@@ -739,6 +739,144 @@ describe('TestBackendSystem — failures', () => {
     ]);
   });
 
+  it('emits the image preview dialog in the multi-trigger demo shape', async () => {
+    const tg: BoardNode = {
+      ...trigger('tg'),
+      type: 'telegram-trigger',
+      title: 'Telegram',
+      data: { sampleOutput: { message: 'Draw 2 cats', chatId: 42 } },
+    };
+    const wa: BoardNode = {
+      ...trigger('wa'),
+      type: 'whatsapp-trigger',
+      title: 'WhatsApp',
+    };
+    const normTg: BoardNode = {
+      ...action('norm-tg'),
+      type: 'set-fields',
+      data: { field: 'text', value: '{{ $json.message }}' },
+    };
+    const normWa: BoardNode = {
+      ...action('norm-wa'),
+      type: 'set-fields',
+      data: { field: 'text', value: '{{ $json.chat.text }}' },
+    };
+    const sw: BoardNode = {
+      ...action('switch', 'control-flow'),
+      config: {
+        type: 'switch',
+        discriminant: '$trigger.channel',
+        cases: [
+          { id: 'tg', label: 'telegram', value: 'telegram' },
+          { id: 'wa', label: 'whatsapp', value: 'whatsapp' },
+        ],
+        hasDefault: true,
+      },
+    };
+    const llm: BoardNode = {
+      ...action('llm', 'integration'),
+      type: 'llm-agent',
+      title: 'Plan Telegram Media',
+      data: {
+        mockOutput: {
+          count: 2,
+          commands: [{ prompt: 'Cat one' }, { prompt: 'Cat two' }],
+        },
+      },
+    };
+    const split: BoardNode = {
+      ...action('split', 'split'),
+      type: 'split',
+      data: { items: '{{ $json.commands }}', mode: 'sequential' },
+    };
+    const image: BoardNode = {
+      ...action('image', 'integration'),
+      type: 'image-gen',
+      data: { prompt: '{{ $json.prompt }}' },
+    };
+    const merge: BoardNode = {
+      ...action('merge', 'merge'),
+      type: 'merge',
+      data: { expectedCount: '{{ $node["Plan Telegram Media"].count }}' },
+    };
+    const send: BoardNode = {
+      ...effect('send'),
+      type: 'telegram-send',
+      data: { chat: '{{ $node["Telegram"].chatId }}', text: 'done' },
+    };
+    const preview: BoardNode = {
+      ...effect('preview'),
+      type: 'image-preview',
+      data: {
+        title: 'Generated images',
+        images: '{{ $json.batch }}',
+        caption: '{{ $node["Plan Telegram Media"].count }} generated images',
+      },
+    };
+    const waFormat: BoardNode = {
+      ...action('wa-format'),
+      type: 'set-fields',
+      data: { field: 'reply', value: 'ok' },
+    };
+    const waToast: BoardNode = {
+      ...effect('wa-toast', false),
+      type: 'toast-effect',
+      data: { message: '{{ $json.reply }}' },
+    };
+    const sys = new TestBackendSystem({
+      stepDelayMs: 0,
+      firingTrigger: 'tg',
+    });
+    const dialogs: {
+      images?: { imageUrl: string; caption?: string }[];
+      body?: string;
+    }[] = [];
+    sys.observeSideEffects((event) => {
+      if (event.kind === 'dialog') dialogs.push(event);
+    });
+
+    const snap = await runToEnd(
+      sys,
+      pipeline(
+        [
+          tg,
+          wa,
+          normTg,
+          normWa,
+          sw,
+          llm,
+          waFormat,
+          split,
+          image,
+          merge,
+          send,
+          preview,
+          waToast,
+        ],
+        [
+          edge('tg', 'norm-tg'),
+          edge('wa', 'norm-wa'),
+          edge('norm-tg', 'switch'),
+          edge('norm-wa', 'switch'),
+          edge('switch', 'llm', 'case-tg'),
+          edge('switch', 'wa-format', 'case-wa'),
+          edge('llm', 'split'),
+          edge('split', 'image'),
+          edge('image', 'merge'),
+          edge('merge', 'send', 'out-top'),
+          edge('merge', 'preview'),
+          edge('wa-format', 'wa-toast'),
+        ],
+      ),
+    );
+
+    expect(snap.status).toBe('success');
+    expect(snap.nodes['preview'].status).toBe('success');
+    expect(dialogs).toHaveLength(1);
+    expect(dialogs[0]?.body).toBe('2 generated images');
+    expect(dialogs[0]?.images).toHaveLength(2);
+  });
+
   it('loads browser-local AI demo models through the mock model loader', async () => {
     const classify: BoardNode = {
       ...action('classify', 'integration'),
@@ -1148,31 +1286,6 @@ describe('TestBackendSystem — smart evaluation', () => {
         fileName: 'result.json',
         content: '{"count":10,"source":"telegram"}',
         mimeType: 'application/json',
-      },
-    ]);
-  });
-
-  it('emits clipboard side effects from clipboard nodes', async () => {
-    const clip: BoardNode = {
-      ...effect('clipboard'),
-      type: 'clipboard-effect',
-      data: { text: 'Copy {{ $json.source }}' },
-    };
-    const sys = fast();
-    const events: unknown[] = [];
-    sys.observeSideEffects((event) => events.push(event));
-
-    await runToEnd(
-      sys,
-      pipeline([trigger('t'), clip], [edge('t', 'clipboard')]),
-    );
-
-    expect(events).toEqual([
-      {
-        kind: 'clipboard',
-        runId: 'run-1',
-        nodeId: 'clipboard',
-        text: 'Copy telegram',
       },
     ]);
   });

@@ -97,12 +97,6 @@ export type MockSideEffect =
       fileName: string;
       content: string;
       mimeType: string;
-    }
-  | {
-      kind: 'clipboard';
-      runId: string;
-      nodeId: string;
-      text: string;
     };
 
 export type MockSideEffectListener = (event: MockSideEffect) => void;
@@ -1327,12 +1321,6 @@ export class TestBackendSystem implements PipelineBackend {
         fileName: stringValue(data['fileName']) ?? 'pipeline-output.txt',
         content: contentValue(data['content']),
         mimeType: stringValue(data['mimeType']) ?? 'text/plain',
-      };
-    } else if (node.type === 'clipboard-effect') {
-      event = {
-        ...base,
-        kind: 'clipboard',
-        text: stringValue(data['text']) ?? '',
       };
     }
 

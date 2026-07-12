@@ -877,16 +877,6 @@ export const NODE_CATALOG: NodeTypeSpec[] = [
       mimeType: 'text/plain',
     },
   },
-  {
-    id: 'clipboard-effect',
-    label: 'Copy to Clipboard',
-    kind: 'effect',
-    params: [{ key: 'text', label: 'Text', type: 'expression' }],
-    output: {
-      acknowledged: true,
-      text: 'Copied from pipeline context',
-    },
-  },
 ];
 
 export function createStaticNodeCatalog(

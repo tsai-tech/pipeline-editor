@@ -1,5 +1,6 @@
 import { CdkTrapFocus } from '@angular/cdk/a11y';
-import { Overlay } from '@angular/cdk/overlay';
+import { Overlay, OverlayRef } from '@angular/cdk/overlay';
+import { ComponentPortal } from '@angular/cdk/portal';
 import {
   ChangeDetectionStrategy,
   Component,
@@ -7,9 +8,12 @@ import {
   DestroyRef,
   effect,
   inject,
+  Injectable,
+  Injector,
   input,
   model,
   output,
+  signal,
   TemplateRef,
   ViewContainerRef,
   viewChild,
@@ -148,5 +152,103 @@ export class Dialog {
       onDismiss: () => this.close(),
       dismissible: () => this.dismissible(),
     });
+  }
+}
+
+export interface DialogImage {
+  imageUrl: string;
+  caption?: string;
+}
+
+export interface DialogOptions {
+  title?: string;
+  body?: string;
+  imageUrl?: string;
+  images?: DialogImage[];
+  json?: unknown;
+  size?: DialogSize;
+}
+
+@Injectable({ providedIn: 'root' })
+export class DialogService {
+  readonly dialog = signal<DialogOptions | null>(null);
+
+  private readonly overlay = inject(Overlay);
+  private readonly injector = inject(Injector);
+  private overlayRef?: OverlayRef;
+
+  show(options: DialogOptions): void {
+    this.ensureOutlet();
+    this.dialog.set(options);
+  }
+
+  close(): void {
+    this.dialog.set(null);
+  }
+
+  private ensureOutlet(): void {
+    if (this.overlayRef) return;
+    this.overlayRef = this.overlay.create({
+      positionStrategy: this.overlay.position().global().top('0').left('0'),
+    });
+    this.overlayRef.attach(
+      new ComponentPortal(DialogOutlet, null, this.injector),
+    );
+  }
+}
+
+@Component({
+  selector: 'tsai-dialog-outlet',
+  changeDetection: ChangeDetectionStrategy.OnPush,
+  imports: [Dialog],
+  template: `<tsai-dialog
+    [open]="!!service.dialog()"
+    (openChange)="!$event && service.close()"
+    [title]="service.dialog()?.title ?? 'Result'"
+    [size]="service.dialog()?.size ?? 'lg'"
+  >
+    @if (service.dialog(); as dialog) {
+      @if (dialog.images?.length) {
+        <div
+          class="grid max-h-[70vh] grid-cols-2 gap-3 overflow-auto pr-1 md:grid-cols-3"
+        >
+          @for (image of dialog.images; track image.imageUrl) {
+            <figure class="min-w-0">
+              <img
+                class="aspect-[16/9] w-full rounded-md border border-border object-contain"
+                [src]="image.imageUrl"
+                alt=""
+              />
+              @if (image.caption) {
+                <figcaption class="mt-1 truncate text-xs text-text-2">
+                  {{ image.caption }}
+                </figcaption>
+              }
+            </figure>
+          }
+        </div>
+      } @else if (dialog.imageUrl) {
+        <img
+          class="mb-3 max-h-80 w-full rounded-md border border-border object-contain"
+          [src]="dialog.imageUrl"
+          alt=""
+        />
+      }
+      @if (dialog.body) {
+        <p class="whitespace-pre-wrap">{{ dialog.body }}</p>
+      }
+      @if (dialog.json !== undefined) {
+        <pre
+          class="mt-3 max-h-64 overflow-auto rounded-sm border border-border bg-surface-2 p-3 font-mono text-xs text-text-2"
+          >{{ json(dialog.json) }}</pre>
+      }
+    }
+  </tsai-dialog>`,
+})
+export class DialogOutlet {
+  protected readonly service = inject(DialogService);
+
+  protected json(value: unknown): string {
+    return JSON.stringify(value, null, 2);
   }
 }
