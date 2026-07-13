@@ -20,6 +20,7 @@ env:
   # Project Pages live under /<repo>/ — must match `<base href>` for routing/assets.
   # When docs land, keep the playground here and add them under /docs.
   BASE_HREF: /pipeline-editor/
+  NX_NO_CLOUD: 'true'
 
 jobs:
   build:

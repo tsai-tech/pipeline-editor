@@ -10,6 +10,9 @@ permissions:
   actions: read
   contents: read
 
+env:
+  NX_NO_CLOUD: 'true'
+
 jobs:
   main:
     runs-on: ubuntu-latest
@@ -32,8 +35,6 @@ jobs:
       # the framework-free libs (@nx/vite). Both are needed to cover all units.
       - run: npx nx run-many -t lint typecheck test vite:test build e2e
 
-  # NOTE: Nx Cloud distributed task execution (`nx start-ci-run --distribute-on`)
-  # was removed — it needs provisioned agents and was the source of intermittent
-  # "Cannot read properties of undefined (reading 'metadata')" failures. Remote
-  # caching still works via `nxCloudId` + the NX_CLOUD_ACCESS_TOKEN secret. Re-add
-  # distribution once agents are set up.
+  # NOTE: Nx Cloud is disabled in CI because the current Nx Cloud organization
+  # is disabled/free-plan-exceeded. Remove NX_NO_CLOUD only after Cloud is
+  # re-enabled and the access token is valid again.
