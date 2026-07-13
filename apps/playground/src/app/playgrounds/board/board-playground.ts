@@ -381,7 +381,6 @@ BOARD_STORAGE.seed(CAT_PIPELINE);
 const DEMO_BACKEND = new TestBackendSystem({
   stepDelayMs: 550,
   tickProgressMs: 120,
-  firingTrigger: 'tg-trigger',
 });
 
 /** A 1:1 connection from a node's output port onto the next node's input. */
