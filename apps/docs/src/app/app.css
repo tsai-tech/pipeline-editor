@@ -38,8 +38,9 @@ pre {
   overflow: auto;
   border: 1px solid var(--border);
   border-radius: 8px;
-  background: color-mix(in srgb, var(--surface-1) 86%, black);
+  background: color-mix(in srgb, var(--bg-sunken) 92%, var(--accent));
   padding: 1rem;
+  box-shadow: inset 0 1px 0 var(--highlight-top);
 }
 
 code {

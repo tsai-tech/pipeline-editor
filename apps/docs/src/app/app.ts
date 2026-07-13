@@ -1,5 +1,11 @@
 import { NgClass } from '@angular/common';
-import { ChangeDetectionStrategy, Component, signal } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  inject,
+  signal,
+} from '@angular/core';
+import { DomSanitizer, type SafeHtml } from '@angular/platform-browser';
 import {
   Board,
   PIPELINE_BACKEND,
@@ -22,11 +28,14 @@ import {
   type TableRow,
   Tag,
 } from '@tsai-pe/ui-kit';
+import { LucideAngularModule, Moon, Sun } from 'lucide-angular';
 
 interface NavItem {
   id: string;
   label: string;
 }
+
+type CodeLanguage = 'bash' | 'css' | 'ts';
 
 const DEMO_BACKEND = new TestBackendSystem({
   stepDelayMs: 350,
@@ -46,6 +55,51 @@ function edge(id: string, from: string, fromPort: string, to: string) {
     source: { nodeId: from, portId: fromPort },
     target: { nodeId: to, portId: 'in' },
   };
+}
+
+function escapeHtml(value: string): string {
+  return value
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;');
+}
+
+function highlightBash(code: string): string {
+  return escapeHtml(code)
+    .replace(
+      /^(npm|npx|pnpm|yarn)(\s+)/gm,
+      '<span class="syntax-keyword">$1</span>$2',
+    )
+    .replace(/(--[\w-]+)/g, '<span class="syntax-attr">$1</span>')
+    .replace(/(@[\w-]+\/[\w-]+)/g, '<span class="syntax-type">$1</span>');
+}
+
+function highlightCss(code: string): string {
+  return escapeHtml(code)
+    .replace(/(\/\*[\s\S]*?\*\/)/g, '<span class="syntax-comment">$1</span>')
+    .replace(/(@[\w-]+)/g, '<span class="syntax-keyword">$1</span>')
+    .replace(/('.*?')/g, '<span class="syntax-string">$1</span>');
+}
+
+function highlightTypeScript(code: string): string {
+  return escapeHtml(code)
+    .replace(/(\/\/.*$)/gm, '<span class="syntax-comment">$1</span>')
+    .replace(
+      /('(?:\\.|[^'])*'|`(?:\\.|[^`])*`)/g,
+      '<span class="syntax-string">$1</span>',
+    )
+    .replace(
+      /\b(import|export|from|const|readonly|class|implements|return|new|async|await|type|interface|providers|template|selector|imports|useValue|useExisting|useFactory)\b/g,
+      '<span class="syntax-keyword">$1</span>',
+    )
+    .replace(
+      /\b(Component|Pipeline|PipelineBackend|PipelineStore|RunListener|Unsubscribe|NodeCatalog|BoardNode|NodeTypeSpec|ExpressionScope)\b/g,
+      '<span class="syntax-type">$1</span>',
+    )
+    .replace(
+      /(\b[A-Za-z_$][\w$]*)(?=\s*:)/g,
+      '<span class="syntax-attr">$1</span>',
+    );
 }
 
 const STARTER_PIPELINE: Pipeline = {
@@ -131,6 +185,7 @@ DEMO_STORE.save(STARTER_PIPELINE);
     Input,
     Select,
     Table,
+    LucideAngularModule,
   ],
   providers: [
     { provide: PIPELINE_BACKEND, useValue: DEMO_BACKEND },
@@ -141,6 +196,10 @@ DEMO_STORE.save(STARTER_PIPELINE);
   styleUrl: './app.css',
 })
 export class App {
+  private readonly sanitizer = inject(DomSanitizer);
+
+  protected readonly Sun = Sun;
+  protected readonly Moon = Moon;
   protected readonly isLight = signal(false);
   protected readonly active = signal('start');
   protected readonly search = signal('customer.email');
@@ -152,9 +211,11 @@ export class App {
     { id: 'install', label: 'Install' },
     { id: 'board', label: 'Board' },
     { id: 'catalog', label: 'Catalog' },
+    { id: 'ports', label: 'Ports' },
+    { id: 'styling', label: 'Styling' },
+    { id: 'expressions', label: 'Expressions' },
     { id: 'backend', label: 'Backend' },
     { id: 'ui-kit', label: 'UI Kit' },
-    { id: 'publish', label: 'Publish' },
   ];
 
   protected readonly packageColumns: TableColumn[] = [
@@ -226,6 +287,75 @@ export const MY_NODE_CATALOG = createNodeCatalog([
   },
 ]);`;
 
+  protected readonly portSnippet = `import type { NodeTypeSpec } from '@tsai-pe/nodes';
+
+export const ROUTER_NODE = {
+  id: 'route-by-segment',
+  label: 'Route by segment',
+  section: 'Logic',
+  kind: 'action',
+  category: 'control-flow',
+  params: [
+    { key: 'field', label: 'Field', type: 'expression', defaultValue: '$json.segment' },
+    {
+      key: 'routes',
+      label: 'Routes',
+      type: 'array',
+      item: [
+        { key: 'id', label: 'Port id', type: 'text', required: true },
+        { key: 'label', label: 'Label', type: 'text', required: true },
+      ],
+    },
+  ],
+  ports: {
+    static: [{ id: 'in', role: 'input', side: 'left' }],
+    dynamic: [
+      { from: 'routes', id: '{{ id }}', label: '{{ label }}', role: 'output' },
+    ],
+    conditional: [
+      { when: 'fallback', id: 'fallback', label: 'Fallback', role: 'output' },
+    ],
+  },
+  outputExample: { segment: 'enterprise', matched: true },
+} satisfies NodeTypeSpec;`;
+
+  protected readonly stylingSnippet = `/* app styles */
+@import '@tsai-pe/theme';
+@import '@angular/cdk/overlay-prebuilt.css';
+
+@source '../node_modules/@tsai-pe/board';
+@source '../node_modules/@tsai-pe/ui-kit';
+
+:root {
+  --accent: #22b8cf;
+  --node-integration: #845ef7;
+  --node-effect: #f06595;
+}
+
+.light {
+  --accent: #0b7285;
+}`;
+
+  protected readonly expressionSnippet = `import type { ExpressionScope } from '@tsai-pe/ui-kit';
+
+readonly scope: ExpressionScope = {
+  trigger: ['body.email', 'headers.authorization'],
+  json: ['customer.email', 'customer.plan', 'score'],
+  nodes: [
+    { title: 'Score Lead', paths: ['score', 'segment', 'reason'] },
+    { title: 'Create CRM Lead', paths: ['leadId', 'status'] },
+  ],
+};
+
+template: \`
+  <tsai-expression-field
+    [value]="message"
+    [scope]="scope"
+    [template]="true"
+    (valueChange)="message = $event"
+  />
+\`;`;
+
   protected readonly backendSnippet = `import type { Pipeline, PipelineBackend, RunListener, Unsubscribe } from '@tsai-pe/models';
 
 export class RestPipelineBackend implements PipelineBackend {
@@ -244,9 +374,46 @@ export class RestPipelineBackend implements PipelineBackend {
   }
 }`;
 
-  protected readonly publishSnippet = `npm exec -- nx run-many -t lint typecheck test vite:test build
-npm exec -- nx release
-npm exec -- nx build docs --base-href=/pipeline-editor/docs/`;
+  protected readonly storeSnippet = `import type { Pipeline, PipelineStore, PipelineSummary, RunSummary } from '@tsai-pe/models';
+
+export class HttpPipelineStore implements PipelineStore {
+  async list(): Promise<PipelineSummary[]> {
+    return fetch('/api/pipelines').then((res) => res.json());
+  }
+
+  async load(id: string): Promise<Pipeline | null> {
+    const res = await fetch(\`/api/pipelines/\${id}\`);
+    if (res.status === 404) return null;
+    return res.json();
+  }
+
+  async save(pipeline: Pipeline): Promise<void> {
+    await fetch(\`/api/pipelines/\${pipeline.id}\`, {
+      method: 'PUT',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify(pipeline),
+    });
+  }
+
+  async remove(id: string): Promise<void> {
+    await fetch(\`/api/pipelines/\${id}\`, { method: 'DELETE' });
+  }
+
+  async runHistory(pipelineId: string): Promise<RunSummary[]> {
+    return fetch(\`/api/pipelines/\${pipelineId}/runs\`).then((res) => res.json());
+  }
+}`;
+
+  protected highlight(code: string, language: CodeLanguage): SafeHtml {
+    const html =
+      language === 'bash'
+        ? highlightBash(code)
+        : language === 'css'
+          ? highlightCss(code)
+          : highlightTypeScript(code);
+
+    return this.sanitizer.bypassSecurityTrustHtml(html);
+  }
 
   protected go(id: string): void {
     this.active.set(id);

@@ -24,7 +24,18 @@
       >
         Playground
       </a>
-      <tsai-button variant="ghost" size="sm" (click)="toggleTheme()">
+      <tsai-button
+        variant="ghost"
+        size="sm"
+        [attr.aria-label]="isLight() ? 'Switch to dark theme' : 'Switch to light theme'"
+        (click)="toggleTheme()"
+      >
+        <lucide-icon
+          icon-left
+          [img]="isLight() ? Moon : Sun"
+          [size]="16"
+          aria-hidden="true"
+        />
         {{ isLight() ? 'Dark' : 'Light' }}
       </tsai-button>
     </div>
@@ -107,8 +118,8 @@
           data contracts and node registry because host applications provide
           their own catalog, store and backend implementation.
         </p>
-        <pre><code>{{ installSnippet }}</code></pre>
-        <pre><code>{{ stylesSnippet }}</code></pre>
+        <pre><code [innerHTML]="highlight(installSnippet, 'bash')"></code></pre>
+        <pre><code [innerHTML]="highlight(stylesSnippet, 'css')"></code></pre>
         <tsai-table [columns]="packageColumns" [rows]="packages" />
       </section>
 
@@ -123,7 +134,7 @@
           backend for run/observe/stop. Omit store or backend to hide those
           controls in read-only or design-only contexts.
         </p>
-        <pre><code>{{ boardSnippet }}</code></pre>
+        <pre><code [innerHTML]="highlight(boardSnippet, 'ts')"></code></pre>
         <tsai-alert variant="info" title="Inputs and tokens">
           Pass `[pipeline]` to load a document and `[readonly]="true"` to
           disable editing. Provide `PIPELINE_NODE_CATALOG`, `PIPELINE_STORE` and
@@ -141,7 +152,7 @@
           its params, ports and output example. Those fields drive palette
           groups, inspector forms, dynamic switch outputs and expression help.
         </p>
-        <pre><code>{{ catalogSnippet }}</code></pre>
+        <pre><code [innerHTML]="highlight(catalogSnippet, 'ts')"></code></pre>
         <div class="grid gap-4 md:grid-cols-3">
           <tsai-card>
             <h3 class="mb-2 text-sm font-semibold text-text">Params</h3>
@@ -167,9 +178,82 @@
         </div>
       </section>
 
-      <section id="backend" class="doc-section">
+      <section id="ports" class="doc-section">
         <div class="doc-heading">
           <span>04</span>
+          <h2>Model custom ports and routing</h2>
+        </div>
+        <p class="doc-copy">
+          Nodes can expose fixed ports, generate outputs from user-entered array
+          data and reveal conditional outputs when a setting is enabled. This is
+          enough for if/switch nodes, fan-out, split/merge workflows, optional
+          fallbacks and product-specific routing rules.
+        </p>
+        <pre><code [innerHTML]="highlight(portSnippet, 'ts')"></code></pre>
+        <div class="grid gap-4 md:grid-cols-3">
+          <tsai-card>
+            <h3 class="mb-2 text-sm font-semibold text-text">Static</h3>
+            <p class="text-sm leading-6 text-text-2">
+              Use explicit `in`, `out`, `true`, `false` or domain-specific port
+              ids when the shape of the node is known in advance.
+            </p>
+          </tsai-card>
+          <tsai-card>
+            <h3 class="mb-2 text-sm font-semibold text-text">Dynamic</h3>
+            <p class="text-sm leading-6 text-text-2">
+              Generate one output per item in an array field, such as route
+              cases, departments, locales or model candidates.
+            </p>
+          </tsai-card>
+          <tsai-card>
+            <h3 class="mb-2 text-sm font-semibold text-text">Conditional</h3>
+            <p class="text-sm leading-6 text-text-2">
+              Reveal ports only when config requires them, keeping simple nodes
+              compact while still supporting advanced branches.
+            </p>
+          </tsai-card>
+        </div>
+      </section>
+
+      <section id="styling" class="doc-section">
+        <div class="doc-heading">
+          <span>05</span>
+          <h2>Theme and style the editor</h2>
+        </div>
+        <p class="doc-copy">
+          Styling is token-driven. Import `@tsai-pe/theme`, scan the shipped
+          Tailwind classes and override CSS variables in your product shell.
+          Board, nodes, forms and UI kit controls read the same tokens.
+        </p>
+        <pre><code [innerHTML]="highlight(stylingSnippet, 'css')"></code></pre>
+        <tsai-alert variant="info" title="Dark and light">
+          Dark is the default. Add `.light` to the document root or an app shell
+          to switch token values without replacing components.
+        </tsai-alert>
+      </section>
+
+      <section id="expressions" class="doc-section">
+        <div class="doc-heading">
+          <span>06</span>
+          <h2>Expose expressions and variables</h2>
+        </div>
+        <p class="doc-copy">
+          Expression fields can be used inside your own inspectors and side
+          panels. Provide a scope from trigger payloads, current `$json` data
+          and upstream node outputs so users get autocomplete for valid
+          references.
+        </p>
+        <pre><code [innerHTML]="highlight(expressionSnippet, 'ts')"></code></pre>
+        <div class="flex flex-wrap gap-2">
+          <tsai-tag variant="accent">$json.customer.email</tsai-tag>
+          <tsai-tag>$trigger.body.email</tsai-tag>
+          <tsai-tag>$node["Score Lead"].segment</tsai-tag>
+        </div>
+      </section>
+
+      <section id="backend" class="doc-section">
+        <div class="doc-heading">
+          <span>07</span>
           <h2>Connect execution and persistence</h2>
         </div>
         <p class="doc-copy">
@@ -179,7 +263,7 @@
           WebSocket, SSE or local prototypes.
         </p>
         <div class="grid gap-4 lg:grid-cols-[minmax(0,1fr)_320px]">
-          <pre><code>{{ backendSnippet }}</code></pre>
+          <pre><code [innerHTML]="highlight(backendSnippet, 'ts')"></code></pre>
           <tsai-card>
             <div class="flex flex-col gap-4">
               <tsai-select
@@ -202,11 +286,12 @@
             </div>
           </tsai-card>
         </div>
+        <pre><code [innerHTML]="highlight(storeSnippet, 'ts')"></code></pre>
       </section>
 
       <section id="ui-kit" class="doc-section">
         <div class="doc-heading">
-          <span>05</span>
+          <span>08</span>
           <h2>Use the UI kit around the editor</h2>
         </div>
         <p class="doc-copy">
@@ -230,24 +315,6 @@
             </div>
           </tsai-card>
         </div>
-      </section>
-
-      <section id="publish" class="doc-section">
-        <div class="doc-heading">
-          <span>06</span>
-          <h2>Release and publish</h2>
-        </div>
-        <p class="doc-copy">
-          Build through Nx so package dependencies, Angular package outputs and
-          docs stay consistent. The Pages workflow publishes the playground at
-          the repository root and this documentation under `/docs/`.
-        </p>
-        <pre><code>{{ publishSnippet }}</code></pre>
-        <tsai-alert variant="success" title="Pages routing">
-          The docs app is built with `--base-href=/pipeline-editor/docs/` and
-          copied into the Pages artifact under `docs/`; playground links back to
-          it from the top navigation.
-        </tsai-alert>
       </section>
     </div>
   </div>
