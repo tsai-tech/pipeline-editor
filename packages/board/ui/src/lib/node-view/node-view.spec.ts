@@ -35,12 +35,20 @@ describe('NodeView', () => {
     expect(fixture.nativeElement.textContent).toContain('boom');
   });
 
-  it('shows the fan-out progress badge while processing', async () => {
+  it('shows the runtime buffer badge only on merge nodes', async () => {
     const fixture = TestBed.createComponent(NodeView);
-    fixture.componentRef.setInput('node', node());
-    fixture.componentRef.setInput('progress', { done: 3, total: 10 });
+    fixture.componentRef.setInput('node', node({ category: 'merge' }));
+    fixture.componentRef.setInput('buffer', { done: 3, total: 10 });
     await fixture.whenStable();
     expect(fixture.nativeElement.textContent).toContain('3/10');
+  });
+
+  it('does not show buffer fill on regular worker nodes', async () => {
+    const fixture = TestBed.createComponent(NodeView);
+    fixture.componentRef.setInput('node', node());
+    fixture.componentRef.setInput('buffer', { done: 3, total: 10 });
+    await fixture.whenStable();
+    expect(fixture.nativeElement.textContent).not.toContain('3/10');
   });
 
   it('renders a right-side branch label for control-flow outputs', async () => {

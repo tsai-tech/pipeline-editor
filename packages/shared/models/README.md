@@ -18,8 +18,9 @@ npm i @tsai-pe/models
 - **Validation** — `validatePipeline` (DAG / port-role / orphan checks; inputs
   may fan in), `hasCycle`, `reaches`.
 - **Backend contract** — `PipelineBackend` (`startRun` / `observe` / `stop`),
-  `RunSnapshot`, `NodeRun`, `RunLogEntry`, `RunStatus`. Framework-free callbacks
-  so it lives next to the model.
+  `RunSnapshot`, `NodeRun`, `EdgeRun`, `RunLogEntry`, `RunStatus`. Framework-free
+  callbacks so it lives next to the model. Backends own runtime edge activity;
+  collector nodes such as `merge` expose buffer fill through `NodeRun.buffer`.
 - **Persistence contract** — `PipelineStore` (`save` / `load` / `list` / `remove`
   / `runHistory`), `PipelineSummary`, `RunSummary`.
 

@@ -70,8 +70,8 @@ export class NodeView {
   readonly runStatus = input<NodeStatus | undefined>(undefined);
   /** Error message from the current run, shown on the node when it failed. */
   readonly runError = input<string | undefined>(undefined);
-  /** Live per-item progress (e.g. 7/10) while a run fans this node out. */
-  readonly progress = input<{ done: number; total: number } | undefined>(
+  /** Live buffer fill for collector nodes such as merge. */
+  readonly buffer = input<{ done: number; total: number } | undefined>(
     undefined,
   );
 

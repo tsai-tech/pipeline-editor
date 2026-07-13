@@ -44,6 +44,8 @@ interface RunState {
   outputs: Record<string, unknown>;
   /** For control-flow nodes: the output port id the branch resolved to. */
   selected: Record<string, string>;
+  /** Edges currently carrying work, owned by the backend simulation. */
+  activeEdges: Set<string>;
   /**
    * Which trigger is currently playing. A run may process several triggers
    * sequentially; this is the active queue item.
@@ -133,8 +135,8 @@ export interface TestBackendOptions {
   /** Clock injection (defaults to `Date.now`), handy for deterministic tests. */
   now?: () => number;
   /**
-   * If set (> 0), fan-out progress ticks 1 → N spaced by this many ms instead of
-   * jumping straight to n/n. Off by default (instant).
+   * If set (> 0), merge buffers fill 1 → N spaced by this many ms instead of
+   * jumping straight to N/N. Off by default (instant).
    */
   tickProgressMs?: number;
   /**
@@ -230,6 +232,7 @@ export class TestBackendSystem implements PipelineBackend {
       canceled: false,
       outputs: {},
       selected: {},
+      activeEdges: new Set(),
       outFan: {},
       fanItems: {},
       trigger: undefined,
@@ -291,6 +294,7 @@ export class TestBackendSystem implements PipelineBackend {
     for (const nodeRun of Object.values(run.nodes)) {
       if (nodeRun.status === 'running') nodeRun.status = 'idle';
     }
+    run.activeEdges.clear();
     this.log(run, 'Run cancellation requested.');
     this.finish(run, 'canceled');
   }
@@ -332,6 +336,7 @@ export class TestBackendSystem implements PipelineBackend {
   private resetPassState(run: RunState, pipeline: Pipeline): void {
     run.outputs = {};
     run.selected = {};
+    run.activeEdges = new Set();
     run.outFan = {};
     run.fanItems = {};
     run.attempts = {};
@@ -341,6 +346,7 @@ export class TestBackendSystem implements PipelineBackend {
       const nodeRun = run.nodes[node.id];
       nodeRun.status = 'idle';
       delete nodeRun.error;
+      delete nodeRun.buffer;
       delete nodeRun.progress;
       delete nodeRun.output;
     }
@@ -384,6 +390,7 @@ export class TestBackendSystem implements PipelineBackend {
     }
 
     nodeRun.status = 'running';
+    this.activateIncomingEdges(run, pipeline, node);
     this.log(run, `Running "${node.title}".`, node.id);
     this.emit(run);
 
@@ -424,20 +431,11 @@ export class TestBackendSystem implements PipelineBackend {
         }
         const output = this.produceOutput(run, pipeline, node, nodeRun, ctx);
 
-        // Fan-in nodes actually process their items as waves: stay `running`
-        // while the counter climbs 1 → N (each wave = one item through the
-        // segment), reaching `success` only when all N are in. `split` is the
-        // fan *source* — it emits ×N in a single pass, so it doesn't iterate.
-        const pg = nodeRun.progress;
-        if (
-          this.tickProgressMs > 0 &&
-          node.category !== 'split' &&
-          pg &&
-          pg.total > 1
-        ) {
-          pg.done = 1;
+        const buffer = nodeRun.buffer;
+        if (this.tickProgressMs > 0 && buffer && buffer.total > 1) {
+          buffer.done = 1;
           this.emit(run); // running, 1/N
-          this.runWaves(run, pipeline, order, index, nodeRun, output);
+          this.runBufferWaves(run, pipeline, order, index, nodeRun, output);
           return;
         }
 
@@ -488,6 +486,7 @@ export class TestBackendSystem implements PipelineBackend {
 
     nodeRun.status = 'error';
     nodeRun.error = message;
+    this.clearIncomingEdges(run, pipeline, node);
     this.log(run, `Node "${node.title}" failed: ${nodeRun.error}`, node.id);
     const continueOnError = node.data?.['__continueOnError'] === true;
     const fatal =
@@ -506,8 +505,8 @@ export class TestBackendSystem implements PipelineBackend {
     this.runNextNode(run, pipeline, order, index + 1);
   }
 
-  /** Advance one wave at a time (still `running`), then succeed at N/N. */
-  private runWaves(
+  /** Fill a collector buffer one item at a time, then succeed at N/N. */
+  private runBufferWaves(
     run: RunState,
     pipeline: Pipeline,
     order: BoardNode[],
@@ -516,12 +515,12 @@ export class TestBackendSystem implements PipelineBackend {
     output: unknown,
   ): void {
     if (run.canceled) return;
-    const pg = nodeRun.progress;
-    if (pg && pg.done < pg.total) {
+    const buffer = nodeRun.buffer;
+    if (buffer && buffer.done < buffer.total) {
       this.schedule(run, this.tickProgressMs, () => {
-        pg.done = Math.min(pg.total, pg.done + 1);
+        buffer.done = Math.min(buffer.total, buffer.done + 1);
         this.emit(run); // still running, done/total
-        this.runWaves(run, pipeline, order, index, nodeRun, output);
+        this.runBufferWaves(run, pipeline, order, index, nodeRun, output);
       });
       return;
     }
@@ -561,18 +560,16 @@ export class TestBackendSystem implements PipelineBackend {
     run.outFan[split.id] = total;
     run.fanItems[split.id] = items;
     splitRun.output = splitOutput;
-    splitRun.progress = { done: total, total };
     splitRun.status = 'success';
+    this.clearIncomingEdges(run, pipeline, split);
     this.recordPassOutput(run, split.id, splitOutput);
 
-    for (const node of [...segment.nodes, segment.merge]) {
-      const nr = run.nodes[node.id];
-      nr.status = 'running';
-      nr.progress = { done: 0, total };
-      delete nr.error;
-      delete nr.output;
-      this.log(run, `Running "${node.title}".`, node.id);
-    }
+    const mergeRun = run.nodes[segment.merge.id];
+    mergeRun.status = 'running';
+    mergeRun.buffer = { done: 0, total };
+    delete mergeRun.error;
+    delete mergeRun.output;
+    this.log(run, `Running "${segment.merge.title}".`, segment.merge.id);
     this.log(run, `Split → fan-out ×${total}`, split.id);
     this.emit(run);
 
@@ -584,17 +581,19 @@ export class TestBackendSystem implements PipelineBackend {
           const nr = run.nodes[node.id];
           nr.status = 'success';
           nr.output = run.outputs[node.id];
-          nr.progress = { done: total, total };
+          delete nr.buffer;
+          delete nr.progress;
           this.recordPassOutput(run, node.id, nr.output);
         }
         const mergeRun = run.nodes[segment.merge.id];
         const mergeOutput = { batch, count: batch.length };
         mergeRun.status = 'success';
-        mergeRun.progress = { done: total, total };
+        mergeRun.buffer = { done: total, total };
         mergeRun.output = mergeOutput;
         run.outputs[segment.merge.id] = mergeOutput;
         run.outFan[segment.merge.id] = 1;
         run.fanItems[segment.merge.id] = batch;
+        this.clearIncomingEdges(run, pipeline, segment.merge);
         this.recordPassOutput(run, segment.merge.id, mergeOutput);
         this.log(
           run,
@@ -640,16 +639,24 @@ export class TestBackendSystem implements PipelineBackend {
       this.schedule(run, this.tickProgressMs || this.stepDelayMs, () => {
         batch.push(item);
         const mergeRun = run.nodes[segment.merge.id];
+        this.activateIncomingEdges(run, pipeline, segment.merge);
         mergeRun.output = { batch: [...batch], count: batch.length };
-        mergeRun.progress = { done: itemIndex + 1, total };
+        mergeRun.buffer = { done: itemIndex + 1, total };
         this.emit(run);
+        this.clearIncomingEdges(run, pipeline, segment.merge);
         nextItem(itemIndex + 1);
       });
       return;
     }
 
+    const nr = run.nodes[node.id];
+    nr.status = 'running';
+    delete nr.error;
+    this.activateIncomingEdges(run, pipeline, node);
+    this.log(run, `Running "${node.title}".`, node.id);
+    this.emit(run);
+
     this.schedule(run, this.tickProgressMs || this.stepDelayMs, () => {
-      const nr = run.nodes[node.id];
       const output = this.produceFanItemOutput(
         run,
         pipeline,
@@ -665,7 +672,10 @@ export class TestBackendSystem implements PipelineBackend {
       run.fanItems[node.id] = this.outputFanItems(accumulated);
       run.outFan[node.id] = total;
       nr.output = accumulated;
-      nr.progress = { done: itemIndex + 1, total };
+      nr.status = 'success';
+      delete nr.buffer;
+      delete nr.progress;
+      this.clearIncomingEdges(run, pipeline, node);
       this.emit(run);
       this.runFanWorkerPhase(
         run,
@@ -787,6 +797,7 @@ export class TestBackendSystem implements PipelineBackend {
     output: unknown,
   ): void {
     nodeRun.status = 'success';
+    this.clearIncomingEdges(run, pipeline, order[index]);
     run.outputs[nodeRun.nodeId] = output;
     this.recordPassOutput(run, nodeRun.nodeId, output);
     // Expose the produced output on the snapshot so the editor can show it (Run
@@ -851,6 +862,28 @@ export class TestBackendSystem implements PipelineBackend {
     return selected === undefined || edge.source.portId === selected;
   }
 
+  private activateIncomingEdges(
+    run: RunState,
+    pipeline: Pipeline,
+    node: BoardNode,
+  ): void {
+    for (const edge of pipeline.edges) {
+      if (edge.target.nodeId === node.id && this.edgeActive(run, edge)) {
+        run.activeEdges.add(edge.id);
+      }
+    }
+  }
+
+  private clearIncomingEdges(
+    run: RunState,
+    pipeline: Pipeline,
+    node: BoardNode,
+  ): void {
+    for (const edge of pipeline.edges) {
+      if (edge.target.nodeId === node.id) run.activeEdges.delete(edge.id);
+    }
+  }
+
   /**
    * Evaluate a control-flow node's condition against context and pick the branch
    * it actually routes to (may throw on a bad reference → the node fails).
@@ -892,7 +925,7 @@ export class TestBackendSystem implements PipelineBackend {
    * Illustrative output for a node, threading item counts and the fan-out factor
    * through split → merge:
    * - split emits fan ×count (each item flows on separately);
-   * - nodes between split and merge run `fan` times (progress n/n, "×N" in log);
+   * - nodes between split and merge run `fan` times internally;
    * - merge buffers the fan back into one batch (fan → 1), so everything
    *   downstream runs once.
    */
@@ -919,7 +952,6 @@ export class TestBackendSystem implements PipelineBackend {
       const items = this.splitItems(node, ctx, count);
       run.outFan[node.id] = inFan * items.length;
       run.fanItems[node.id] = items;
-      nodeRun.progress = { done: items.length, total: items.length };
       this.log(run, `Split → fan-out ×${items.length}`, node.id);
       return { items, count: items.length };
     }
@@ -930,7 +962,7 @@ export class TestBackendSystem implements PipelineBackend {
         throw new Error(`Merge expected ${total} items, got ${batch.length}`);
       }
       run.outFan[node.id] = 1;
-      nodeRun.progress = { done: total, total };
+      nodeRun.buffer = { done: total, total };
       this.log(run, `Merge buffered ${total}/${total} → 1 batch`, node.id);
       return { batch, count: batch.length };
     }
@@ -938,7 +970,6 @@ export class TestBackendSystem implements PipelineBackend {
     // Normal node: it runs once per upstream item.
     run.outFan[node.id] = inFan;
     if (inFan > 1) {
-      nodeRun.progress = { done: inFan, total: inFan };
       this.log(run, `"${node.title}" ×${inFan}`, node.id);
     }
     if (node.kind === 'effect') return this.effectOutput(node, ctx);
@@ -1547,6 +1578,12 @@ export class TestBackendSystem implements PipelineBackend {
       runId: run.runId,
       status: run.status,
       nodes,
+      edges: Object.fromEntries(
+        [...run.activeEdges].map((edgeId) => [
+          edgeId,
+          { edgeId, status: 'active' as const },
+        ]),
+      ),
       log: run.log.map((entry) => ({ ...entry })),
       passes: run.passes.map((pass) => ({
         trigger: pass.trigger ? { ...pass.trigger } : undefined,

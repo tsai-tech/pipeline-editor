@@ -75,6 +75,14 @@ backend, подключенном через backend contract.
   - Done: side effects остаются mock/playground-only extension outside
     `PipelineBackend`; `@tsai-pe/board` остается только observer/editor.
 
+- [x] Убрать публичную segment-модель из split -> worker -> merge runtime.
+  Split и worker-ноды больше не получают общий `progress`/бейджи; worker просто
+  активен, пока backend выполняет одну или несколько item-операций. Collector
+  state показывается только на `merge` через `NodeRun.buffer`.
+  - Done: активность связей теперь backend-owned (`RunSnapshot.edges`), mock
+    simulation отдает ее явно, а board больше не вычисляет active edges по
+    эвристике `source success -> target running`.
+
 ## Что уже соответствует
 
 - Nx dependency graph подтверждает ключевую границу: `board/*` не импортирует

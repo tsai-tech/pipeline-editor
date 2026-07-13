@@ -113,6 +113,18 @@ describe('resolveTemplate', () => {
     ).toBe('Hi Ann!');
   });
 
+  it('interpolates multiple islands even when the string starts with an island', () => {
+    expect(
+      resolveTemplate(
+        '{{ $json.count }} generated images for {{ $trigger.title }}',
+        {
+          json: { count: 2 },
+          trigger: { title: 'Telegram' },
+        },
+      ),
+    ).toBe('2 generated images for Telegram');
+  });
+
   it('passes plain text through untouched', () => {
     expect(resolveTemplate('just text', ctx(undefined))).toBe('just text');
   });

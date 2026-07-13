@@ -11,8 +11,9 @@ real backend**. Not published to npm (dev/reference).
   `RunSnapshot`s as nodes transition. It actually **evaluates the expression
   language** (`$json` / `$node["…"]`, operators, `{{ }}`), so control-flow routes
   for real, transforms extract from context, and a bad reference fails the node.
-  Models one firing trigger per run (round-robin), split→merge fan-out as running
-  waves, optional/fatal failures. Options: `stepDelayMs`, `tickProgressMs`,
+  Models one firing trigger per run (round-robin), split→merge fan-out internally
+  while exposing normal node status, backend-owned edge activity and merge buffer
+  fill, plus optional/fatal failures. Options: `stepDelayMs`, `tickProgressMs`,
   `firingTrigger`, `failNode`, `now`.
 - **`InMemoryPipelineStore`** — an in-memory `PipelineStore` (save/load/list/
   remove + run history), deep-cloning stored documents.

@@ -78,11 +78,16 @@ describe('RestWsBackend', () => {
       runId: 'srv1',
       status: 'running',
       nodes: { a: { nodeId: 'a', status: 'running' } },
+      edges: { e1: { edgeId: 'e1', status: 'active' } },
       log: [],
     });
     expect(last(seen).status).toBe('running');
     expect(last(seen).runId).toBe(runId); // relabeled from srv1 → local id
     expect(last(seen).nodes['a'].status).toBe('running');
+    expect(last(seen).edges?.['e1']).toEqual({
+      edgeId: 'e1',
+      status: 'active',
+    });
   });
 
   it('parses stringified JSON stream messages', async () => {

@@ -20,8 +20,16 @@ export interface NodeRun {
   /** Illustrative output the node produced (backend-defined shape). */
   output?: unknown;
   error?: string;
-  /** For split/merge — items processed so far (e.g. 3 of 10). */
+  /** Buffer fill state for collector nodes such as `merge`. */
+  buffer?: { done: number; total: number };
+  /** @deprecated Use backend-defined `buffer` on collector nodes instead. */
   progress?: { done: number; total: number };
+}
+
+/** Per-edge runtime state. Only backend/simulation decides whether an edge is active. */
+export interface EdgeRun {
+  edgeId: string;
+  status: 'idle' | 'active';
 }
 
 /** Runtime metadata about the trigger event currently driving a node/run pass. */
@@ -57,6 +65,8 @@ export interface RunSnapshot {
   runId: string;
   status: RunStatus;
   nodes: Record<string, NodeRun>;
+  /** Runtime edge activity, keyed by edge id. Omitted edges are idle. */
+  edges?: Record<string, EdgeRun>;
   log: RunLogEntry[];
   /** Per-trigger-pass outputs, useful for inspecting multi-trigger runs. */
   passes?: RunPassSnapshot[];

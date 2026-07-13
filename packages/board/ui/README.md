@@ -19,7 +19,7 @@ Peer deps: `@angular/core` ^21, `@tsai-pe/board-core`, `@tsai-pe/models`,
 - **`BoardGrid`** (`pe-board-grid`) — infinite dot-grid background that tracks the
   viewport.
 - **`NodeView`** (`pe-node`) — one node: ports distributed by side fraction,
-  control-flow branch labels, run status / progress overlays.
+  control-flow branch labels, run status overlays, merge buffer fill.
 - **`NODE_META`** / `CONTROL_FLOW_ICONS` — icon + accent metadata per node type.
 
 Styling comes from [`@tsai-pe/theme`](../../shared/theme).

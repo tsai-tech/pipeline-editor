@@ -160,7 +160,9 @@ export class RestWsBackend implements PipelineBackend {
       runId: localId, // relabel: callers only know the local id
       status: raw.status,
       nodes: raw.nodes ?? {},
+      edges: raw.edges,
       log: raw.log ?? [],
+      passes: raw.passes,
     };
   }
 

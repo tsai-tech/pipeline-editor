@@ -602,8 +602,10 @@ describe('TestBackendSystem — failures', () => {
       prompt: 'Plan: Draw 1 cat and 2 elephants',
       count: 3,
     });
-    expect(snap.nodes['split'].progress).toEqual({ done: 3, total: 3 });
-    expect(snap.nodes['image'].progress).toEqual({ done: 3, total: 3 });
+    expect(snap.nodes['split'].progress).toBeUndefined();
+    expect(snap.nodes['split'].buffer).toBeUndefined();
+    expect(snap.nodes['image'].progress).toBeUndefined();
+    expect(snap.nodes['image'].buffer).toBeUndefined();
     expect(snap.nodes['image'].output).toMatchObject({
       count: 3,
       images: [
@@ -639,7 +641,7 @@ describe('TestBackendSystem — failures', () => {
         expect.objectContaining({ prompt: 'Elephant safari 2' }),
       ],
     });
-    expect(snap.nodes['merge'].progress).toEqual({ done: 3, total: 3 });
+    expect(snap.nodes['merge'].buffer).toEqual({ done: 3, total: 3 });
     expect(dialog?.body).toBe('3 generated images');
     expect(dialog?.images).toHaveLength(3);
     expect(dialog?.images?.[0]).toMatchObject({
@@ -1262,6 +1264,49 @@ describe('TestBackendSystem — smart evaluation', () => {
     ]);
   });
 
+  it('resolves image preview imageUrl and caption expressions from upstream output', async () => {
+    const image: BoardNode = {
+      ...action('image', 'integration'),
+      type: 'image-gen',
+      title: 'Image Generator',
+      data: { prompt: '{{ $json.message }}' },
+    };
+    const preview: BoardNode = {
+      ...effect('preview'),
+      type: 'image-preview',
+      title: 'Image Preview',
+      data: {
+        title: 'Generated preview',
+        imageUrl: '{{ $node["Image Generator"].imageUrl }}',
+        caption: 'Prompt: {{ $node["Image Generator"].prompt }}',
+      },
+    };
+    const sys = fast();
+    const events: {
+      imageUrl?: string;
+      body?: string;
+    }[] = [];
+    sys.observeSideEffects((event) => {
+      if (event.kind === 'dialog') events.push(event);
+    });
+
+    const snap = await runToEnd(
+      sys,
+      pipeline(
+        [{ ...trigger('tg'), type: 'telegram-trigger' }, image, preview],
+        [edge('tg', 'image'), edge('image', 'preview')],
+      ),
+    );
+
+    expect(snap.status).toBe('success');
+    expect(snap.nodes['preview'].status).toBe('success');
+    expect(snap.nodes['preview'].error).toBeUndefined();
+    expect(events[0]).toMatchObject({
+      body: 'Prompt: Hello from Telegram',
+    });
+    expect(events[0]?.imageUrl).toMatch(/^data:image\/png;base64,/);
+  });
+
   it('emits download side effects from download file nodes', async () => {
     const dl: BoardNode = {
       ...effect('download'),
@@ -1310,8 +1355,12 @@ describe('TestBackendSystem — split/merge fan-out', () => {
     );
     const snap = await runToEnd(fast(), p);
     expect(snap.status).toBe('success');
-    // trigger emits count:10 → split fans out ×10 → work runs 10×
-    expect(snap.nodes['work'].progress).toEqual({ done: 10, total: 10 });
+    // trigger emits count:10 → split fans out ×10 internally, while only merge
+    // exposes buffer fill as runtime UI state.
+    expect(snap.nodes['split'].progress).toBeUndefined();
+    expect(snap.nodes['work'].progress).toBeUndefined();
+    expect(snap.nodes['work'].buffer).toBeUndefined();
+    expect(snap.nodes['merge'].buffer).toEqual({ done: 10, total: 10 });
     // merge collapses the fan back to a single batch downstream
     expect(snap.log.some((l) => /fan-out ×10/i.test(l.message))).toBe(true);
     expect(snap.log.some((l) => /Merge buffered 10\/10/i.test(l.message))).toBe(
@@ -1342,8 +1391,10 @@ describe('TestBackendSystem — fan-out waves', () => {
     );
     const states: {
       splitStatus?: string;
-      img?: number;
+      imgStatus?: string;
+      imgProgress?: number;
       merge?: number;
+      activeEdges?: string[];
     }[] = [];
     await new Promise<void>((resolve) => {
       let unsub: () => void = () => undefined;
@@ -1351,8 +1402,10 @@ describe('TestBackendSystem — fan-out waves', () => {
       unsub = sys.observe(id, (s) => {
         states.push({
           splitStatus: s.nodes['split']?.status,
-          img: s.nodes['img']?.progress?.done,
-          merge: s.nodes['merge']?.progress?.done,
+          imgStatus: s.nodes['img']?.status,
+          imgProgress: s.nodes['img']?.progress?.done,
+          merge: s.nodes['merge']?.buffer?.done,
+          activeEdges: Object.keys(s.edges ?? {}),
         });
         if (s.status === 'success' || s.status === 'error') {
           unsub();
@@ -1362,8 +1415,12 @@ describe('TestBackendSystem — fan-out waves', () => {
     });
 
     expect(states.some((s) => s.splitStatus === 'success')).toBe(true);
-    expect(states.some((s) => s.img === 1)).toBe(true);
+    expect(states.some((s) => s.imgStatus === 'running')).toBe(true);
+    expect(states.every((s) => s.imgProgress === undefined)).toBe(true);
     expect(states.some((s) => s.merge === 1)).toBe(true);
+    expect(
+      states.some((s) => s.activeEdges?.includes('e-split.out-right-img')),
+    ).toBe(true);
   });
 
   it('queues split items, then moves them through worker and merge one at a time', async () => {
@@ -1388,9 +1445,11 @@ describe('TestBackendSystem — fan-out waves', () => {
       ],
     );
     const states: {
-      split?: number;
-      img?: number;
+      splitProgress?: number;
+      imgProgress?: number;
+      imgStatus?: string;
       merge?: number;
+      activeEdges?: string[];
       doneStatus?: string;
     }[] = [];
     await new Promise<void>((resolve) => {
@@ -1398,9 +1457,11 @@ describe('TestBackendSystem — fan-out waves', () => {
       const id = sys.startRun(p);
       unsub = sys.observe(id, (s) => {
         states.push({
-          split: s.nodes['split']?.progress?.done,
-          img: s.nodes['img']?.progress?.done,
-          merge: s.nodes['merge']?.progress?.done,
+          splitProgress: s.nodes['split']?.progress?.done,
+          imgProgress: s.nodes['img']?.progress?.done,
+          imgStatus: s.nodes['img']?.status,
+          merge: s.nodes['merge']?.buffer?.done,
+          activeEdges: Object.keys(s.edges ?? {}),
           doneStatus: s.nodes['done']?.status,
         });
         if (s.status === 'success' || s.status === 'error') {
@@ -1409,23 +1470,18 @@ describe('TestBackendSystem — fan-out waves', () => {
         }
       });
     });
+    expect(states.every((s) => s.splitProgress === undefined)).toBe(true);
+    expect(states.every((s) => s.imgProgress === undefined)).toBe(true);
+    expect(states.some((s) => s.imgStatus === 'running')).toBe(true);
+    expect(states.some((s) => s.merge === 0)).toBe(true);
+    expect(states.some((s) => s.merge === 1)).toBe(true);
+    expect(states.some((s) => s.merge === 2)).toBe(true);
+    expect(states.some((s) => s.merge === 10)).toBe(true);
     expect(
-      states.some((s) => s.split === 10 && s.img === 0 && s.merge === 0),
+      states.some((s) => s.activeEdges?.includes('e-split.out-right-img')),
     ).toBe(true);
     expect(
-      states.some((s) => s.split === 10 && s.img === 1 && s.merge === 0),
-    ).toBe(true);
-    expect(
-      states.some((s) => s.split === 10 && s.img === 1 && s.merge === 1),
-    ).toBe(true);
-    expect(
-      states.some((s) => s.split === 10 && s.img === 2 && s.merge === 1),
-    ).toBe(true);
-    expect(
-      states.some((s) => s.split === 10 && s.img === 2 && s.merge === 2),
-    ).toBe(true);
-    expect(
-      states.some((s) => s.split === 10 && s.img === 10 && s.merge === 10),
+      states.some((s) => s.activeEdges?.includes('e-img.out-right-merge')),
     ).toBe(true);
     expect(
       states.some(
@@ -1437,8 +1493,8 @@ describe('TestBackendSystem — fan-out waves', () => {
   });
 });
 
-describe('TestBackendSystem — ticking progress', () => {
-  it('ticks fan-out progress 1 → N when tickProgressMs is set', async () => {
+describe('TestBackendSystem — ticking buffers', () => {
+  it('ticks merge buffer 1 → N when tickProgressMs is set', async () => {
     const sys = new TestBackendSystem({ stepDelayMs: 0, tickProgressMs: 1 });
     const p = pipeline(
       [
@@ -1449,15 +1505,15 @@ describe('TestBackendSystem — ticking progress', () => {
       ],
       [edge('t', 'split'), edge('split', 'work'), edge('work', 'merge')],
     );
-    // Capture the "work" node's done value at each emit (progress is mutated in
+    // Capture the merge buffer's done value at each emit (buffer is mutated in
     // place, so read the primitive synchronously rather than the object later).
     const doneSeq: number[] = [];
     await new Promise<void>((resolve) => {
       let unsub: () => void = () => undefined;
       const runId = sys.startRun(p);
       unsub = sys.observe(runId, (snap) => {
-        const pg = snap.nodes['work']?.progress;
-        if (pg) doneSeq.push(pg.done);
+        const buffer = snap.nodes['merge']?.buffer;
+        if (buffer) doneSeq.push(buffer.done);
         if (snap.status === 'success' || snap.status === 'error') {
           unsub();
           resolve();

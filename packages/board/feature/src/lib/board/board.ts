@@ -476,15 +476,15 @@ export class Board {
     for (const [id, nr] of Object.entries(r.nodes)) map[id] = nr.status;
     return map;
   });
-  /** Per-node fan-out progress (e.g. 7/10) during a run. */
-  protected readonly runProgress = computed<
+  /** Per-node collector buffer fill, shown only on buffer/merge nodes. */
+  protected readonly runBuffers = computed<
     Record<string, { done: number; total: number }>
   >(() => {
     const r = this.run();
     if (!r) return {};
     const map: Record<string, { done: number; total: number }> = {};
     for (const [id, nr] of Object.entries(r.nodes)) {
-      if (nr.progress) map[id] = nr.progress;
+      if (nr.buffer) map[id] = nr.buffer;
     }
     return map;
   });
@@ -498,17 +498,12 @@ export class Board {
     }
     return map;
   });
-  /** Edges whose data is currently in transit (source done → target running). */
+  /** Edges whose data is currently in transit, as reported by the backend. */
   protected readonly activeEdgeIds = computed<ReadonlySet<string>>(() => {
-    const rs = this.runStatuses();
+    const edges = this.run()?.edges;
     const ids = new Set<string>();
-    for (const e of this.store.edges()) {
-      if (
-        rs[e.source.nodeId] === 'success' &&
-        rs[e.target.nodeId] === 'running'
-      ) {
-        ids.add(e.id);
-      }
+    for (const [id, edge] of Object.entries(edges ?? {})) {
+      if (edge.status === 'active') ids.add(id);
     }
     return ids;
   });

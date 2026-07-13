@@ -194,7 +194,7 @@
       [resizable]="!readonly()"
       [runStatus]="runStatuses()[node.id]"
       [runError]="runErrors()[node.id]"
-      [progress]="runProgress()[node.id]"
+      [buffer]="runBuffers()[node.id]"
       [targetPort]="
         snapTarget()?.nodeId === node.id ? snapTarget()!.portId : null
       "

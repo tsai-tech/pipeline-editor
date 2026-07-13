@@ -58,12 +58,15 @@ export function tryEvaluate(src: string, ctx: EvalContext): unknown {
  * text.
  */
 export function resolveTemplate(text: string, ctx: EvalContext): unknown {
-  const single = text.trim().match(/^\{\{([\s\S]*)\}\}$/);
-  if (single) return evaluateExpression(single[1], ctx);
+  const trimmed = text.trim();
+  if (trimmed.startsWith('{{')) {
+    const end = findTemplateEnd(trimmed, 2);
+    if (end === trimmed.length - 2) {
+      return evaluateExpression(trimmed.slice(2, end), ctx);
+    }
+  }
   if (!text.includes('{{')) return text;
-  return text.replace(/\{\{([\s\S]*?)\}\}/g, (_, code: string) =>
-    stringify(evaluateExpression(code, ctx)),
-  );
+  return interpolateTemplate(text, ctx);
 }
 
 /**
@@ -90,6 +93,50 @@ export function looseEquals(a: unknown, b: unknown): boolean {
   if (typeof a === typeof b) return a === b;
   if (a == null || b == null) return a === b;
   return stringify(a) === stringify(b);
+}
+
+function interpolateTemplate(text: string, ctx: EvalContext): string {
+  let out = '';
+  let i = 0;
+  while (i < text.length) {
+    const start = text.indexOf('{{', i);
+    if (start < 0) return out + text.slice(i);
+    out += text.slice(i, start);
+    const end = findTemplateEnd(text, start + 2);
+    if (end < 0) {
+      out += text.slice(start);
+      return out;
+    }
+    out += stringify(evaluateExpression(text.slice(start + 2, end), ctx));
+    i = end + 2;
+  }
+  return out;
+}
+
+function findTemplateEnd(text: string, from: number): number {
+  let quote: '"' | "'" | null = null;
+  let escaped = false;
+  for (let i = from; i < text.length - 1; i++) {
+    const ch = text[i];
+    if (escaped) {
+      escaped = false;
+      continue;
+    }
+    if (quote) {
+      if (ch === '\\') {
+        escaped = true;
+      } else if (ch === quote) {
+        quote = null;
+      }
+      continue;
+    }
+    if (ch === '"' || ch === "'") {
+      quote = ch;
+      continue;
+    }
+    if (ch === '}' && text[i + 1] === '}') return i;
+  }
+  return -1;
 }
 
 // ── tokenizer ───────────────────────────────────────────────────────────────

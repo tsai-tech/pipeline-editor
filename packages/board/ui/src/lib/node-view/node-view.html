@@ -72,14 +72,16 @@
   >
 }
 
-@if (progress(); as pg) {
-  @if (pg.total > 1) {
+@if (node().kind === 'action' && node().category === 'merge') {
+  @if (buffer(); as b) {
+    @if (b.total > 1) {
     <span
       class="absolute -top-2 left-2 grid place-items-center px-1.5 h-4 rounded-full text-[10px] font-semibold text-white bg-[var(--info)] border border-[var(--surface-2)]"
-      title="items processed"
+      title="buffer fill"
     >
-      {{ pg.done }}/{{ pg.total }}
+      {{ b.done }}/{{ b.total }}
     </span>
+    }
   }
 }
 
