@@ -1351,7 +1351,7 @@ export class Board {
   });
 
   protected json(value: unknown): string {
-    return JSON.stringify(value, null, 2);
+    return JSON.stringify(displaySafeValue(value), null, 2);
   }
 
   /** `HH:MM:SS.mmm` timestamp for a log entry. */
@@ -1949,4 +1949,84 @@ export class Board {
       .map((w) => w[0].toUpperCase() + w.slice(1))
       .join(' ');
   }
+}
+
+const DISPLAY_DATA_URL_RE = /^data:([^;,]+)?(?:;[^,]*)?,/i;
+const DISPLAY_MAX_DEPTH = 5;
+const DISPLAY_MAX_ARRAY = 20;
+const DISPLAY_MAX_KEYS = 80;
+const DISPLAY_MAX_STRING = 240;
+
+function displaySafeValue(value: unknown): unknown {
+  return displaySafeWalk(value, '$', 0, new WeakSet<object>());
+}
+
+function displaySafeWalk(
+  value: unknown,
+  path: string,
+  depth: number,
+  seen: WeakSet<object>,
+): unknown {
+  if (typeof value === 'string') return displaySafeString(value, path);
+  if (value === null || typeof value !== 'object') return value;
+  if (seen.has(value)) return '[Circular]';
+  if (depth >= DISPLAY_MAX_DEPTH) return Array.isArray(value) ? '[Array]' : '[Object]';
+
+  seen.add(value);
+  if (Array.isArray(value)) {
+    const items = value
+      .slice(0, DISPLAY_MAX_ARRAY)
+      .map((item, index) =>
+        displaySafeWalk(item, `${path}[${index}]`, depth + 1, seen),
+      );
+    if (value.length > DISPLAY_MAX_ARRAY) {
+      items.push(`[+${value.length - DISPLAY_MAX_ARRAY} more]`);
+    }
+    return items;
+  }
+
+  const out: Record<string, unknown> = {};
+  const entries = Object.entries(value as Record<string, unknown>);
+  for (const [key, child] of entries.slice(0, DISPLAY_MAX_KEYS)) {
+    out[key] = displaySafeWalk(child, `${path}.${key}`, depth + 1, seen);
+  }
+  if (entries.length > DISPLAY_MAX_KEYS) {
+    out['...'] = `[+${entries.length - DISPLAY_MAX_KEYS} more keys]`;
+  }
+  return out;
+}
+
+function displaySafeString(value: string, path: string): string {
+  const data = displayDataLabel(value, path);
+  if (data) return data;
+  return value.length > DISPLAY_MAX_STRING
+    ? `${value.slice(0, DISPLAY_MAX_STRING)}...`
+    : value;
+}
+
+function displayDataLabel(value: string, path: string): string | null {
+  const match = DISPLAY_DATA_URL_RE.exec(value);
+  if (!match) return null;
+  const mime = (match[1] || 'application/octet-stream').toLowerCase();
+  const kind = mime.startsWith('image/')
+    ? 'image'
+    : mime.startsWith('video/')
+      ? 'video'
+      : mime.startsWith('audio/')
+        ? 'audio'
+        : 'data';
+  return `[${kind}#${displayIndex(path)} - ${mime} - ${displayByteLabel(value.length)}]`;
+}
+
+function displayIndex(path: string): number {
+  const matches = [...path.matchAll(/\[(\d+)\]/g)];
+  const last = matches[matches.length - 1]?.[1];
+  return last === undefined ? 1 : Number(last) + 1;
+}
+
+function displayByteLabel(chars: number): string {
+  const bytes = Math.max(0, Math.floor((chars * 3) / 4));
+  if (bytes >= 1024 * 1024) return `${(bytes / 1024 / 1024).toFixed(1)} MB`;
+  if (bytes >= 1024) return `${Math.round(bytes / 1024)} KB`;
+  return `${bytes} B`;
 }

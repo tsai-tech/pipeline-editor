@@ -214,7 +214,7 @@ const CAT_PIPELINE: Pipeline = {
       kind: 'action',
       category: 'merge',
       title: 'Merge Renders',
-      subtitle: 'buffer ×30 → batch',
+      subtitle: 'buffer ×N → batch',
       pos: { col: 65, row: 2 },
       size: SIZE,
       data: {

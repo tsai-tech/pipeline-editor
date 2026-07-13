@@ -75,6 +75,15 @@ export class NodeView {
     undefined,
   );
 
+  protected readonly bufferSizeLabel = computed(() => {
+    const total = this.buffer()?.total;
+    if (typeof total === 'number' && Number.isFinite(total)) return String(total);
+    const configured = this.node().bufferSize;
+    return typeof configured === 'number' && Number.isFinite(configured)
+      ? String(configured)
+      : 'N';
+  });
+
   /** Pointer went down on the node body (select / start move). */
   readonly bodyPointerDown = output<PointerEvent>();
   /** Pointer went down on a port (start drawing a connection from an output). */

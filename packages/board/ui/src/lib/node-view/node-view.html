@@ -25,7 +25,7 @@
   @if (node().kind === 'action' && node().category === 'merge') {
     <span
       class="ml-auto shrink-0 px-[7px] py-0.5 text-[0.625rem] font-semibold rounded-full text-[var(--node-accent)] bg-[color-mix(in_srgb,var(--node-accent)_14%,transparent)]"
-      >buffer ×{{ node().bufferSize ?? '?' }}</span
+      >buffer ×{{ bufferSizeLabel() }}</span
     >
   } @else if (node().kind === 'effect') {
     <span

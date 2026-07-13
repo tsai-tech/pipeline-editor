@@ -42,4 +42,26 @@ describe('JsonView', () => {
 
     expect(fixture.nativeElement.textContent).toContain('[]');
   });
+
+  it('renders data URLs as compact media placeholders', async () => {
+    const fixture = TestBed.createComponent(JsonView);
+    const image = `data:image/png;base64,${'a'.repeat(4096)}`;
+    fixture.componentRef.setInput('data', { images: [{ imageUrl: image }] });
+    fixture.componentRef.setInput('autoExpandDepth', 3);
+    await fixture.whenStable();
+
+    expect(fixture.nativeElement.textContent).toContain('image#1');
+    expect(fixture.nativeElement.textContent).not.toContain('aaaa');
+  });
+
+  it('renders unknown data URLs as data placeholders', async () => {
+    const fixture = TestBed.createComponent(JsonView);
+    fixture.componentRef.setInput('data', {
+      file: `data:application/octet-stream;base64,${'a'.repeat(4096)}`,
+    });
+    await fixture.whenStable();
+
+    expect(fixture.nativeElement.textContent).toContain('data#1');
+    expect(fixture.nativeElement.textContent).not.toContain('aaaa');
+  });
 });

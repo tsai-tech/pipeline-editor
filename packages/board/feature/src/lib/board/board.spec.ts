@@ -44,4 +44,16 @@ describe('Board', () => {
     // but always-available tools are
     expect(fixture.nativeElement.textContent).toContain('Export');
   });
+
+  it('formats run data without embedding raw data URLs', () => {
+    const fixture = TestBed.createComponent(Board);
+    const json = (fixture.componentInstance as unknown as {
+      json(value: unknown): string;
+    }).json({
+      images: [{ imageUrl: `data:image/png;base64,${'a'.repeat(4096)}` }],
+    });
+
+    expect(json).toContain('image#1');
+    expect(json).not.toContain('aaaa');
+  });
 });

@@ -365,8 +365,14 @@ export const MOCK_NODE_SPECS: NodeTypeSpec[] = [
       { key: 'prompt', label: 'Prompt', type: 'expression' },
     ]),
     outputExample: {
-      imageUrl: 'https://example.test/cat.png',
       prompt: 'A playful orange cat in watercolor',
+      images: [
+        {
+          imageUrl: 'https://example.test/cat.png',
+          prompt: 'A playful orange cat in watercolor',
+        },
+      ],
+      count: 1,
     },
   },
   {

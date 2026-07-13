@@ -15,6 +15,12 @@ interface JsonEntry {
   value: unknown;
   container: boolean;
   variant: 'json' | 'neutral';
+  display: DisplayValue;
+}
+
+interface DisplayValue {
+  text: string;
+  mediaUrl?: string;
 }
 
 /**
@@ -72,9 +78,20 @@ interface JsonEntry {
                   summary(entry.value)
                 }}</span>
               } @else {
+                @if (entry.display.mediaUrl) {
+                <button
+                  type="button"
+                  class="min-w-0 truncate rounded-sm text-left text-info underline decoration-dotted underline-offset-2 hover:text-info"
+                  [attr.title]="entry.display.text"
+                  (click)="openMedia(entry.display.mediaUrl, $event)"
+                >
+                  {{ entry.display.text }}
+                </button>
+                } @else {
                 <span [class]="valueClasses(entry.value)">
-                  {{ formatValue(entry.value) }}
+                  {{ entry.display.text }}
                 </span>
+                }
               }
             </div>
 
@@ -93,7 +110,18 @@ interface JsonEntry {
         }
       </div>
     } @else {
-      <span [class]="valueClasses(data())">{{ formatValue(data()) }}</span>
+      @if (displayRoot().mediaUrl) {
+        <button
+          type="button"
+          class="min-w-0 truncate rounded-sm text-left text-info underline decoration-dotted underline-offset-2 hover:text-info"
+          [attr.title]="displayRoot().text"
+          (click)="openMedia(displayRoot().mediaUrl, $event)"
+        >
+          {{ displayRoot().text }}
+        </button>
+      } @else {
+        <span [class]="valueClasses(data())">{{ displayRoot().text }}</span>
+      }
     }
   </div>`,
 })
@@ -115,6 +143,7 @@ export class JsonView {
         value: item,
         container: isContainer(item),
         variant: 'neutral',
+        display: displayValue(item, `${this.root()}[${index}]`),
       }));
     }
 
@@ -126,8 +155,13 @@ export class JsonView {
       value: value[key],
       container: isContainer(value[key]),
       variant: this.root() === '$json' ? 'json' : 'neutral',
+      display: displayValue(value[key], `${this.root()}${accessor(key)}`),
     }));
   });
+
+  protected readonly displayRoot = computed(() =>
+    displayValue(this.data(), this.root()),
+  );
 
   protected isExpanded(path: string): boolean {
     return this.collapsed()[path] ?? this.autoExpandDepth() > 0;
@@ -146,13 +180,10 @@ export class JsonView {
     return '';
   }
 
-  protected formatValue(value: unknown): string {
-    if (typeof value === 'string') return `"${value}"`;
-    if (Array.isArray(value))
-      return value.length ? `Array(${value.length})` : '[]';
-    if (isRecord(value)) return Object.keys(value).length ? '{…}' : '{}';
-    if (value === null) return 'null';
-    return String(value);
+  protected openMedia(url: string | undefined, event: MouseEvent): void {
+    event.stopPropagation();
+    if (!url) return;
+    globalThis.open?.(url, '_blank', 'noopener,noreferrer');
   }
 
   protected valueClasses(value: unknown): string {
@@ -171,6 +202,51 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 
 function isContainer(value: unknown): boolean {
   return Array.isArray(value) || isRecord(value);
+}
+
+const DATA_URL_RE = /^data:([^;,]+)?(?:;[^,]*)?,/i;
+const MAX_STRING = 160;
+
+function displayValue(value: unknown, path: string): DisplayValue {
+  if (typeof value === 'string') {
+    const media = dataUrlInfo(value, path);
+    if (media) return { text: media, mediaUrl: value };
+    const text =
+      value.length > MAX_STRING ? `${value.slice(0, MAX_STRING)}…` : value;
+    return { text: `"${text}"` };
+  }
+  if (Array.isArray(value))
+    return { text: value.length ? `Array(${value.length})` : '[]' };
+  if (isRecord(value)) return { text: Object.keys(value).length ? '{…}' : '{}' };
+  if (value === null) return { text: 'null' };
+  return { text: String(value) };
+}
+
+function dataUrlInfo(value: string, path: string): string | null {
+  const match = DATA_URL_RE.exec(value);
+  if (!match) return null;
+  const mime = (match[1] || 'application/octet-stream').toLowerCase();
+  const type = mime.startsWith('image/')
+    ? 'image'
+    : mime.startsWith('video/')
+      ? 'video'
+      : mime.startsWith('audio/')
+        ? 'audio'
+        : 'data';
+  return `${type}#${indexLabel(path)} - ${mime} - ${byteLabel(value.length)}`;
+}
+
+function indexLabel(path: string): number {
+  const indexes = [...path.matchAll(/\[(\d+)\]/g)];
+  const last = indexes[indexes.length - 1]?.[1];
+  return last === undefined ? 1 : Number(last) + 1;
+}
+
+function byteLabel(chars: number): string {
+  const bytes = Math.max(0, Math.floor((chars * 3) / 4));
+  if (bytes >= 1024 * 1024) return `${(bytes / 1024 / 1024).toFixed(1)} MB`;
+  if (bytes >= 1024) return `${Math.round(bytes / 1024)} KB`;
+  return `${bytes} B`;
 }
 
 function accessor(key: string): string {

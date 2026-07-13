@@ -754,7 +754,6 @@ export class TestBackendSystem implements PipelineBackend {
       return {
         ...previous,
         prompt: (item as Record<string, unknown>)['prompt'],
-        imageUrl: (item as Record<string, unknown>)['imageUrl'],
         images: [...images, item],
         count: images.length + 1,
       };
@@ -1061,7 +1060,6 @@ export class TestBackendSystem implements PipelineBackend {
     return {
       model,
       prompt: firstPrompt,
-      imageUrl: images[0]?.imageUrl ?? mockPromptPng(firstPrompt),
       images,
       count: images.length,
     };

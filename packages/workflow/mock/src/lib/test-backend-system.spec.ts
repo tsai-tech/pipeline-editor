@@ -622,16 +622,17 @@ describe('TestBackendSystem — failures', () => {
       ).images.map((img) => img.prompt),
     ).toEqual(['Cat portrait', 'Elephant safari 1', 'Elephant safari 2']);
     const imageOutput = snap.nodes['image'].output as {
-      imageUrl: string;
       images: { imageUrl: string }[];
     };
-    expect(imageOutput.imageUrl).toMatch(/^data:image\/png;base64,/);
+    expect(
+      (snap.nodes['image'].output as Record<string, unknown>)['imageUrl'],
+    ).toBeUndefined();
     expect(imageOutput.images[0]?.imageUrl).toMatch(/^data:image\/png;base64,/);
     expect(
-      Buffer.from(imageOutput.imageUrl.split(',')[1] ?? '', 'base64').subarray(
-        0,
-        8,
-      ),
+      Buffer.from(
+        (imageOutput.images[0]?.imageUrl ?? '').split(',')[1] ?? '',
+        'base64',
+      ).subarray(0, 8),
     ).toEqual(Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]));
     expect(snap.nodes['merge'].output).toMatchObject({
       count: 3,
@@ -1277,7 +1278,7 @@ describe('TestBackendSystem — smart evaluation', () => {
       title: 'Image Preview',
       data: {
         title: 'Generated preview',
-        imageUrl: '{{ $node["Image Generator"].imageUrl }}',
+        imageUrl: '{{ $node["Image Generator"].images[0].imageUrl }}',
         caption: 'Prompt: {{ $node["Image Generator"].prompt }}',
       },
     };

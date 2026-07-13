@@ -41,6 +41,14 @@ describe('NodeView', () => {
     fixture.componentRef.setInput('buffer', { done: 3, total: 10 });
     await fixture.whenStable();
     expect(fixture.nativeElement.textContent).toContain('3/10');
+    expect(fixture.nativeElement.textContent).toContain('buffer ×10');
+  });
+
+  it('shows N for an unknown merge buffer size before runtime', async () => {
+    const fixture = TestBed.createComponent(NodeView);
+    fixture.componentRef.setInput('node', node({ category: 'merge' }));
+    await fixture.whenStable();
+    expect(fixture.nativeElement.textContent).toContain('buffer ×N');
   });
 
   it('does not show buffer fill on regular worker nodes', async () => {
