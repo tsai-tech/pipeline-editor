@@ -14,14 +14,16 @@ import { ChangeDetectionStrategy, Component } from '@angular/core';
 @Component({
   selector: 'tsai-navbar',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  template: `<header class="glass flex h-14 items-center gap-4 rounded-lg px-4">
-    <div class="flex items-center gap-2 font-semibold text-text">
+  template: `<header
+    class="glass flex min-h-14 flex-wrap items-center gap-2 rounded-lg px-3 py-2 sm:gap-4 sm:px-4"
+  >
+    <div class="flex min-w-0 flex-1 items-center gap-2 font-semibold text-text sm:flex-none">
       <ng-content select="[brand]" />
     </div>
-    <nav class="flex flex-1 items-center gap-1">
+    <nav class="flex min-w-0 flex-1 items-center gap-1 empty:hidden">
       <ng-content select="[center]" />
     </nav>
-    <div class="flex items-center gap-2">
+    <div class="flex shrink-0 items-center gap-2">
       <ng-content select="[actions]" />
     </div>
   </header>`,

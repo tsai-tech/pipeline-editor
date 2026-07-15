@@ -1,8 +1,10 @@
 app-code-block {
   display: block;
+  min-width: 0;
 }
 
 app-code-block .code-frame {
+  min-width: 0;
   overflow: hidden;
   border: 1px solid var(--border);
   border-radius: 8px;

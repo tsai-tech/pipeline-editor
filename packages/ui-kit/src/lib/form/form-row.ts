@@ -24,6 +24,6 @@ const COLS: Record<1 | 2 | 3, string> = {
 export class FormRow {
   readonly cols = input<1 | 2 | 3>(2);
   protected readonly classes = computed(
-    () => `grid gap-4 ${COLS[this.cols()]}`,
+    () => `grid min-w-0 gap-4 ${COLS[this.cols()]}`,
   );
 }

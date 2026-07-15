@@ -5,7 +5,7 @@ import { ChangeDetectionStrategy, Component } from '@angular/core';
   selector: 'tsai-sidebar',
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `<aside
-    class="flex w-56 shrink-0 flex-col gap-0.5 rounded-lg border border-border bg-surface-1/60 p-2"
+    class="flex w-full shrink-0 flex-col gap-0.5 rounded-lg border border-border bg-surface-1/60 p-2 sm:w-56"
   >
     <ng-content />
   </aside>`,

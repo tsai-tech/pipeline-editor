@@ -339,7 +339,7 @@ export class Board {
   protected readonly paletteClasses = computed(
     () =>
       `absolute inset-y-0 left-0 z-[21] flex flex-col border-r border-border bg-surface-2 shadow-elev-2 transition-[width] duration-200 ${
-        this.paletteCollapsed() ? 'w-12' : 'w-[280px]'
+        this.paletteCollapsed() ? 'w-12' : 'w-[min(280px,82vw)] sm:w-[280px]'
       }`,
   );
 
@@ -349,8 +349,8 @@ export class Board {
         this.readonly()
           ? 'left-0'
           : this.paletteCollapsed()
-            ? 'left-12'
-            : 'left-[280px]'
+            ? 'left-0 sm:left-12'
+            : 'left-0 sm:left-[280px]'
       }`,
   );
 

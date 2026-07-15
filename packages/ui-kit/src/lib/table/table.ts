@@ -12,8 +12,8 @@ export type TableRow = Record<string, unknown>;
 @Component({
   selector: 'tsai-table',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  template: `<div class="overflow-x-auto rounded-lg border border-border">
-    <table class="w-full border-collapse text-sm">
+  template: `<div class="max-w-full overflow-x-auto rounded-lg border border-border">
+    <table class="w-full min-w-[36rem] border-collapse text-sm">
       <thead>
         <tr class="border-b border-border bg-surface-2">
           @for (col of columns(); track col.key) {

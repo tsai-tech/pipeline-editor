@@ -23,8 +23,9 @@
 
 .doc-heading h2 {
   color: var(--text);
-  font-size: 1.5rem;
+  font-size: clamp(1.25rem, 4vw, 1.5rem);
   font-weight: 600;
+  line-height: 1.2;
 }
 
 .doc-copy {
@@ -32,4 +33,14 @@
   color: var(--text-2);
   font-size: 0.95rem;
   line-height: 1.7;
+}
+
+@media (max-width: 640px) {
+  .doc-section {
+    scroll-margin-top: 84px;
+  }
+
+  .doc-heading {
+    align-items: flex-start;
+  }
 }

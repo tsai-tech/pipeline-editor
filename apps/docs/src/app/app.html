@@ -2,7 +2,7 @@
   <header
     class="sticky top-0 z-30 border-b border-border bg-bg/92 backdrop-blur"
   >
-    <div class="mx-auto flex max-w-7xl items-center gap-4 px-4 py-3 sm:px-6">
+    <div class="mx-auto flex max-w-7xl flex-wrap items-center gap-2 px-3 py-2.5 sm:gap-4 sm:px-6 sm:py-3">
       <a class="min-w-0 flex-1 text-sm font-semibold text-text" href="#start">
         Pipeline Editor
       </a>
@@ -37,7 +37,7 @@
         </a>
       </nav>
       <a
-        class="rounded-sm border border-border bg-surface-2 px-3 py-1.5 text-sm text-text transition-colors hover:bg-surface-3"
+        class="rounded-sm border border-border bg-surface-2 px-2.5 py-1.5 text-sm text-text transition-colors hover:bg-surface-3 sm:px-3"
         href="../board"
       >
         Playground
@@ -61,7 +61,7 @@
 
   <section
     id="start"
-    class="mx-auto grid min-h-[calc(100vh-58px)] max-w-7xl scroll-mt-20 gap-8 px-4 py-10 sm:px-6 lg:grid-cols-[minmax(0,0.9fr)_minmax(560px,1.1fr)] lg:items-center"
+    class="mx-auto grid max-w-7xl scroll-mt-20 gap-7 px-3 py-8 sm:px-6 sm:py-10 lg:min-h-[calc(100vh-58px)] lg:grid-cols-[minmax(0,0.9fr)_minmax(420px,1.1fr)] lg:items-center xl:grid-cols-[minmax(0,0.9fr)_minmax(560px,1.1fr)]"
   >
     <div class="flex flex-col gap-6">
       <div class="flex flex-wrap gap-2">
@@ -70,7 +70,7 @@
         <tsai-badge variant="result">Tailwind v4</tsai-badge>
       </div>
       <div class="space-y-4">
-        <h1 class="max-w-3xl text-4xl font-semibold leading-tight sm:text-6xl">
+        <h1 class="max-w-3xl text-3xl font-semibold leading-tight sm:text-5xl xl:text-6xl">
           Visual pipeline editor for product-grade workflow builders.
         </h1>
         <p class="max-w-2xl text-base leading-7 text-text-2 sm:text-lg">
@@ -97,7 +97,7 @@
     </div>
 
     <div
-      class="h-[520px] min-h-0 overflow-hidden rounded-lg border border-border bg-canvas shadow-elev-2"
+      class="h-[360px] min-h-0 overflow-hidden rounded-lg border border-border bg-canvas shadow-elev-2 sm:h-[440px] lg:h-[520px]"
     >
       <pe-board
         [pipeline]="pipeline()"
@@ -108,7 +108,7 @@
   </section>
 
   <div
-    class="mx-auto grid max-w-7xl gap-10 px-4 pb-20 sm:px-6 lg:grid-cols-[220px_minmax(0,1fr)]"
+    class="mx-auto grid max-w-7xl gap-8 px-3 pb-16 sm:px-6 sm:pb-20 lg:grid-cols-[220px_minmax(0,1fr)] lg:gap-10"
   >
     <aside class="hidden lg:block">
       <div class="sticky top-24 flex flex-col gap-1">
@@ -125,7 +125,7 @@
       </div>
     </aside>
 
-    <div class="flex min-w-0 flex-col gap-16">
+    <div class="flex min-w-0 flex-col gap-12 sm:gap-16">
       <section id="install" class="doc-section">
         <div class="doc-heading">
           <span>01</span>
@@ -325,7 +325,7 @@
           `PipelineBackend` contract is intentionally small so it can wrap REST,
           WebSocket, SSE or local prototypes.
         </p>
-        <div class="grid gap-4 lg:grid-cols-[minmax(0,1fr)_320px]">
+        <div class="grid gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(280px,320px)]">
           <app-code-block [code]="backendSnippet" language="typescript" />
           <tsai-card>
             <div class="flex flex-col gap-4">

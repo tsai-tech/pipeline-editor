@@ -412,29 +412,30 @@ function edge(id: string, from: string, fromPort: string, to: string) {
       useValue: MOCK_NODE_CATALOG,
     },
   ],
-  template: `<div class="flex h-full flex-col gap-3">
-    <div class="flex items-start justify-between gap-4">
-      <p class="text-sm text-text-2">
-        Drag from the palette to add nodes · drag a node to move it · drag a
-        right / top / bottom port onto a left port to connect · rubber-band to
-        multi-select · right mouse / middle / Space+drag pans, scroll or
-        <kbd>⌘/Ctrl</kbd>+<kbd>±</kbd> zooms · minimap navigates · arrows nudge
-        · <kbd>⌘/Ctrl+Z</kbd> undo, <kbd>C</kbd>/<kbd>V</kbd> copy-paste,
-        <kbd>Del</kbd> delete, <kbd>F</kbd> fit.
+  template: `<div class="flex h-full min-h-0 flex-col gap-3">
+    <div class="flex min-w-0 flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+      <p class="max-h-16 overflow-auto text-xs leading-5 text-text-2 sm:max-h-none sm:text-sm">
+        Drag from the palette to add nodes. On mobile, tap palette items to add
+        nodes, drag nodes to move them, pinch/scroll to zoom where supported,
+        and use toolbar buttons for fit, undo and redo. Desktop also supports
+        port dragging, rubber-band select, keyboard shortcuts and minimap
+        navigation.
       </p>
-      <label
-        class="flex shrink-0 items-center gap-2 text-sm text-text-2 select-none"
-      >
-        <input
-          type="checkbox"
-          [checked]="readonly()"
-          (change)="readonly.set($any($event.target).checked)"
-        />
-        Read-only
-      </label>
-      <tsai-button variant="secondary" size="sm" (click)="resetInitial()">
-        Reset to initial
-      </tsai-button>
+      <div class="flex shrink-0 flex-wrap items-center gap-2">
+        <label
+          class="flex items-center gap-2 text-sm text-text-2 select-none"
+        >
+          <input
+            type="checkbox"
+            [checked]="readonly()"
+            (change)="readonly.set($any($event.target).checked)"
+          />
+          Read-only
+        </label>
+        <tsai-button variant="secondary" size="sm" (click)="resetInitial()">
+          Reset
+        </tsai-button>
+      </div>
     </div>
     <pe-board
       [pipeline]="pipeline()"

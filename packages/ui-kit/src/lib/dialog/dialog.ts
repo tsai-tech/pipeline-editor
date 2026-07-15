@@ -210,7 +210,7 @@ export class DialogService {
     @if (service.dialog(); as dialog) {
       @if (dialog.images?.length) {
         <div
-          class="grid max-h-[70vh] grid-cols-2 gap-3 overflow-auto pr-1 md:grid-cols-3"
+          class="grid max-h-[70vh] grid-cols-1 gap-3 overflow-auto pr-1 sm:grid-cols-2 md:grid-cols-3"
         >
           @for (image of dialog.images; track image.imageUrl) {
             <figure class="min-w-0">

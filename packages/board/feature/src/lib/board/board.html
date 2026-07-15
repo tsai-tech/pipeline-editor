@@ -231,7 +231,7 @@
   }
 
   <div
-    class="absolute right-3 top-3 z-[18] flex items-center gap-1 p-1 border border-[var(--border)] rounded-[var(--r-md)] bg-[var(--surface-2)] shadow-[var(--elev-1)]"
+    class="absolute left-3 right-3 top-3 z-[18] flex max-h-[84px] flex-wrap items-center justify-end gap-1 overflow-y-auto p-1 border border-[var(--border)] rounded-[var(--r-md)] bg-[var(--surface-2)] shadow-[var(--elev-1)] sm:left-auto sm:max-h-none sm:flex-nowrap sm:overflow-visible"
     (pointerdown)="$event.stopPropagation()"
   >
     @if (canRun) {
@@ -312,7 +312,7 @@
 
   @if (showIssues() && issues().length) {
   <div
-    class="absolute right-3 top-[54px] z-[18] w-[260px] max-h-[40%] overflow-y-auto flex flex-col gap-px p-1.5 border border-[var(--border)] rounded-[var(--r-md)] bg-[var(--surface-2)] shadow-[var(--elev-2)]"
+    class="absolute left-3 right-3 top-[102px] z-[18] max-h-[40%] overflow-y-auto flex flex-col gap-px p-1.5 border border-[var(--border)] rounded-[var(--r-md)] bg-[var(--surface-2)] shadow-[var(--elev-2)] sm:left-auto sm:top-[54px] sm:w-[260px]"
     (pointerdown)="$event.stopPropagation()"
     (wheel)="$event.stopPropagation()"
   >
@@ -334,7 +334,7 @@
   }
 
   <div
-    class="absolute right-3 bottom-3 z-[18] flex gap-1 p-1 border border-[var(--border)] rounded-[var(--r-md)] bg-[var(--surface-2)] shadow-[var(--elev-1)]"
+    class="absolute right-3 bottom-3 z-[18] flex max-w-[calc(100%-1.5rem)] gap-1 overflow-x-auto p-1 border border-[var(--border)] rounded-[var(--r-md)] bg-[var(--surface-2)] shadow-[var(--elev-1)]"
     (pointerdown)="$event.stopPropagation()"
   >
     <button
@@ -392,7 +392,7 @@
 
   @if (minimap(); as mm) {
   <svg
-    class="absolute left-3 bottom-3 z-[18] w-[190px] h-[120px] border border-[var(--border)] rounded-[var(--r-md)] bg-[color-mix(in_srgb,var(--canvas-bg)_82%,var(--surface-2))] shadow-[var(--elev-1)] cursor-pointer touch-none"
+    class="absolute left-3 bottom-[58px] z-[18] hidden w-[190px] h-[120px] border border-[var(--border)] rounded-[var(--r-md)] bg-[color-mix(in_srgb,var(--canvas-bg)_82%,var(--surface-2))] shadow-[var(--elev-1)] cursor-pointer touch-none sm:block"
     viewBox="0 0 190 120"
     aria-label="Minimap"
     (pointerdown)="onMinimapDown($event)"
@@ -421,7 +421,7 @@
   </svg>
   } @if (showLog() && run(); as r) {
   <div
-    class="absolute left-1/2 -translate-x-1/2 bottom-3 z-[19] w-[420px] max-w-[70%] max-h-[38%] flex flex-col border border-[var(--border)] rounded-[var(--r-md)] bg-[var(--surface-2)] shadow-[var(--elev-2)]"
+    class="absolute left-3 right-3 bottom-[58px] z-[19] max-h-[38%] flex flex-col border border-[var(--border)] rounded-[var(--r-md)] bg-[var(--surface-2)] shadow-[var(--elev-2)] sm:left-1/2 sm:right-auto sm:bottom-3 sm:w-[420px] sm:max-w-[70%] sm:-translate-x-1/2"
     (pointerdown)="$event.stopPropagation()"
     (wheel)="$event.stopPropagation()"
   >

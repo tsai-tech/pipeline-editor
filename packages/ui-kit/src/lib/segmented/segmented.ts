@@ -21,7 +21,7 @@ export interface SegmentOption {
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `<div
     role="radiogroup"
-    class="inline-flex gap-0.5 rounded-sm border border-border bg-surface-2 p-0.5"
+    class="inline-flex max-w-full gap-0.5 overflow-x-auto rounded-sm border border-border bg-surface-2 p-0.5"
   >
     @for (opt of options(); track opt.value) {
       <button
@@ -45,7 +45,7 @@ export class Segmented implements FormValueControl<string | undefined> {
   readonly value = model<string>();
 
   protected segClasses(active: boolean): string {
-    return `rounded-[5px] px-3 py-1 text-sm font-medium outline-none transition-colors disabled:pointer-events-none disabled:opacity-40 ${
+    return `shrink-0 rounded-[5px] px-3 py-1 text-sm font-medium outline-none transition-colors disabled:pointer-events-none disabled:opacity-40 ${
       active
         ? 'bg-surface-3 text-text shadow-elev-1'
         : 'text-text-2 hover:text-text'
