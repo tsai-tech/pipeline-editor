@@ -1,3 +1,13 @@
+## 0.1.1 (2026-07-17)
+
+### 🧱 Updated Dependencies
+
+- Updated ui-kit to 0.1.1
+- Updated core to 0.1.1
+- Updated ui to 0.1.1
+- Updated models to 0.1.1
+- Updated nodes to 0.1.1
+
 ## 0.1.0 (2026-07-17)
 
 ### 🚀 Features

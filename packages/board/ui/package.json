@@ -1,10 +1,10 @@
 {
   "name": "@tsai-pe/board-ui",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "peerDependencies": {
     "@angular/core": "^21.2.0",
-    "@tsai-pe/board-core": "0.1.0",
-    "@tsai-pe/models": "0.1.0",
+    "@tsai-pe/board-core": "0.1.1",
+    "@tsai-pe/models": "0.1.1",
     "lucide-angular": "^1.0.0"
   },
   "sideEffects": false,
