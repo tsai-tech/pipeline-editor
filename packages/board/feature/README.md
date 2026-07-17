@@ -13,12 +13,17 @@ persistence.
 ## Install
 
 ```bash
-npm i @tsai-pe/board @tsai-pe/theme
+npm i @tsai-pe/board @tsai-pe/board-core @tsai-pe/board-ui \
+      @tsai-pe/ui-kit @tsai-pe/models @tsai-pe/nodes @tsai-pe/theme
 ```
 
-`@tsai-pe/board` pulls its siblings (`board-core`, `board-ui`, `ui-kit`, `models`,
-`nodes`) as dependencies; `@tsai-pe/theme` provides the styles (below). Peer deps:
-`@angular/core` ^21, `lucide-angular`.
+`@tsai-pe/board`'s sibling libraries (`board-core`, `board-ui`, `ui-kit`,
+`models`, `nodes`) are **peer dependencies**. npm 7+ installs them automatically,
+but pnpm/yarn do not — so the command above lists them explicitly.
+`@tsai-pe/theme` provides the styles (below).
+
+Framework peers (normally already in your Angular app): `@angular/core` ^21,
+`@angular/cdk`, `@angular/aria`, `@angular/forms`, and `lucide-angular`.
 
 ## Quick start
 
@@ -32,23 +37,22 @@ npm i @tsai-pe/board @tsai-pe/theme
 ```
 
 **2. Provide a node catalog**, a backend (optional — enables Run) and a store
-(optional — enables Save / Open). For local dev use the in-browser mock catalog
-and backend:
+(optional — enables Save / Open):
 
 ```ts
 import { PIPELINE_BACKEND, PIPELINE_NODE_CATALOG, PIPELINE_STORE } from '@tsai-pe/board';
-import {
-  MOCK_NODE_CATALOG,
-  TestBackendSystem,
-  InMemoryPipelineStore,
-} from '@tsai-pe/workflow-mock';
 
 providers: [
-  { provide: PIPELINE_NODE_CATALOG, useValue: MOCK_NODE_CATALOG },
-  { provide: PIPELINE_BACKEND, useFactory: () => new TestBackendSystem() },
-  { provide: PIPELINE_STORE, useFactory: () => new InMemoryPipelineStore() },
-]
+  { provide: PIPELINE_NODE_CATALOG, useValue: MY_NODE_CATALOG }, // your NodeCatalog
+  { provide: PIPELINE_BACKEND, useExisting: MyPipelineBackend }, // optional — enables Run
+  { provide: PIPELINE_STORE, useExisting: MyPipelineStore }, // optional — enables Save / Open
+];
 ```
+
+> For a ready-made in-browser mock catalog + backend that evaluates the expression
+> language (`MOCK_NODE_CATALOG`, `TestBackendSystem`, `InMemoryPipelineStore` from
+> `@tsai-pe/workflow-mock`), clone the [monorepo](https://github.com/tsai-tech/pipeline-editor) —
+> it's a dev/demo package and is **not published to npm**.
 
 **3. Render** the board:
 
@@ -75,10 +79,10 @@ export class EditorComponent {
 
 `Board` (`<pe-board>`)
 
-| Input | Type | Default | Description |
-| ----- | ---- | ------- | ----------- |
-| `pipeline` | `Pipeline \| null` | `null` | Document to load; reloaded whenever the reference changes. |
-| `readonly` | `boolean` | `false` | View-only: pan / zoom / select / inspect stay, editing is off. |
+| Input      | Type               | Default | Description                                                    |
+| ---------- | ------------------ | ------- | -------------------------------------------------------------- |
+| `pipeline` | `Pipeline \| null` | `null`  | Document to load; reloaded whenever the reference changes.     |
+| `readonly` | `boolean`          | `false` | View-only: pan / zoom / select / inspect stay, editing is off. |
 
 The board fills its host — give it a sized container (`h-dvh`, a flex child, …).
 
@@ -95,8 +99,9 @@ Tokens (from this package):
 ## Backends
 
 - [`@tsai-pe/workflow-mock`](../../workflow/mock) — in-browser mock (evaluates the
-  expression language) for dev/demo.
+  expression language) for dev/demo. _Monorepo only — not published to npm._
 - [`@tsai-pe/workflow-http`](../../workflow/http) — REST/WS adapter skeleton.
+  _Monorepo only — not published to npm._
 - Or implement `PipelineBackend` (`startRun` / `observe` / `stop`) against your own.
 
 ## License

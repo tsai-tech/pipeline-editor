@@ -11,7 +11,8 @@ pure TypeScript + Angular signals, no templates. Consumed by
 npm i @tsai-pe/board-core
 ```
 
-Peer deps: `@angular/core` ^21, `@tsai-pe/models`, `@tsai-pe/nodes`.
+Peer deps: `@angular/core` ^21, `@tsai-pe/nodes`. `@tsai-pe/models` is a regular
+dependency (installed automatically).
 
 ## Exports
 

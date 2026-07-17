@@ -423,7 +423,7 @@ export class App {
     },
   ];
 
-  protected readonly installSnippet = `npm install @tsai-pe/board @tsai-pe/ui-kit @tsai-pe/theme @tsai-pe/models @tsai-pe/nodes lucide-angular @angular/cdk @angular/aria`;
+  protected readonly installSnippet = `npm install @tsai-pe/board @tsai-pe/board-core @tsai-pe/board-ui @tsai-pe/ui-kit @tsai-pe/models @tsai-pe/nodes @tsai-pe/theme lucide-angular @angular/cdk @angular/aria`;
 
   protected readonly stylesSnippet = `/* src/styles.css */
 @import '@tsai-pe/theme';

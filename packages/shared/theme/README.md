@@ -21,15 +21,18 @@ scans them.
 
 ## Usage
 
-In the consuming app's global stylesheet (e.g. `apps/playground/src/styles.css`):
+In the consuming app's global stylesheet (`src/styles.css`):
 
 ```css
 @import '@tsai-pe/theme';
 
-/* Tailwind v4 monorepo scanning: point at the app + used libraries. */
-@source '../../../packages/board';
-@source '../../../packages/ui-kit';
+/* Tailwind v4: scan the class names shipped inside the installed libraries. */
+@source '../node_modules/@tsai-pe/board';
+@source '../node_modules/@tsai-pe/ui-kit';
 ```
+
+> Inside this monorepo the playground instead points `@source` at the workspace
+> sources (`../../../packages/board`, `../../../packages/ui-kit`).
 
 Angular's application builder picks up Tailwind via the workspace `.postcssrc.json`
 (`@tailwindcss/postcss`). Vite-based previews/tests use `@tailwindcss/vite`.
