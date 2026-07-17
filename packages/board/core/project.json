@@ -12,7 +12,7 @@
         "outputPath": "dist/packages/board/core",
         "main": "packages/board/core/src/index.ts",
         "tsConfig": "packages/board/core/tsconfig.lib.json",
-        "assets": []
+        "assets": ["packages/board/core/*.md"]
       }
     }
   }

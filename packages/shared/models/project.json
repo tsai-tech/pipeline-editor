@@ -12,7 +12,7 @@
         "outputPath": "dist/packages/shared/models",
         "main": "packages/shared/models/src/index.ts",
         "tsConfig": "packages/shared/models/tsconfig.lib.json",
-        "assets": []
+        "assets": ["packages/shared/models/*.md"]
       }
     }
   }

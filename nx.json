@@ -58,14 +58,27 @@
       "cache": true,
       "dependsOn": ["^build"],
       "inputs": ["production", "^production"]
+    },
+    "nx-release-publish": {
+      "options": {
+        "packageRoot": "dist/{projectRoot}"
+      }
     }
   },
   "release": {
-    "projects": ["packages/*"],
+    "projects": ["packages/*", "packages/board/*", "packages/shared/*"],
     "projectsRelationship": "independent",
     "version": {
       "preVersionCommand": "npx nx run-many -t build",
-      "conventionalCommits": true
+      "conventionalCommits": true,
+      "fallbackCurrentVersionResolver": "disk",
+      "manifestRootsToUpdate": [
+        "{projectRoot}",
+        {
+          "path": "dist/{projectRoot}",
+          "preserveLocalDependencyProtocols": false
+        }
+      ]
     },
     "changelog": {
       "projectChangelogs": true

@@ -4,13 +4,6 @@
   "sourceRoot": "packages/ui-kit/src",
   "prefix": "tsai",
   "projectType": "library",
-  "release": {
-    "version": {
-      "manifestRootsToUpdate": ["dist/{projectRoot}"],
-      "currentVersionResolver": "git-tag",
-      "fallbackCurrentVersionResolver": "disk"
-    }
-  },
   "tags": ["scope:shared", "type:ui"],
   "targets": {
     "build": {
@@ -26,11 +19,6 @@
           "tsConfig": "packages/ui-kit/tsconfig.lib.prod.json"
         },
         "development": {}
-      }
-    },
-    "nx-release-publish": {
-      "options": {
-        "packageRoot": "dist/{projectRoot}"
       }
     },
     "test": {
