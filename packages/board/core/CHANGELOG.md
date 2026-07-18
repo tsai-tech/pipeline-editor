@@ -1,3 +1,18 @@
+## 0.1.2 (2026-07-18)
+
+### 🩹 Fixes
+
+- **release:** support changelog for new package ([b7ef832](https://github.com/tsaitechnology/pipeline-editor/commit/b7ef832))
+
+### 🧱 Updated Dependencies
+
+- Updated models to 0.1.2
+- Updated nodes to 0.1.2
+
+### ❤️ Thank You
+
+- Mikhail Tsai @find
+
 ## 0.1.1 (2026-07-17)
 
 ### 🧱 Updated Dependencies

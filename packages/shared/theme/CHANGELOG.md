@@ -1,3 +1,13 @@
+## 0.1.2 (2026-07-18)
+
+### 🩹 Fixes
+
+- **release:** support changelog for new package ([b7ef832](https://github.com/tsaitechnology/pipeline-editor/commit/b7ef832))
+
+### ❤️ Thank You
+
+- Mikhail Tsai @find
+
 ## 0.1.1 (2026-07-17)
 
 This was a version bump only for theme to align it with other projects, there were no code changes.

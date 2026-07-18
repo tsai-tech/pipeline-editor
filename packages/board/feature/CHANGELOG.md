@@ -1,3 +1,21 @@
+## 0.1.2 (2026-07-18)
+
+### 🚀 Features
+
+- **board:** add composable pipeline ui kit ([501e185](https://github.com/tsaitechnology/pipeline-editor/commit/501e185))
+
+### 🧱 Updated Dependencies
+
+- Updated pipeline-ui-kit to 0.1.2
+- Updated ui-kit to 0.1.2
+- Updated core to 0.1.2
+- Updated models to 0.1.2
+- Updated nodes to 0.1.2
+
+### ❤️ Thank You
+
+- Mikhail Tsai @find
+
 ## 0.1.1 (2026-07-17)
 
 ### 🧱 Updated Dependencies

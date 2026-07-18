@@ -1,3 +1,10 @@
+## 0.1.2 (2026-07-18)
+
+### 🧱 Updated Dependencies
+
+- Updated core to 0.1.2
+- Updated models to 0.1.2
+
 ## 0.1.1 (2026-07-17)
 
 ### 🧱 Updated Dependencies

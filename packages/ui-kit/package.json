@@ -1,6 +1,6 @@
 {
   "name": "@tsai-pe/ui-kit",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "peerDependencies": {
     "@angular/aria": "^21.2.0",
     "@angular/cdk": "^21.2.0",
