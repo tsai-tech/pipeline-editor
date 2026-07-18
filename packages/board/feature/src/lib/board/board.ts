@@ -25,9 +25,10 @@ import {
 import {
   BoardGrid,
   NODE_META,
-  NodeView,
+  PipelineEdgeLayer,
+  PipelineNode,
   type PortPointer,
-} from '@tsai-pe/board-ui';
+} from '@tsai-pe/pipeline-ui-kit';
 import {
   type ActionCategory,
   type BoardNode,
@@ -236,7 +237,9 @@ function validJson(value: string, type: ParamType): boolean {
     const parsed = JSON.parse(value) as unknown;
     if (type === 'array') return Array.isArray(parsed);
     if (type === 'object') {
-      return typeof parsed === 'object' && parsed !== null && !Array.isArray(parsed);
+      return (
+        typeof parsed === 'object' && parsed !== null && !Array.isArray(parsed)
+      );
     }
     return true;
   } catch {
@@ -245,7 +248,9 @@ function validJson(value: string, type: ParamType): boolean {
 }
 
 function unsupportedBrowserApi(code: string): boolean {
-  return /\b(window|document|localStorage|sessionStorage|navigator)\b/.test(code);
+  return /\b(window|document|localStorage|sessionStorage|navigator)\b/.test(
+    code,
+  );
 }
 
 /**
@@ -261,7 +266,8 @@ function unsupportedBrowserApi(code: string): boolean {
   selector: 'pe-board',
   imports: [
     BoardGrid,
-    NodeView,
+    PipelineNode,
+    PipelineEdgeLayer,
     LucideAngularModule,
     Dialog,
     Button,
@@ -365,18 +371,6 @@ export class Board {
     condition:
       'Expression: $json.field · $node["Node name"].path · "text" · numbers. Ops: > < >= <= == != && || ! ( )',
   };
-
-  /** Visible-edge classes: active flow, else selection accent, else resting. */
-  protected edgeClasses(selected: boolean, active: boolean): string {
-    const base =
-      'fill-none [pointer-events:none] transition-[stroke,stroke-width] duration-150';
-    if (active) {
-      return `${base} stroke-[var(--accent)] [stroke-width:2.5] [stroke-dasharray:8_4] animate-[pe-flow_0.5s_linear_infinite]`;
-    }
-    return selected
-      ? `${base} stroke-[var(--edge-selected)] [stroke-width:2.5]`
-      : `${base} stroke-[var(--edge)] [stroke-width:2] group-hover:stroke-[var(--edge-hover)] group-hover:[stroke-width:2.5]`;
-  }
 
   /** Validation status pill color by current severity. */
   protected statusClass(): string {
@@ -1178,7 +1172,8 @@ export class Board {
    */
   protected varPaths(node: BoardNode): string[] {
     const output =
-      this.run()?.nodes[node.id]?.output ?? this.catalog.outputExample(node.type);
+      this.run()?.nodes[node.id]?.output ??
+      this.catalog.outputExample(node.type);
     return output === undefined ? [] : variablePaths(output);
   }
 
@@ -1214,7 +1209,9 @@ export class Board {
     return this.catalog.params(node);
   }
 
-  protected paramGroups(node: BoardNode): { section: string; fields: ParamField[] }[] {
+  protected paramGroups(
+    node: BoardNode,
+  ): { section: string; fields: ParamField[] }[] {
     return fieldGroups(this.params(node));
   }
 
@@ -1278,7 +1275,10 @@ export class Board {
     return Array.isArray(field.item) ? field.item : [];
   }
 
-  protected arrayValue(node: BoardNode, key: string): Record<string, unknown>[] {
+  protected arrayValue(
+    node: BoardNode,
+    key: string,
+  ): Record<string, unknown>[] {
     const value = node.data?.[key];
     return Array.isArray(value)
       ? value.filter(
@@ -1293,7 +1293,10 @@ export class Board {
     return value == null ? '' : String(value);
   }
 
-  protected arrayItemTrack(item: Record<string, unknown>, index: number): string {
+  protected arrayItemTrack(
+    item: Record<string, unknown>,
+    index: number,
+  ): string {
     return typeof item['id'] === 'string' ? item['id'] : String(index);
   }
 
@@ -1304,7 +1307,8 @@ export class Board {
     const next: Record<string, unknown> = {};
     for (const child of this.arrayItemFields(field)) {
       if (child.key === 'id') next[child.key] = `${items.length + 1}`;
-      else if (child.defaultValue !== undefined) next[child.key] = child.defaultValue;
+      else if (child.defaultValue !== undefined)
+        next[child.key] = child.defaultValue;
       else next[child.key] = '';
     }
     this.patchParam(field.key, [...items, next]);
@@ -1457,12 +1461,18 @@ export class Board {
   protected async duplicatePipeline(): Promise<void> {
     if (!this.persistence || this.readonly()) return;
     const pipeline = this.store.toPipeline();
-    const suffix = new Date().toISOString().replace(/[-:.TZ]/g, '').slice(0, 14);
+    const suffix = new Date()
+      .toISOString()
+      .replace(/[-:.TZ]/g, '')
+      .slice(0, 14);
     const copy: Pipeline = {
       ...pipeline,
       id: `${pipeline.id}-copy-${suffix}`,
       name: `${pipeline.name} Copy`,
-      nodes: pipeline.nodes.map((node) => ({ ...node, data: { ...node.data } })),
+      nodes: pipeline.nodes.map((node) => ({
+        ...node,
+        data: { ...node.data },
+      })),
       edges: pipeline.edges.map((edge) => ({ ...edge })),
     };
     await this.persistence.save(copy);
@@ -1928,7 +1938,7 @@ export class Board {
   private nodeAt(clientX: number, clientY: number): string | undefined {
     return document
       .elementFromPoint(clientX, clientY)
-      ?.closest<HTMLElement>('pe-node')?.dataset['nodeId'];
+      ?.closest<HTMLElement>('pe-pipeline-node')?.dataset['nodeId'];
   }
 
   private capture(event: PointerEvent): void {
@@ -1970,7 +1980,8 @@ function displaySafeWalk(
   if (typeof value === 'string') return displaySafeString(value, path);
   if (value === null || typeof value !== 'object') return value;
   if (seen.has(value)) return '[Circular]';
-  if (depth >= DISPLAY_MAX_DEPTH) return Array.isArray(value) ? '[Array]' : '[Object]';
+  if (depth >= DISPLAY_MAX_DEPTH)
+    return Array.isArray(value) ? '[Array]' : '[Object]';
 
   seen.add(value);
   if (Array.isArray(value)) {

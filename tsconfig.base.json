@@ -23,7 +23,8 @@
       "@tsai-pe/board": ["./packages/board/feature/src/index.ts"],
       "@tsai-pe/workflow-mock": ["./packages/workflow/mock/src/index.ts"],
       "@tsai-pe/nodes": ["./packages/shared/nodes/src/index.ts"],
-      "@tsai-pe/workflow-http": ["./packages/workflow/http/src/index.ts"]
+      "@tsai-pe/workflow-http": ["./packages/workflow/http/src/index.ts"],
+      "@tsai-pe/pipeline-ui-kit": ["./packages/pipeline-ui-kit/src/index.ts"]
     }
   },
   "exclude": ["node_modules", "tmp"]

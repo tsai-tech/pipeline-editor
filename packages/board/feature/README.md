@@ -13,13 +13,13 @@ persistence.
 ## Install
 
 ```bash
-npm i @tsai-pe/board @tsai-pe/board-core @tsai-pe/board-ui \
+npm i @tsai-pe/board @tsai-pe/board-core @tsai-pe/pipeline-ui-kit \
       @tsai-pe/ui-kit @tsai-pe/models @tsai-pe/nodes @tsai-pe/theme
 ```
 
-`@tsai-pe/board`'s sibling libraries (`board-core`, `board-ui`, `ui-kit`,
-`models`, `nodes`) are **peer dependencies**. npm 7+ installs them automatically,
-but pnpm/yarn do not — so the command above lists them explicitly.
+`@tsai-pe/board`'s sibling libraries (`board-core`, `pipeline-ui-kit`,
+`ui-kit`, `models`, `nodes`) are **peer dependencies**. npm 7+ installs them
+automatically, but pnpm/yarn do not — so the command above lists them explicitly.
 `@tsai-pe/theme` provides the styles (below).
 
 Framework peers (normally already in your Angular app): `@angular/core` ^21,
@@ -85,6 +85,10 @@ export class EditorComponent {
 | `readonly` | `boolean`          | `false` | View-only: pan / zoom / select / inspect stay, editing is off. |
 
 The board fills its host — give it a sized container (`h-dvh`, a flex child, …).
+
+Need only the canvas primitives, node visuals, edge layer, node picker or
+inspector body? Use `@tsai-pe/pipeline-ui-kit` directly and compose your own
+modal/drawer/save/run shell around `BoardStore`.
 
 Tokens (from this package):
 

@@ -18,5 +18,13 @@ export const appRoutes: Route[] = [
         (m) => m.BoardPlayground,
       ),
   },
+  {
+    path: 'pipeline-ui-kit',
+    title: 'Pipeline UI Kit · Playground',
+    loadComponent: () =>
+      import('./playgrounds/pipeline-ui-kit/pipeline-ui-kit-playground').then(
+        (m) => m.PipelineUiKitPlayground,
+      ),
+  },
   { path: '**', redirectTo: 'board' },
 ];

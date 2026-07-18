@@ -110,72 +110,17 @@
     class="absolute inset-0 origin-top-left will-change-transform"
     [style.transform]="store.viewport.transform()"
   >
+    <pe-pipeline-edge-layer
+      [edges]="store.edgeGeometries()"
+      [activeEdgeIds]="activeEdgeIds()"
+      [draftPath]="draftPath()"
+      (edgePointerDown)="onEdgeDown($event.edgeId, $event.event)"
+    />
+
     <svg
       class="absolute left-0 top-0 w-px h-px overflow-visible pointer-events-none"
     >
-      <defs>
-        <marker
-          id="pe-arrow"
-          viewBox="0 0 10 10"
-          refX="8"
-          refY="5"
-          markerWidth="7"
-          markerHeight="7"
-          orient="auto-start-reverse"
-        >
-          <path class="fill-[var(--edge)]" d="M 0 1 L 9 5 L 0 9 z" />
-        </marker>
-        <marker
-          id="pe-arrow-active"
-          viewBox="0 0 10 10"
-          refX="8"
-          refY="5"
-          markerWidth="7"
-          markerHeight="7"
-          orient="auto-start-reverse"
-        >
-          <path class="fill-[var(--accent)]" d="M 0 1 L 9 5 L 0 9 z" />
-        </marker>
-      </defs>
-
-      @for (edge of store.edgeGeometries(); track edge.id) {
-      <g
-        class="group cursor-pointer"
-        (pointerdown)="onEdgeDown(edge.id, $event)"
-      >
-        <title>{{ edge.label }}</title>
-        <path
-          class="fill-none stroke-[transparent] [stroke-width:16] [pointer-events:stroke]"
-          [attr.d]="edge.path"
-        ></path>
-        <path
-          [class]="edgeClasses(edge.selected, activeEdgeIds().has(edge.id))"
-          [attr.d]="edge.path"
-          [attr.marker-end]="
-            edge.selected || activeEdgeIds().has(edge.id)
-              ? 'url(#pe-arrow-active)'
-              : 'url(#pe-arrow)'
-          "
-        ></path>
-        @if (edge.midLabel; as ml) {
-        <text
-          class="fill-[var(--text-2)] stroke-[var(--canvas-bg)] [stroke-width:3] [paint-order:stroke] text-[10px] font-medium [pointer-events:none] select-none"
-          text-anchor="middle"
-          dominant-baseline="central"
-          [attr.x]="edge.mid.x"
-          [attr.y]="edge.mid.y"
-        >
-          {{ ml }}
-        </text>
-        }
-      </g>
-      } @if (draftPath(); as d) {
-      <path
-        class="fill-none stroke-[var(--accent)] [stroke-width:2] [stroke-dasharray:6_5] [pointer-events:none]"
-        [attr.d]="d"
-        marker-end="url(#pe-arrow-active)"
-      ></path>
-      } @for (g of guides(); track $index) {
+      @for (g of guides(); track $index) {
       <line
         class="stroke-[var(--accent)] [stroke-width:1] [stroke-dasharray:4_3] opacity-70 [pointer-events:none]"
         [attr.x1]="g.x1"
@@ -187,7 +132,7 @@
     </svg>
 
     @for (node of orderedNodes(); track node.id) {
-    <pe-node
+    <pe-pipeline-node
       [node]="node"
       [selected]="store.isSelected(node.id)"
       [connecting]="isConnecting()"
@@ -274,7 +219,11 @@
       Open
     </button>
     @if (!readonly()) {
-    <button type="button" [class]="cls.toolbarBtn" (click)="duplicatePipeline()">
+    <button
+      type="button"
+      [class]="cls.toolbarBtn"
+      (click)="duplicatePipeline()"
+    >
       Duplicate
     </button>
     }
@@ -490,8 +439,7 @@
         </div>
         }
       </div>
-      }
-      @for (e of logEntries(); track $index) {
+      } @for (e of logEntries(); track $index) {
       <div class="flex gap-2">
         <span class="shrink-0 text-text-3 tabular-nums"
           >{{ formatLogTime(e.at) }}</span
@@ -698,9 +646,7 @@
                 />
               </div>
             </section>
-            }
-
-            @for (cn of editorNodeContexts(); track cn.id) {
+            } @for (cn of editorNodeContexts(); track cn.id) {
             <section>
               <div
                 class="mb-2 truncate font-mono text-xs font-semibold text-info"
@@ -753,7 +699,9 @@
             @if (paramGroups(n).length) {
             <div class="h-px bg-[var(--border)]"></div>
             @for (group of paramGroups(n); track group.section) {
-            <span class="text-xs font-semibold text-text-2">{{ group.section }}</span>
+            <span class="text-xs font-semibold text-text-2"
+              >{{ group.section }}</span
+            >
             @for (f of group.fields; track f.key) { @switch (f.type) { @case
             ('boolean') {
             <label class="flex flex-row items-center gap-2">
@@ -809,12 +757,14 @@
               <span [class]="cls.hint">{{ f.help }}</span>
               }
             </label>
-            } @case ('array') {
-            @if (arrayItemFields(f).length) {
+            } @case ('array') { @if (arrayItemFields(f).length) {
             <div [class]="cls.field">
               <span [class]="cls.fieldLabel">{{ f.label }}</span>
-              @for (item of arrayValue(n, f.key); track arrayItemTrack(item, $index)) {
-              <div class="grid grid-cols-[minmax(0,1fr)_auto] gap-2 rounded-[var(--r-sm)] border border-[var(--border)] bg-[var(--surface-1)] p-2">
+              @for (item of arrayValue(n, f.key); track arrayItemTrack(item,
+              $index)) {
+              <div
+                class="grid grid-cols-[minmax(0,1fr)_auto] gap-2 rounded-[var(--r-sm)] border border-[var(--border)] bg-[var(--surface-1)] p-2"
+              >
                 <div class="grid gap-2">
                   @for (child of arrayItemFields(f); track child.key) {
                   <div [class]="cls.field">
@@ -872,8 +822,7 @@
                 (change)="patchParam(f.key, $any($event.target).value)"
               ></textarea>
             </label>
-            }
-            } @case ('object') {
+            } } @case ('object') {
             <label [class]="cls.field">
               <span [class]="cls.fieldLabel">{{ f.label }}</span>
               <textarea

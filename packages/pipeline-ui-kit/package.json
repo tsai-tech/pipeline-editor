@@ -1,18 +1,16 @@
 {
-  "name": "@tsai-pe/board",
+  "name": "@tsai-pe/pipeline-ui-kit",
   "version": "0.1.1",
   "peerDependencies": {
-    "@angular/cdk": "^21.2.0",
     "@angular/core": "^21.2.0",
     "@tsai-pe/board-core": "0.1.1",
     "@tsai-pe/models": "0.1.1",
-    "@tsai-pe/pipeline-ui-kit": "0.1.1",
-    "lucide-angular": "^1.0.0",
     "@tsai-pe/nodes": "0.1.1",
-    "@tsai-pe/ui-kit": "0.1.1"
+    "@tsai-pe/ui-kit": "0.1.1",
+    "lucide-angular": "^1.0.0"
   },
   "sideEffects": false,
-  "description": "Pipeline Editor — the <pe-board> visual pipeline editor (main package).",
+  "description": "Pipeline Editor — composable Angular UI primitives for pipeline boards.",
   "keywords": [
     "pipeline",
     "workflow",
@@ -21,16 +19,17 @@
     "n8n",
     "flow",
     "dag",
-    "board",
-    "canvas"
+    "canvas",
+    "components",
+    "ui-kit"
   ],
   "license": "MIT",
   "author": "Mikhail Tsai",
-  "homepage": "https://github.com/tsai-tech/pipeline-editor/tree/main/packages/board/feature#readme",
+  "homepage": "https://github.com/tsai-tech/pipeline-editor/tree/main/packages/pipeline-ui-kit#readme",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/tsai-tech/pipeline-editor.git",
-    "directory": "packages/board/feature"
+    "directory": "packages/pipeline-ui-kit"
   },
   "bugs": {
     "url": "https://github.com/tsai-tech/pipeline-editor/issues"

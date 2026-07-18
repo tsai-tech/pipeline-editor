@@ -26,15 +26,16 @@ boundaries.
 
 ## Packages
 
-| Package               | Purpose                                            |
-| --------------------- | -------------------------------------------------- |
-| `@tsai-pe/board`      | The `<pe-board>` editor — the main package         |
-| `@tsai-pe/board-core` | Board store, geometry, A\* edge routing            |
-| `@tsai-pe/board-ui`   | Presentational canvas components (nodes, grid)     |
-| `@tsai-pe/ui-kit`     | Headless (Angular Aria) + Tailwind components      |
-| `@tsai-pe/models`     | Data model, validation, backend contract           |
-| `@tsai-pe/nodes`      | Node-type registry (ports, catalog, param schemas) |
-| `@tsai-pe/theme`      | Tailwind tokens and global CSS                     |
+| Package                    | Purpose                                                       |
+| -------------------------- | ------------------------------------------------------------- |
+| `@tsai-pe/board`           | The `<pe-board>` editor — the main package                    |
+| `@tsai-pe/board-core`      | Board store, geometry, A\* edge routing                       |
+| `@tsai-pe/pipeline-ui-kit` | Composable board, node, edge, picker and inspector primitives |
+| `@tsai-pe/board-ui`        | Legacy presentational canvas components                       |
+| `@tsai-pe/ui-kit`          | Headless (Angular Aria) + Tailwind components                 |
+| `@tsai-pe/models`          | Data model, validation, backend contract                      |
+| `@tsai-pe/nodes`           | Node-type registry (ports, catalog, param schemas)            |
+| `@tsai-pe/theme`           | Tailwind tokens and global CSS                                |
 
 `@tsai-pe/workflow-mock` (mock backend) and `@tsai-pe/workflow-http` (REST/WS
 adapter skeleton) are dev/reference packages and are not published to npm.
@@ -44,6 +45,7 @@ adapter skeleton) are dev/reference packages and are not published to npm.
 ```bash
 npm install
 npx nx serve playground        # → http://localhost:4200/board
+npx nx serve playground        # → http://localhost:4200/pipeline-ui-kit
 ```
 
 ## Tasks

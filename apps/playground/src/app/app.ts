@@ -48,6 +48,7 @@ export class App {
   protected readonly playgrounds: PlaygroundLink[] = [
     { path: '/ui-kit', label: 'UI Kit' },
     { path: '/board', label: 'Board' },
+    { path: '/pipeline-ui-kit', label: 'Pipeline UI Kit' },
   ];
 
   private readonly router = inject(Router);
@@ -66,7 +67,11 @@ export class App {
   );
 
   /** The board fills the viewport; other routes use the centered page layout. */
-  protected readonly fullBleed = computed(() => this.url().startsWith('/board'));
+  protected readonly fullBleed = computed(
+    () =>
+      this.url().startsWith('/board') ||
+      this.url().startsWith('/pipeline-ui-kit'),
+  );
 
   protected toggleTheme(): void {
     const light = !this.isLight();

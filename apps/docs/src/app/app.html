@@ -2,7 +2,9 @@
   <header
     class="sticky top-0 z-30 border-b border-border bg-bg/92 backdrop-blur"
   >
-    <div class="mx-auto flex max-w-7xl flex-wrap items-center gap-2 px-3 py-2.5 sm:gap-4 sm:px-6 sm:py-3">
+    <div
+      class="mx-auto flex max-w-7xl flex-wrap items-center gap-2 px-3 py-2.5 sm:gap-4 sm:px-6 sm:py-3"
+    >
       <a class="min-w-0 flex-1 text-sm font-semibold text-text" href="#start">
         Pipeline Editor
       </a>
@@ -70,7 +72,9 @@
         <tsai-badge variant="result">Tailwind v4</tsai-badge>
       </div>
       <div class="space-y-4">
-        <h1 class="max-w-3xl text-3xl font-semibold leading-tight sm:text-5xl xl:text-6xl">
+        <h1
+          class="max-w-3xl text-3xl font-semibold leading-tight sm:text-5xl xl:text-6xl"
+        >
           Visual pipeline editor for product-grade workflow builders.
         </h1>
         <p class="max-w-2xl text-base leading-7 text-text-2 sm:text-lg">
@@ -158,6 +162,85 @@
           disable editing. Provide `PIPELINE_NODE_CATALOG`, `PIPELINE_STORE` and
           `PIPELINE_BACKEND` at the host component or route level.
         </tsai-alert>
+      </section>
+
+      <section id="pipeline-ui-kit" class="doc-section">
+        <div class="doc-heading">
+          <span>03</span>
+          <h2>Compose your own pipeline UI</h2>
+        </div>
+        <p class="doc-copy">
+          Use `@tsai-pe/pipeline-ui-kit` when the host application wants the
+          canvas primitives but owns the modal, drawer, routing, save controls
+          or node-add workflow. The primitives render data and emit intents;
+          `BoardStore` and your app decide what those intents mean.
+        </p>
+
+        <div class="grid gap-4 xl:grid-cols-[minmax(0,1fr)_320px]">
+          <div
+            class="overflow-hidden rounded-[var(--r-md)] border border-border bg-surface-1"
+          >
+            <div
+              class="flex items-center justify-between gap-3 border-b border-border px-3 py-2"
+            >
+              <div>
+                <h3 class="text-sm font-semibold text-text">
+                  Primitive board surface
+                </h3>
+                <p class="text-xs text-text-3">
+                  Toggle node status and select nodes without using `pe-board`.
+                </p>
+              </div>
+              <tsai-button
+                size="sm"
+                variant="secondary"
+                (click)="cycleKitStatus()"
+              >
+                {{ kitStatus() }}
+              </tsai-button>
+            </div>
+
+            <div class="h-[320px]">
+              <pe-board-surface
+                [pan]="kitStore.viewport.pan()"
+                [zoom]="kitStore.viewport.zoom()"
+              >
+                <ng-container pe-board-world>
+                  <pe-pipeline-edge-layer [edges]="kitStore.edgeGeometries()" />
+                  @for (node of kitStore.nodes(); track node.id) {
+                  <pe-pipeline-node
+                    [node]="node"
+                    [selected]="kitSelectedId() === node.id"
+                    [runStatus]="kitStatus()"
+                    (bodyPointerDown)="selectKitNode(node.id)"
+                    (openRequested)="selectKitNode(node.id)"
+                  />
+                  }
+                </ng-container>
+              </pe-board-surface>
+            </div>
+          </div>
+
+          <div
+            class="rounded-[var(--r-md)] border border-border bg-surface-1 p-4"
+          >
+            @if (kitSelectedNode(); as node) {
+            <div class="mb-4">
+              <h3 class="text-sm font-semibold text-text">Inspector content</h3>
+              <p class="text-xs text-text-3">
+                This panel could be your modal, drawer or routed page.
+              </p>
+            </div>
+            <pe-node-inspector
+              [node]="node"
+              [catalog]="nodeCatalog"
+              (nodeChange)="updateKitNode($event)"
+            />
+            }
+          </div>
+        </div>
+
+        <app-code-block [code]="pipelineUiKitSnippet" language="typescript" />
       </section>
 
       <section id="concepts" class="doc-section">
@@ -325,7 +408,9 @@
           `PipelineBackend` contract is intentionally small so it can wrap REST,
           WebSocket, SSE or local prototypes.
         </p>
-        <div class="grid gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(280px,320px)]">
+        <div
+          class="grid gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(280px,320px)]"
+        >
           <app-code-block [code]="backendSnippet" language="typescript" />
           <tsai-card>
             <div class="flex flex-col gap-4">

@@ -32,3 +32,23 @@ test('the ui kit playground fits a mobile viewport', async ({ page }) => {
   );
   expect(overflow).toBeLessThanOrEqual(1);
 });
+
+test('the pipeline ui kit playground renders composable primitives', async ({
+  page,
+}) => {
+  await page.goto('/pipeline-ui-kit');
+
+  await expect(
+    page.getByRole('heading', { name: 'Pipeline UI Kit' }),
+  ).toBeVisible();
+  await expect(page.locator('pe-board-surface')).toBeVisible();
+  await expect(page.locator('pe-pipeline-node')).toHaveCount(3);
+  await expect(
+    page.locator('pe-pipeline-edge-layer path[marker-end]'),
+  ).toHaveCount(2);
+
+  await page.getByText('Webhook').first().click();
+  await expect(
+    page.getByRole('heading', { name: 'Node Inspector' }),
+  ).toBeVisible();
+});

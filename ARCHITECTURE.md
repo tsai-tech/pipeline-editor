@@ -62,10 +62,11 @@ packages/                   (folder / nx name    →  npm name)
     nodes/     (nodes)      @tsai-pe/nodes         scope:shared type:model  ← node-type registry (derivePorts, catalog, schemas)
     theme/     (theme)      @tsai-pe/theme         scope:shared type:util   ← Tailwind tokens + global CSS
   ui-kit/      (ui-kit)     @tsai-pe/ui-kit        scope:shared type:ui     ← Angular Aria + CDK + Tailwind
+  pipeline-ui-kit/          @tsai-pe/pipeline-ui-kit scope:board type:ui   ← composable board/node/edge/picker/inspector primitives
 
   board/
     core/      (core)       @tsai-pe/board-core    scope:board  type:core   ← BoardStore, viewport, geometry, A* routing
-    ui/        (ui)         @tsai-pe/board-ui      scope:board  type:ui     ← pe-board-grid, pe-node
+    ui/        (ui)         @tsai-pe/board-ui      scope:board  type:ui     ← legacy pe-board-grid, pe-node compatibility
     feature/   (feature)    @tsai-pe/board         scope:board  type:feature ← <pe-board> — the public editor (main package)
 
   workflow/                 (private — not published to npm)
@@ -90,11 +91,16 @@ graph TD
   playground --> mock[workflow/mock]
   playground --> theme[shared/theme]
 
-  boardFeature --> boardUi[board/ui]
+  boardFeature --> pipelineUi[pipeline-ui-kit]
   boardFeature --> boardCore[board/core]
   boardFeature --> uiKit[ui-kit]
   boardFeature --> nodes[shared/nodes]
   boardFeature --> models[shared/models]
+
+  pipelineUi --> boardCore
+  pipelineUi --> uiKit
+  pipelineUi --> nodes
+  pipelineUi --> models
 
   boardUi --> boardCore
   boardUi --> nodes
@@ -185,19 +191,32 @@ Pure TS + Angular signals, no templates:
 
 Depends on: `shared/models`, `shared/nodes`.
 
-### 5.2 `board/ui` — presentational components (type:ui)
+### 5.2 `pipeline-ui-kit` — composable pipeline UI primitives (type:ui)
 
 "Dumb" `OnPush` components (prefix `pe`):
 
+- **`pe-board-surface`** — a generic board shell with grid/world slots and raw
+  surface events. It owns no store, backend, palette, modal or persistence.
 - **`pe-board-grid`** — the dot-grid background, reacts to the viewport.
-- **`pe-node`** — a node's visuals: ports by side fraction, control-flow branch
+- **`pe-pipeline-edge` / `pe-pipeline-edge-layer`** — named SVG connections,
+  branch labels, arrows, active/selected states and draft connections.
+- **`pe-pipeline-node`** — a node's visuals: ports by side fraction, control-flow branch
   labels, run status/progress overlays.
+- **`pe-node-picker`** — catalog-driven add-node content. It emits a selected
+  item; the host decides whether this lives in a drawer, popover, route or panel.
+- **`pe-node-inspector`** — catalog-driven node editor content. It emits updated
+  `BoardNode` values; the host decides how and where to present it.
 
-Depends on: `board/core`, `shared/models`, `shared/nodes`.
+Depends on: `board/core`, `ui-kit`, `shared/models`, `shared/nodes`.
+
+`board/ui` remains as a compatibility package for the earlier `pe-node` /
+`pe-board-grid` names, but new composition work should use
+`@tsai-pe/pipeline-ui-kit`.
 
 ### 5.3 `board/feature` — the assembled editor (type:feature) · public entry point
 
-The `<pe-board>` component: wires `BoardStore` to the `board/ui` components,
+The `<pe-board>` component: wires `BoardStore` to the `pipeline-ui-kit`
+components,
 handles keyboard/mouse (pan/zoom with right/middle/Space, marquee selection,
 drag-and-drop from the catalog palette, copy/paste, undo/redo, hotkeys, resize,
 context menu, alignment guides, delete-safety), draws the minimap and the
@@ -208,7 +227,8 @@ switch cases, effect settings and run output. Mock-only settings are just fields
 from the mock catalog. It injects the backend via the
 `PIPELINE_BACKEND` token and observes the run. Modals/buttons come from `ui-kit`.
 
-Depends on: `board/core`, `board/ui`, `ui-kit`, `shared/models`, `shared/nodes`.
+Depends on: `board/core`, `pipeline-ui-kit`, `ui-kit`, `shared/models`,
+`shared/nodes`.
 
 ---
 

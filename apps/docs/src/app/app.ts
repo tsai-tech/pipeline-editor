@@ -1,11 +1,23 @@
 import { NgClass } from '@angular/common';
-import { ChangeDetectionStrategy, Component, signal } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  computed,
+  signal,
+} from '@angular/core';
+import { BoardStore } from '@tsai-pe/board-core';
 import {
   Board,
   PIPELINE_BACKEND,
   PIPELINE_NODE_CATALOG,
   PIPELINE_STORE,
 } from '@tsai-pe/board';
+import {
+  BoardSurface,
+  NodeInspector,
+  PipelineEdgeLayer,
+  PipelineNode,
+} from '@tsai-pe/pipeline-ui-kit';
 import type { BoardNode, Pipeline } from '@tsai-pe/models';
 import { MOCK_NODE_CATALOG, TestBackendSystem } from '@tsai-pe/workflow-mock';
 import { InMemoryPipelineStore } from '@tsai-pe/workflow-mock';
@@ -125,6 +137,10 @@ DEMO_STORE.save(STARTER_PIPELINE);
   imports: [
     NgClass,
     Board,
+    BoardSurface,
+    PipelineEdgeLayer,
+    PipelineNode,
+    NodeInspector,
     Button,
     Card,
     Alert,
@@ -152,11 +168,19 @@ export class App {
   protected readonly search = signal('customer.email');
   protected readonly backendMode = signal<string[]>(['rest-ws']);
   protected readonly pipeline = signal(STARTER_PIPELINE);
+  protected readonly nodeCatalog = MOCK_NODE_CATALOG;
+  protected readonly kitStore = new BoardStore(MOCK_NODE_CATALOG);
+  protected readonly kitSelectedId = signal('score');
+  protected readonly kitStatus = signal<'idle' | 'running' | 'success'>('idle');
+  protected readonly kitSelectedNode = computed(() =>
+    this.kitStore.nodes().find((node) => node.id === this.kitSelectedId()),
+  );
 
   protected readonly nav: NavItem[] = [
     { id: 'start', label: 'Start' },
     { id: 'install', label: 'Install' },
     { id: 'board', label: 'Board' },
+    { id: 'pipeline-ui-kit', label: 'Pipeline UI Kit' },
     { id: 'concepts', label: 'Concepts' },
     { id: 'model', label: 'Model' },
     { id: 'catalog', label: 'Catalog' },
@@ -180,6 +204,10 @@ export class App {
 
   protected readonly packages: TableRow[] = [
     { name: '@tsai-pe/board', purpose: '<pe-board> editor and tokens' },
+    {
+      name: '@tsai-pe/pipeline-ui-kit',
+      purpose: 'Composable board, node, edge, picker and inspector primitives',
+    },
     { name: '@tsai-pe/ui-kit', purpose: 'Reusable Angular UI controls' },
     { name: '@tsai-pe/theme', purpose: 'Tailwind v4 tokens and global CSS' },
     {
@@ -423,13 +451,37 @@ export class App {
     },
   ];
 
-  protected readonly installSnippet = `npm install @tsai-pe/board @tsai-pe/board-core @tsai-pe/board-ui @tsai-pe/ui-kit @tsai-pe/models @tsai-pe/nodes @tsai-pe/theme lucide-angular @angular/cdk @angular/aria`;
+  constructor() {
+    this.kitStore.load(STARTER_PIPELINE);
+    this.kitStore.viewport.fitTo(this.kitStore.contentBounds(), {
+      width: 760,
+      height: 300,
+    });
+  }
+
+  protected selectKitNode(id: string): void {
+    this.kitSelectedId.set(id);
+    this.kitStore.select(id);
+  }
+
+  protected updateKitNode(node: BoardNode): void {
+    this.kitStore.updateNode(node.id, node);
+  }
+
+  protected cycleKitStatus(): void {
+    this.kitStatus.update((status) =>
+      status === 'idle' ? 'running' : status === 'running' ? 'success' : 'idle',
+    );
+  }
+
+  protected readonly installSnippet = `npm install @tsai-pe/board @tsai-pe/pipeline-ui-kit @tsai-pe/board-core @tsai-pe/ui-kit @tsai-pe/models @tsai-pe/nodes @tsai-pe/theme lucide-angular @angular/cdk @angular/aria`;
 
   protected readonly stylesSnippet = `/* src/styles.css */
 @import '@tsai-pe/theme';
 @import '@angular/cdk/overlay-prebuilt.css';
 
 @source '../node_modules/@tsai-pe/board';
+@source '../node_modules/@tsai-pe/pipeline-ui-kit';
 @source '../node_modules/@tsai-pe/ui-kit';`;
 
   protected readonly boardSnippet = `import { Component, signal } from '@angular/core';
@@ -449,6 +501,54 @@ import type { Pipeline } from '@tsai-pe/models';
 })
 export class WorkflowBuilder {
   readonly pipeline = signal<Pipeline>(initialPipeline);
+}`;
+
+  protected readonly pipelineUiKitSnippet = `import { Component, computed } from '@angular/core';
+import { BoardStore } from '@tsai-pe/board-core';
+import {
+  BoardSurface,
+  NodeInspector,
+  PipelineEdgeLayer,
+  PipelineNode,
+} from '@tsai-pe/pipeline-ui-kit';
+
+@Component({
+  standalone: true,
+  imports: [BoardSurface, PipelineEdgeLayer, PipelineNode, NodeInspector],
+  template: \`
+    <pe-board-surface [pan]="store.viewport.pan()" [zoom]="store.viewport.zoom()">
+      <ng-container pe-board-world>
+        <pe-pipeline-edge-layer [edges]="store.edgeGeometries()" />
+        @for (node of store.nodes(); track node.id) {
+          <pe-pipeline-node
+            [node]="node"
+            [selected]="selectedNode()?.id === node.id"
+            (bodyPointerDown)="select(node.id)"
+          />
+        }
+      </ng-container>
+    </pe-board-surface>
+
+    <app-drawer [open]="!!selectedNode()">
+      @if (selectedNode(); as node) {
+        <pe-node-inspector
+          [node]="node"
+          [catalog]="catalog"
+          (nodeChange)="store.updateNode($event.id, $event)"
+        />
+      }
+    </app-drawer>
+  \`,
+})
+export class CustomPipelineBuilder {
+  readonly store = new BoardStore(catalog);
+  readonly selectedNode = computed(() =>
+    this.store.nodes().find((node) => this.store.isSelected(node.id)),
+  );
+
+  select(id: string): void {
+    this.store.select(id);
+  }
 }`;
 
   protected readonly pipelineSnippet = `import type { Pipeline } from '@tsai-pe/models';
@@ -557,6 +657,7 @@ export const ROUTER_NODE = {
 @import '@angular/cdk/overlay-prebuilt.css';
 
 @source '../node_modules/@tsai-pe/board';
+@source '../node_modules/@tsai-pe/pipeline-ui-kit';
 @source '../node_modules/@tsai-pe/ui-kit';
 
 :root {

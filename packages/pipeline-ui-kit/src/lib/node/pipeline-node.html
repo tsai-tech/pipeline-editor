@@ -1,0 +1,100 @@
+<div [class]="bodyClasses()" (pointerdown)="onBodyPointerDown($event)">
+  <span
+    class="absolute inset-y-0 left-0 w-[3px] bg-[var(--node-accent)]"
+    aria-hidden="true"
+  ></span>
+
+  <span
+    class="grid h-[30px] w-[30px] shrink-0 place-items-center rounded-[var(--r-sm)] text-[var(--node-accent)] bg-[color-mix(in_srgb,var(--node-accent)_14%,transparent)]"
+  >
+    <lucide-icon [img]="meta().icon" [size]="16" />
+  </span>
+
+  <div class="flex min-w-0 flex-col leading-tight">
+    <span class="truncate text-[0.8125rem] font-semibold text-text"
+      >{{ node().title }}</span
+    >
+    @if (node().subtitle) {
+    <span class="truncate text-[0.6875rem] text-text-2"
+      >{{ node().subtitle }}</span
+    >
+    }
+  </div>
+
+  @if (node().kind === 'action' && node().category === 'merge') {
+  <span
+    class="ml-auto shrink-0 rounded-full px-[7px] py-0.5 text-[0.625rem] font-semibold text-[var(--node-accent)] bg-[color-mix(in_srgb,var(--node-accent)_14%,transparent)]"
+    >buffer x{{ bufferSizeLabel() }}</span
+  >
+  } @else if (node().kind === 'effect') {
+  <span
+    class="ml-auto shrink-0 rounded-full px-[7px] py-0.5 text-[0.625rem] font-semibold"
+    [class]="
+        node().required === false
+          ? 'text-text-2 bg-[var(--surface-3)]'
+          : 'text-[var(--node-accent)] bg-[color-mix(in_srgb,var(--node-accent)_14%,transparent)]'
+      "
+    >{{ node().required === false ? 'optional' : 'required' }}</span
+  >
+  }
+</div>
+
+@if (resizable()) {
+<button
+  type="button"
+  class="absolute -right-1 -bottom-1 h-3 w-3 rounded-[2px] border border-[var(--node-accent)] bg-[var(--surface-1)] cursor-nwse-resize transition-opacity duration-150"
+  [class]="selected() || hovered() ? 'opacity-100' : 'opacity-0'"
+  aria-label="Resize node"
+  (pointerdown)="onResizeDown($event)"
+  (dblclick)="onResizeAuto($event)"
+></button>
+} @if (statusOverlay(); as st) {
+<span
+  class="absolute inset-0 rounded-[var(--r-md)] pointer-events-none"
+  [class]="st.ring"
+  aria-hidden="true"
+></span>
+<span
+  class="absolute -top-1 -right-1 h-2.5 w-2.5 rounded-full border-2 border-[var(--surface-2)]"
+  [class]="st.dot"
+  [attr.title]="runError() ?? (runStatus() ?? node().status)"
+></span>
+} @if (showError()) {
+<span
+  class="absolute -bottom-1.5 right-2 left-2 truncate rounded-[var(--r-sm)] border border-[var(--surface-2)] bg-[var(--danger)] px-1.5 py-0.5 text-[10px] font-medium text-white pointer-events-none"
+  [attr.title]="runError()"
+  >{{ runError() }}</span
+>
+} @if (node().kind === 'action' && node().category === 'merge') { @if (buffer();
+as b) { @if (b.total > 1) {
+<span
+  class="absolute -top-2 left-2 grid h-4 place-items-center rounded-full border border-[var(--surface-2)] bg-[var(--info)] px-1.5 text-[10px] font-semibold text-white"
+  title="buffer fill"
+>
+  {{ b.done }}/{{ b.total }}
+</span>
+} } } @for (port of node().ports; track port.id) { @if (port.label && port.role
+=== 'output' && port.side === 'right') {
+<span
+  class="absolute right-2.5 max-w-[60%] -translate-y-1/2 truncate text-right text-[10px] text-text-2 pointer-events-none"
+  [style.top.%]="fraction(port)"
+  >{{ port.label }}</span
+>
+}
+<button
+  type="button"
+  [class]="portClasses(port)"
+  [style.top.%]="isAlongY(port.side) ? fraction(port) : null"
+  [style.left.%]="isAlongY(port.side) ? null : fraction(port)"
+  [attr.data-side]="port.side"
+  [attr.data-node]="node().id"
+  [attr.data-port]="port.id"
+  [attr.data-role]="port.role"
+  [attr.title]="portTitle(port)"
+  [attr.aria-label]="port.role + ' port (' + port.side + ')'"
+  (pointerdown)="onPortPointerDown(port, $event)"
+  (pointerup)="onPortPointerUp(port, $event)"
+>
+  <span [class]="dotClasses(port)" aria-hidden="true"></span>
+</button>
+}
