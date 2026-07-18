@@ -82,7 +82,8 @@
     },
     "changelog": {
       "projectChangelogs": true,
-      "workspaceChangelog": false
+      "workspaceChangelog": false,
+      "automaticFromRef": true
     }
   },
   "plugins": [
