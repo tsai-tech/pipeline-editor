@@ -13,36 +13,41 @@ export interface EdgePointer {
 }
 
 @Component({
-  selector: 'pe-pipeline-edge',
+  // Attribute selector keeps the host as a real SVG <g>; a custom element inside
+  // <svg> leaves paths in the DOM but makes connections disappear in browsers.
+  // eslint-disable-next-line @angular-eslint/component-selector
+  selector: '[pe-pipeline-edge]',
   imports: [],
   template: `
-    <svg:g class="group cursor-pointer" (pointerdown)="onPointerDown($event)">
-      <svg:title>{{ edge().label }}</svg:title>
-      <svg:path
-        class="fill-none stroke-[transparent] [stroke-width:16] [pointer-events:stroke]"
-        [attr.d]="edge().path"
-      />
-      <svg:path
-        [class]="pathClasses()"
-        [attr.d]="edge().path"
-        [attr.marker-end]="
-          active() || edge().selected ? activeMarker() : marker()
-        "
-      />
-      @if (edge().midLabel; as label) {
-        <svg:text
-          class="fill-[var(--text-2)] stroke-[var(--canvas-bg)] [stroke-width:3] [paint-order:stroke] text-[10px] font-medium [pointer-events:none] select-none"
-          text-anchor="middle"
-          dominant-baseline="central"
-          [attr.x]="edge().mid.x"
-          [attr.y]="edge().mid.y"
-        >
-          {{ label }}
-        </svg:text>
-      }
-    </svg:g>
+    <svg:title>{{ edge().label }}</svg:title>
+    <svg:path
+      class="fill-none stroke-[transparent] [stroke-width:16] [pointer-events:stroke]"
+      [attr.d]="edge().path"
+    />
+    <svg:path
+      [class]="pathClasses()"
+      [attr.d]="edge().path"
+      [attr.marker-end]="
+        active() || edge().selected ? activeMarker() : marker()
+      "
+    />
+    @if (edge().midLabel; as label) {
+      <svg:text
+        class="fill-[var(--text-2,rgba(255,255,255,0.65))] stroke-[var(--canvas-bg,#08080a)] [stroke-width:3] [paint-order:stroke] text-[10px] font-medium [pointer-events:none] select-none"
+        text-anchor="middle"
+        dominant-baseline="central"
+        [attr.x]="edge().mid.x"
+        [attr.y]="edge().mid.y"
+      >
+        {{ label }}
+      </svg:text>
+    }
   `,
   changeDetection: ChangeDetectionStrategy.OnPush,
+  host: {
+    class: 'group cursor-pointer',
+    '(pointerdown)': 'onPointerDown($event)',
+  },
 })
 export class PipelineEdge {
   readonly edge = input.required<EdgeGeometry>();
@@ -57,8 +62,8 @@ export class PipelineEdge {
     return (
       'fill-none [stroke-width:2.25] transition-[stroke,stroke-width,opacity] ' +
       (active
-        ? 'stroke-[var(--accent)] [stroke-width:3]'
-        : 'stroke-[var(--edge)] group-hover:stroke-[var(--text-3)]')
+        ? 'stroke-[var(--accent,#7c5cff)] [stroke-width:3]'
+        : 'stroke-[var(--edge,rgba(255,255,255,0.28))] group-hover:stroke-[var(--text-3,rgba(255,255,255,0.45))]')
     );
   });
 

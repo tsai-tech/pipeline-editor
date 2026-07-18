@@ -15,6 +15,21 @@ describe('BoardSurface', () => {
     expect(world.style.transform).toBe('translate(10px, 20px) scale(1.5)');
   });
 
+  it('renders the dot grid layer with viewport-bound sizing', async () => {
+    const fixture = TestBed.createComponent(BoardSurface);
+    fixture.componentRef.setInput('pan', { x: 12, y: 18 });
+    fixture.componentRef.setInput('zoom', 2);
+    fixture.detectChanges();
+    await fixture.whenStable();
+
+    const grid = fixture.nativeElement.querySelector(
+      'pe-board-grid div',
+    ) as HTMLElement;
+    expect(grid.classList).toContain('pe-board-grid-dots');
+    expect(grid.style.backgroundSize).toBe('64px');
+    expect(grid.style.backgroundPosition).toBe('12px 18px');
+  });
+
   it('emits surface pointer events', async () => {
     const fixture = TestBed.createComponent(BoardSurface);
     fixture.detectChanges();

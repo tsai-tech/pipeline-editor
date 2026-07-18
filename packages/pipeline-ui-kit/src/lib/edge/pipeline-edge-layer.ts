@@ -24,7 +24,10 @@ import { PipelineEdge, type EdgePointer } from './pipeline-edge';
           markerHeight="7"
           orient="auto-start-reverse"
         >
-          <svg:path class="fill-[var(--edge)]" d="M 0 1 L 9 5 L 0 9 z" />
+          <svg:path
+            class="fill-[var(--edge,rgba(255,255,255,0.28))]"
+            d="M 0 1 L 9 5 L 0 9 z"
+          />
         </svg:marker>
         <svg:marker
           [attr.id]="activeArrowId()"
@@ -35,23 +38,27 @@ import { PipelineEdge, type EdgePointer } from './pipeline-edge';
           markerHeight="7"
           orient="auto-start-reverse"
         >
-          <svg:path class="fill-[var(--accent)]" d="M 0 1 L 9 5 L 0 9 z" />
+          <svg:path
+            class="fill-[var(--accent,#7c5cff)]"
+            d="M 0 1 L 9 5 L 0 9 z"
+          />
         </svg:marker>
       </svg:defs>
 
       @for (edge of edges(); track edge.id) {
-        <pe-pipeline-edge
+        <svg:g
+          pe-pipeline-edge
           [edge]="edge"
           [active]="activeEdgeIds().has(edge.id)"
           [marker]="marker()"
           [activeMarker]="activeMarker()"
           (edgePointerDown)="edgePointerDown.emit($event)"
-        />
+        ></svg:g>
       }
 
       @if (draftPath(); as path) {
         <svg:path
-          class="fill-none stroke-[var(--accent)] [stroke-width:2] [stroke-dasharray:6_5] [pointer-events:none]"
+          class="fill-none stroke-[var(--accent,#7c5cff)] [stroke-width:2] [stroke-dasharray:6_5] [pointer-events:none]"
           [attr.d]="path"
           [attr.marker-end]="activeMarker()"
         />

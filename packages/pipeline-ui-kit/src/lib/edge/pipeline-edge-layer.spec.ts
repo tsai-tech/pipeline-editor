@@ -25,6 +25,8 @@ describe('PipelineEdgeLayer', () => {
     expect(host.querySelector('path[d="M 0 0 L 100 0"]')).toBeTruthy();
     expect(host.querySelector('path[d="M 0 0 L 20 20"]')).toBeTruthy();
     expect(host.textContent).toContain('success');
+    expect(host.querySelector('pe-pipeline-edge')).toBeNull();
+    expect(host.querySelector('svg g[pe-pipeline-edge]')).toBeTruthy();
   });
 
   it('emits edge pointer intents', async () => {
