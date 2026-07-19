@@ -1,3 +1,13 @@
+## 0.1.3 (2026-07-19)
+
+### 🩹 Fixes
+
+- **board:** increase grid dot visibility ([ffc52f1](https://github.com/tsaitechnology/pipeline-editor/commit/ffc52f1))
+
+### ❤️ Thank You
+
+- Mikhail Tsai @find
+
 ## 0.1.2 (2026-07-18)
 
 ### 🩹 Fixes

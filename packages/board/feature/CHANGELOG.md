@@ -1,3 +1,13 @@
+## 0.1.3 (2026-07-19)
+
+### 🧱 Updated Dependencies
+
+- Updated pipeline-ui-kit to 0.1.3
+- Updated ui-kit to 0.1.3
+- Updated core to 0.1.3
+- Updated models to 0.1.3
+- Updated nodes to 0.1.3
+
 ## 0.1.2 (2026-07-18)
 
 ### 🚀 Features
